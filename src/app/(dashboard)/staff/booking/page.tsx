@@ -68,7 +68,7 @@ export default function StaffBookingPage() {
 
       <div className="flex flex-col md:flex-row gap-4">
         {/* Placeholder for calendar/date picker filter */}
-        <div className="w-full md:w-64 border rounded-xl p-4 bg-card h-fit flex-shrink-0">
+        <div className="w-full md:w-64 border rounded-xl p-4 bg-card h-fit shrink-0">
           <div className="flex items-center gap-2 mb-4">
             <CalendarDays className="h-5 w-5 text-primary" />
             <span className="font-semibold">Schedule Filter</span>

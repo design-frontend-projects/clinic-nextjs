@@ -21,7 +21,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300",
+        "sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60 transition-all duration-300",
         isOpen ? "ml-64" : "ml-16",
       )}
     >

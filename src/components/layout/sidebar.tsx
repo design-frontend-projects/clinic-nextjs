@@ -117,7 +117,7 @@ export function Sidebar({ role = "admin" }: { role?: string }) {
                   !isOpen && "justify-center px-2",
                 )}
               >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <item.icon className="h-5 w-5 shrink-0" />
                 {isOpen && <span>{item.title}</span>}
               </Link>
             );

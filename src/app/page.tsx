@@ -97,7 +97,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
@@ -127,7 +127,7 @@ export default function LandingPage() {
           </div>
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
             Modern Clinic{" "}
-            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Management
             </span>
           </h1>
