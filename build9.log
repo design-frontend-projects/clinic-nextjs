@@ -1,0 +1,25 @@
+
+> clinic-app@0.1.0 build E:\web-projects\web-mobile-work-apps\clinic-nextjs
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.9s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/actions/doctor.ts:159:18
+Type error: Object literal may only specify known properties, and 'order_date' does not exist in type 'lab_ordersOrderByWithRelationInput | lab_ordersOrderByWithRelationInput[]'.
+
+[0m [90m 157 |[39m       where[33m:[39m { patient_id[33m:[39m patientId[33m,[39m clinic_id[33m:[39m tenant[33m.[39mclinicId }[33m,[39m
+ [90m 158 |[39m       include[33m:[39m { lab_results[33m:[39m [36mtrue[39m }[33m,[39m
+[31m[1m>[22m[39m[90m 159 |[39m       orderBy[33m:[39m { order_date[33m:[39m [32m"desc"[39m }[33m,[39m
+ [90m     |[39m                  [31m[1m^[22m[39m
+ [90m 160 |[39m     })[33m,[39m
+ [90m 161 |[39m   ])[33m;[39m
+ [90m 162 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+ ELIFECYCLE  Command failed with exit code 1.

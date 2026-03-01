@@ -1,0 +1,16 @@
+src/app/(dashboard)/admin/doctors/page.tsx(83,15): error TS2352: Conversion of type '{ id: string; clerk_user_id: string; clinic_id: string; branch_id: string | null; first_name: string | null; last_name: string | null; full_name: string | null; email: string | null; phone: string | null; specialty: string | null; role: string | null; created_at: Date; }[]' to type 'Doctor[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'status' is missing in type '{ id: string; clerk_user_id: string; clinic_id: string; branch_id: string | null; first_name: string | null; last_name: string | null; full_name: string | null; email: string | null; phone: string | null; specialty: string | null; role: string | null; created_at: Date; }' but required in type 'Doctor'.
+src/app/(dashboard)/doctor/page.tsx(161,44): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.
+      Type 'undefined' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.
+      Type 'undefined' is not assignable to type 'string | number'.
+src/app/actions/admin.ts(20,53): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type 'profilesWhereInput'.
+src/app/actions/admin.ts(103,7): error TS2353: Object literal may only specify known properties, and 'branch_id' does not exist in type '(Without<patientsCreateInput, patientsUncheckedCreateInput> & patientsUncheckedCreateInput) | (Without<...> & patientsCreateInput)'.
+src/app/actions/admin.ts(143,7): error TS2353: Object literal may only specify known properties, and 'address' does not exist in type '(Without<patientsUpdateInput, patientsUncheckedUpdateInput> & patientsUncheckedUpdateInput) | (Without<...> & patientsUpdateInput)'.
+src/app/actions/doctor.ts(150,18): error TS2353: Object literal may only specify known properties, and 'encounter_date' does not exist in type 'encountersOrderByWithRelationInput | encountersOrderByWithRelationInput[]'.
+src/app/actions/doctor.ts(154,18): error TS2353: Object literal may only specify known properties, and 'dispense_date' does not exist in type 'prescription_dispensesOrderByWithRelationInput | prescription_dispensesOrderByWithRelationInput[]'.
+src/app/actions/doctor.ts(158,7): error TS2322: Type '{ lab_results: true; }' is not assignable to type 'never'.
+src/app/actions/doctor.ts(189,7): error TS2353: Object literal may only specify known properties, and 'branch_id' does not exist in type '(Without<encountersCreateInput, encountersUncheckedCreateInput> & encountersUncheckedCreateInput) | (Without<...> & encountersCreateInput)'.

@@ -1,0 +1,9 @@
+src/app/(dashboard)/doctor/page.tsx(161,44): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.
+      Type 'undefined' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.
+      Type 'undefined' is not assignable to type 'string | number'.
+src/app/actions/doctor.ts(147,7): error TS2322: Type '{ profiles: { select: { full_name: true; }; }; }' is not assignable to type 'never'.
+src/app/actions/doctor.ts(192,7): error TS2353: Object literal may only specify known properties, and 'appointment_id' does not exist in type '(Without<encountersCreateInput, encountersUncheckedCreateInput> & encountersUncheckedCreateInput) | (Without<...> & encountersCreateInput)'.

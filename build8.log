@@ -1,0 +1,25 @@
+
+> clinic-app@0.1.0 build E:\web-projects\web-mobile-work-apps\clinic-nextjs
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.7s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/actions/doctor.ts:154:18
+Type error: Object literal may only specify known properties, and 'dispense_date' does not exist in type 'prescription_dispensesOrderByWithRelationInput | prescription_dispensesOrderByWithRelationInput[]'.
+
+[0m [90m 152 |[39m     prisma[33m.[39mprescription_dispenses[33m.[39mfindMany({
+ [90m 153 |[39m       where[33m:[39m { patient_id[33m:[39m patientId[33m,[39m clinic_id[33m:[39m tenant[33m.[39mclinicId }[33m,[39m
+[31m[1m>[22m[39m[90m 154 |[39m       orderBy[33m:[39m { dispense_date[33m:[39m [32m"desc"[39m }[33m,[39m
+ [90m     |[39m                  [31m[1m^[22m[39m
+ [90m 155 |[39m     })[33m,[39m
+ [90m 156 |[39m     prisma[33m.[39mlab_orders[33m.[39mfindMany({
+ [90m 157 |[39m       where[33m:[39m { patient_id[33m:[39m patientId[33m,[39m clinic_id[33m:[39m tenant[33m.[39mclinicId }[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+ ELIFECYCLE  Command failed with exit code 1.

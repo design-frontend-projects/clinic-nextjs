@@ -1,0 +1,1 @@
+src/app/actions/doctor.ts(196,7): error TS2353: Object literal may only specify known properties, and 'treatment_plan' does not exist in type 'Without<encountersCreateInput, encountersUncheckedCreateInput> & encountersUncheckedCreateInput'.

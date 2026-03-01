@@ -1,0 +1,52 @@
+
+> clinic-app@0.1.0 build E:\web-projects\web-mobile-work-apps\clinic-nextjs
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.9s
+  Running TypeScript ...
+  Collecting page data using 19 workers ...
+  Generating static pages using 19 workers (0/4) ...
+  Generating static pages using 19 workers (1/4) 
+  Generating static pages using 19 workers (2/4) 
+  Generating static pages using 19 workers (3/4) 
+✓ Generating static pages using 19 workers (4/4) in 138.6ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /admin
+├ ƒ /admin/appointments
+├ ƒ /admin/billing
+├ ƒ /admin/doctors
+├ ƒ /admin/patients
+├ ƒ /admin/settings
+├ ƒ /admin/staff
+├ ƒ /doctor
+├ ƒ /doctor/appointments
+├ ƒ /doctor/lab-orders
+├ ƒ /doctor/patients
+├ ƒ /doctor/patients/[id]
+├ ƒ /doctor/prescriptions
+├ ƒ /pharmacy/dispensing
+├ ƒ /pharmacy/inventory
+├ ƒ /pharmacy/medications
+├ ƒ /pharmacy/orders
+├ ƒ /sign-in/[[...sign-in]]
+├ ƒ /sign-up/[[...sign-up]]
+├ ƒ /staff
+├ ƒ /staff/billing
+├ ƒ /staff/booking
+└ ƒ /staff/checkin
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

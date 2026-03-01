@@ -1,0 +1,672 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model profiles {
+  id                                                     String                   @id @default(uuid()) @db.Uuid
+  clerk_user_id                                          String                   @unique
+  clinic_id                                              String                   @db.Uuid
+  branch_id                                              String?                  @db.Uuid
+  full_name                                              String?
+  email                                                  String?
+  phone                                                  String?
+  role                                                   String?
+  specialty                                              String?
+  status                                                 UserStatus               @default(active)
+  created_at                                             DateTime                 @default(now())
+  appointments                                           appointments[]
+  encounters                                             encounters[]
+  lab_orders                                             lab_orders[]
+  medical_files                                          medical_files[]
+  medical_records                                        medical_records[]
+  pharmacy_sales                                         pharmacy_sales[]
+  prescription_dispenses                                 prescription_dispenses[]
+  profile_roles                                          profile_roles[]
+  branches                                               branches?                @relation(fields: [branch_id], references: [id])
+  clinics                                                clinics                  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  stock_movements                                        stock_movements[]
+  stock_transfers_stock_transfers_approved_byToprofiles  stock_transfers[]        @relation("stock_transfers_approved_byToprofiles")
+  stock_transfers_stock_transfers_initiated_byToprofiles stock_transfers[]        @relation("stock_transfers_initiated_byToprofiles")
+
+  @@index([clerk_user_id])
+  @@index([clinic_id])
+}
+
+model patients {
+  id                     String                   @id @default(uuid()) @db.Uuid
+  clinic_id              String                   @db.Uuid
+  branch_id              String?                  @db.Uuid
+  first_name             String?
+  last_name              String?
+  gender                 Gender?
+  date_of_birth          DateTime?                @db.Date
+  phone                  String?
+  email                  String?
+  address                String?
+  blood_type             String?
+  created_at             DateTime                 @default(now())
+  appointments           appointments[]
+  encounters             encounters[]
+  file_storage           file_storage[]
+  insurance_claims       insurance_claims[]
+  invoices               invoices[]
+  lab_orders             lab_orders[]
+  medical_files          medical_files[]
+  medical_records        medical_records[]
+  patient_insurances     patient_insurances[]
+  branches               branches?                @relation(fields: [branch_id], references: [id])
+  clinics                clinics                  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  pharmacy_sales         pharmacy_sales[]
+  prescription_dispenses prescription_dispenses[]
+
+  @@index([clinic_id])
+}
+
+model appointments {
+  id               String            @id @default(uuid()) @db.Uuid
+  clinic_id        String            @db.Uuid
+  branch_id        String?           @db.Uuid
+  patient_id       String            @db.Uuid
+  doctor_id        String?           @db.Uuid
+  appointment_date DateTime
+  status           AppointmentStatus @default(scheduled)
+  notes            String?
+  created_at       DateTime          @default(now())
+  branches         branches?         @relation(fields: [branch_id], references: [id])
+  clinics          clinics           @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  profiles         profiles?         @relation(fields: [doctor_id], references: [id])
+  patients         patients          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+
+  @@index([appointment_date])
+  @@index([clinic_id])
+}
+
+model payments {
+  id             String        @id @default(uuid()) @db.Uuid
+  invoice_id     String        @db.Uuid
+  amount         Decimal?      @db.Decimal(12, 2)
+  payment_method String?
+  status         PaymentStatus @default(pending)
+  paid_at        DateTime?
+  invoices       invoices      @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+}
+
+model invoices {
+  id               String             @id @default(uuid()) @db.Uuid
+  clinic_id        String             @db.Uuid
+  branch_id        String?            @db.Uuid
+  patient_id       String?            @db.Uuid
+  invoice_type     String?
+  total_amount     Decimal?           @db.Decimal(12, 2)
+  status           InvoiceStatus      @default(draft)
+  created_at       DateTime           @default(now())
+  insurance_claims insurance_claims[]
+  invoice_items    invoice_items[]
+  branches         branches?          @relation(fields: [branch_id], references: [id])
+  clinics          clinics            @relation(fields: [clinic_id], references: [id])
+  patients         patients?          @relation(fields: [patient_id], references: [id])
+  payments         payments[]
+  pharmacy_sales   pharmacy_sales[]
+
+  @@index([branch_id])
+}
+
+model encounters {
+  id               String             @id @default(uuid()) @db.Uuid
+  clinic_id        String             @db.Uuid
+  patient_id       String             @db.Uuid
+  branch_id        String?            @db.Uuid
+  doctor_id        String?            @db.Uuid
+  appointment_id   String?            @db.Uuid
+  encounter_type   String?
+  diagnosis        String?
+  notes            String?
+  treatment_plan   String?
+  encounter_date   DateTime           @default(now())
+  branches         branches?          @relation(fields: [branch_id], references: [id])
+  clinics          clinics            @relation(fields: [clinic_id], references: [id])
+  profiles         profiles?          @relation(fields: [doctor_id], references: [id])
+  patients         patients           @relation(fields: [patient_id], references: [id])
+  insurance_claims insurance_claims[]
+  lab_orders       lab_orders[]
+}
+
+model lab_orders {
+  id                    String        @id @default(uuid()) @db.Uuid
+  clinic_id             String        @db.Uuid
+  encounter_id          String?       @db.Uuid
+  patient_id            String        @db.Uuid
+  branch_id             String?       @db.Uuid
+  doctor_id             String?       @db.Uuid
+  test_name             String?
+  external_lab_provider String?
+  external_order_id     String?
+  status                String        @default("ordered")
+  created_at            DateTime      @default(now())
+  branches              branches?     @relation(fields: [branch_id], references: [id])
+  clinics               clinics       @relation(fields: [clinic_id], references: [id])
+  profiles              profiles?     @relation(fields: [doctor_id], references: [id])
+  encounters            encounters?   @relation(fields: [encounter_id], references: [id])
+  patients              patients      @relation(fields: [patient_id], references: [id])
+  lab_results           lab_results[]
+}
+
+model lab_results {
+  id              String     @id @default(uuid()) @db.Uuid
+  lab_order_id    String     @db.Uuid
+  result_data     Json?
+  result_file_url String?
+  received_at     DateTime?
+  lab_orders      lab_orders @relation(fields: [lab_order_id], references: [id], onDelete: Cascade)
+}
+
+model prescription_dispenses {
+  id                          String                        @id @default(uuid()) @db.Uuid
+  clinic_id                   String                        @db.Uuid
+  branch_id                   String?                       @db.Uuid
+  medical_record_id           String?                       @db.Uuid
+  patient_id                  String?                       @db.Uuid
+  dispensed_by                String?                       @db.Uuid
+  dispensed_at                DateTime                      @default(now())
+  prescription_dispense_items prescription_dispense_items[]
+  branches                    branches?                     @relation(fields: [branch_id], references: [id])
+  clinics                     clinics                       @relation(fields: [clinic_id], references: [id])
+  profiles                    profiles?                     @relation(fields: [dispensed_by], references: [id])
+  medical_records             medical_records?              @relation(fields: [medical_record_id], references: [id])
+  patients                    patients?                     @relation(fields: [patient_id], references: [id])
+}
+
+model roles {
+  id               String             @id @default(uuid()) @db.Uuid
+  clinic_id        String             @db.Uuid
+  name             String
+  profile_roles    profile_roles[]
+  role_permissions role_permissions[]
+  clinics          clinics            @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+}
+
+model permissions {
+  id               String             @id @default(uuid()) @db.Uuid
+  name             String             @unique
+  role_permissions role_permissions[]
+}
+
+model profile_roles {
+  profile_id String   @db.Uuid
+  role_id    String   @db.Uuid
+  profiles   profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  roles      roles    @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@id([profile_id, role_id])
+}
+
+model role_permissions {
+  role_id       String      @db.Uuid
+  permission_id String      @db.Uuid
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@id([role_id, permission_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model branches {
+  id                                                       String                   @id @db.Uuid
+  clinic_id                                                String                   @db.Uuid
+  name                                                     String
+  address                                                  String?
+  phone                                                    String?
+  status                                                   BranchStatus             @default(active)
+  created_at                                               DateTime                 @default(now())
+  appointments                                             appointments[]
+  clinics                                                  clinics                  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  encounters                                               encounters[]
+  invoices                                                 invoices[]
+  lab_orders                                               lab_orders[]
+  medical_files                                            medical_files[]
+  medication_batches                                       medication_batches[]
+  patients                                                 patients[]
+  pharmacy_inventory                                       pharmacy_inventory[]
+  pharmacy_sales                                           pharmacy_sales[]
+  prescription_dispenses                                   prescription_dispenses[]
+  profiles                                                 profiles[]
+  purchase_orders                                          purchase_orders[]
+  stock_movements                                          stock_movements[]
+  stock_transfers_stock_transfers_from_branch_idTobranches stock_transfers[]        @relation("stock_transfers_from_branch_idTobranches")
+  stock_transfers_stock_transfers_to_branch_idTobranches   stock_transfers[]        @relation("stock_transfers_to_branch_idTobranches")
+
+  @@index([clinic_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model clinics {
+  id                     String                   @id @db.Uuid
+  name                   String
+  registration_number    String?
+  email                  String?
+  phone                  String?
+  subscription_plan      String?
+  status                 ClinicStatus             @default(trial)
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime                 @default(now())
+  appointments           appointments[]
+  branches               branches[]
+  encounters             encounters[]
+  file_storage           file_storage[]
+  insurance_claims       insurance_claims[]
+  invoices               invoices[]
+  lab_orders             lab_orders[]
+  medical_records        medical_records[]
+  medication_batches     medication_batches[]
+  medications            medications[]
+  patients               patients[]
+  pharmacy_inventory     pharmacy_inventory[]
+  pharmacy_sales         pharmacy_sales[]
+  prescription_dispenses prescription_dispenses[]
+  profiles               profiles[]
+  purchase_orders        purchase_orders[]
+  roles                  roles[]
+  stock_movements        stock_movements[]
+  suppliers              suppliers[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model file_storage {
+  id            String    @id @db.Uuid
+  clinic_id     String    @db.Uuid
+  patient_id    String?   @db.Uuid
+  related_table String?
+  related_id    String?   @db.Uuid
+  file_url      String?
+  file_type     String?
+  created_at    DateTime  @default(now())
+  clinics       clinics   @relation(fields: [clinic_id], references: [id])
+  patients      patients? @relation(fields: [patient_id], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model insurance_claims {
+  id                 String              @id @db.Uuid
+  clinic_id          String              @db.Uuid
+  patient_id         String?             @db.Uuid
+  encounter_id       String?             @db.Uuid
+  insurance_id       String?             @db.Uuid
+  invoice_id         String?             @db.Uuid
+  claim_amount       Decimal?            @db.Decimal(12, 2)
+  approved_amount    Decimal?            @db.Decimal(12, 2)
+  status             ClaimStatus         @default(submitted)
+  submitted_at       DateTime            @default(now())
+  clinics            clinics             @relation(fields: [clinic_id], references: [id])
+  encounters         encounters?         @relation(fields: [encounter_id], references: [id])
+  patient_insurances patient_insurances? @relation(fields: [insurance_id], references: [id])
+  invoices           invoices?           @relation(fields: [invoice_id], references: [id])
+  patients           patients?           @relation(fields: [patient_id], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model insurance_providers {
+  id                 String               @id @db.Uuid
+  name               String
+  contact_email      String?
+  contact_phone      String?
+  patient_insurances patient_insurances[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model invoice_items {
+  id          String   @id @db.Uuid
+  invoice_id  String   @db.Uuid
+  description String?
+  quantity    Int?
+  unit_price  Decimal? @db.Decimal(12, 2)
+  total_price Decimal? @db.Decimal(12, 2)
+  invoices    invoices @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model medical_files {
+  id          String    @id @db.Uuid
+  patient_id  String    @db.Uuid
+  branch_id   String?   @db.Uuid
+  file_type   String?
+  file_url    String
+  uploaded_by String?   @db.Uuid
+  created_at  DateTime  @default(now())
+  branches    branches? @relation(fields: [branch_id], references: [id])
+  patients    patients  @relation(fields: [patient_id], references: [id])
+  profiles    profiles? @relation(fields: [uploaded_by], references: [id])
+
+  @@index([patient_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model medical_records {
+  id                     String                   @id @db.Uuid
+  clinic_id              String                   @db.Uuid
+  patient_id             String                   @db.Uuid
+  doctor_id              String?                  @db.Uuid
+  diagnosis              String?
+  treatment              String?
+  notes                  String?
+  created_at             DateTime                 @default(now())
+  clinics                clinics                  @relation(fields: [clinic_id], references: [id])
+  profiles               profiles?                @relation(fields: [doctor_id], references: [id])
+  patients               patients                 @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  prescription_dispenses prescription_dispenses[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model medication_batches {
+  id                          String                        @id @db.Uuid
+  clinic_id                   String                        @db.Uuid
+  branch_id                   String                        @db.Uuid
+  medication_id               String                        @db.Uuid
+  batch_number                String?
+  expiry_date                 DateTime                      @db.Date
+  purchase_price              Decimal?                      @db.Decimal(10, 2)
+  selling_price               Decimal?                      @db.Decimal(10, 2)
+  quantity_received           Int?
+  quantity_remaining          Int?
+  supplier_id                 String?                       @db.Uuid
+  received_at                 DateTime                      @default(now())
+  branches                    branches                      @relation(fields: [branch_id], references: [id], onDelete: Cascade)
+  clinics                     clinics                       @relation(fields: [clinic_id], references: [id])
+  medications                 medications                   @relation(fields: [medication_id], references: [id])
+  suppliers                   suppliers?                    @relation(fields: [supplier_id], references: [id])
+  pharmacy_sale_items         pharmacy_sale_items[]
+  prescription_dispense_items prescription_dispense_items[]
+  stock_movements             stock_movements[]
+
+  @@unique([branch_id, medication_id, batch_number])
+  @@index([expiry_date])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model medications {
+  id                   String                 @id @db.Uuid
+  clinic_id            String                 @db.Uuid
+  fhir_resource_type   String?                @default("Medication")
+  code_system          String?
+  code                 String?
+  generic_name         String
+  brand_name           String?
+  strength             String?
+  form                 String?
+  route                String?
+  manufacturer         String?
+  barcode              String?
+  price                Decimal?               @db.Decimal(10, 2)
+  is_active            Boolean                @default(true)
+  created_at           DateTime               @default(now())
+  medication_batches   medication_batches[]
+  clinics              clinics                @relation(fields: [clinic_id], references: [id])
+  pharmacy_inventory   pharmacy_inventory[]
+  purchase_order_items purchase_order_items[]
+  stock_transfer_items stock_transfer_items[]
+
+  @@unique([clinic_id, generic_name, strength])
+  @@index([code])
+  @@index([generic_name])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model patient_insurances {
+  id                  String              @id @db.Uuid
+  patient_id          String              @db.Uuid
+  provider_id         String              @db.Uuid
+  policy_number       String?
+  valid_from          DateTime?           @db.Date
+  valid_to            DateTime?           @db.Date
+  insurance_claims    insurance_claims[]
+  patients            patients            @relation(fields: [patient_id], references: [id])
+  insurance_providers insurance_providers @relation(fields: [provider_id], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pharmacy_inventory {
+  id            String      @id @db.Uuid
+  clinic_id     String      @db.Uuid
+  branch_id     String      @db.Uuid
+  medication_id String      @db.Uuid
+  quantity      Int         @default(0)
+  reorder_level Int         @default(10)
+  is_active     Boolean     @default(true)
+  branches      branches    @relation(fields: [branch_id], references: [id], onDelete: Cascade)
+  clinics       clinics     @relation(fields: [clinic_id], references: [id])
+  medications   medications @relation(fields: [medication_id], references: [id], onDelete: Cascade)
+
+  @@unique([branch_id, medication_id])
+  @@index([branch_id])
+  @@index([medication_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pharmacy_sale_items {
+  id                  String             @id @db.Uuid
+  sale_id             String             @db.Uuid
+  medication_batch_id String             @db.Uuid
+  quantity            Int
+  unit_price          Decimal            @db.Decimal(10, 2)
+  total_price         Decimal            @db.Decimal(12, 2)
+  medication_batches  medication_batches @relation(fields: [medication_batch_id], references: [id])
+  pharmacy_sales      pharmacy_sales     @relation(fields: [sale_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pharmacy_sales {
+  id                  String                @id @db.Uuid
+  clinic_id           String                @db.Uuid
+  branch_id           String?               @db.Uuid
+  patient_id          String?               @db.Uuid
+  invoice_id          String?               @db.Uuid
+  status              PharmacySaleStatus    @default(PENDING)
+  total_amount        Decimal?              @db.Decimal(12, 2)
+  payment_method      String?
+  created_by          String?               @db.Uuid
+  created_at          DateTime              @default(now())
+  pharmacy_sale_items pharmacy_sale_items[]
+  branches            branches?             @relation(fields: [branch_id], references: [id])
+  clinics             clinics               @relation(fields: [clinic_id], references: [id])
+  profiles            profiles?             @relation(fields: [created_by], references: [id])
+  invoices            invoices?             @relation(fields: [invoice_id], references: [id])
+  patients            patients?             @relation(fields: [patient_id], references: [id])
+
+  @@index([branch_id])
+  @@index([created_at])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model prescription_dispense_items {
+  id                     String                 @id @db.Uuid
+  dispense_id            String                 @db.Uuid
+  medication_batch_id    String                 @db.Uuid
+  quantity               Int
+  unit_price             Decimal?               @db.Decimal(10, 2)
+  total_price            Decimal?               @db.Decimal(12, 2)
+  prescription_dispenses prescription_dispenses @relation(fields: [dispense_id], references: [id], onDelete: Cascade)
+  medication_batches     medication_batches     @relation(fields: [medication_batch_id], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model purchase_order_items {
+  id                String          @id @db.Uuid
+  purchase_order_id String          @db.Uuid
+  medication_id     String          @db.Uuid
+  quantity          Int
+  unit_price        Decimal?        @db.Decimal(10, 2)
+  total_price       Decimal?        @db.Decimal(12, 2)
+  medications       medications     @relation(fields: [medication_id], references: [id])
+  purchase_orders   purchase_orders @relation(fields: [purchase_order_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model purchase_orders {
+  id                   String                 @id @db.Uuid
+  clinic_id            String                 @db.Uuid
+  branch_id            String?                @db.Uuid
+  supplier_id          String?                @db.Uuid
+  status               PurchaseOrderStatus    @default(DRAFT)
+  total_amount         Decimal?               @db.Decimal(12, 2)
+  ordered_at           DateTime?
+  received_at          DateTime?
+  created_at           DateTime               @default(now())
+  purchase_order_items purchase_order_items[]
+  branches             branches?              @relation(fields: [branch_id], references: [id])
+  clinics              clinics                @relation(fields: [clinic_id], references: [id])
+  suppliers            suppliers?             @relation(fields: [supplier_id], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stock_movements {
+  id                  String              @id @db.Uuid
+  clinic_id           String              @db.Uuid
+  branch_id           String?             @db.Uuid
+  medication_batch_id String?             @db.Uuid
+  movement_type       StockMovementType
+  quantity            Int
+  reference_id        String?             @db.Uuid
+  notes               String?
+  created_by          String?             @db.Uuid
+  created_at          DateTime            @default(now())
+  branches            branches?           @relation(fields: [branch_id], references: [id])
+  clinics             clinics             @relation(fields: [clinic_id], references: [id])
+  profiles            profiles?           @relation(fields: [created_by], references: [id])
+  medication_batches  medication_batches? @relation(fields: [medication_batch_id], references: [id])
+
+  @@index([medication_batch_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stock_transfer_items {
+  id              String          @id @db.Uuid
+  transfer_id     String          @db.Uuid
+  medication_id   String          @db.Uuid
+  quantity        Int
+  medications     medications     @relation(fields: [medication_id], references: [id])
+  stock_transfers stock_transfers @relation(fields: [transfer_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stock_transfers {
+  id                                                String                 @id @db.Uuid
+  from_branch_id                                    String                 @db.Uuid
+  to_branch_id                                      String                 @db.Uuid
+  transfer_status                                   String                 @default("pending")
+  initiated_by                                      String?                @db.Uuid
+  approved_by                                       String?                @db.Uuid
+  created_at                                        DateTime               @default(now())
+  completed_at                                      DateTime?
+  stock_transfer_items                              stock_transfer_items[]
+  profiles_stock_transfers_approved_byToprofiles    profiles?              @relation("stock_transfers_approved_byToprofiles", fields: [approved_by], references: [id])
+  branches_stock_transfers_from_branch_idTobranches branches               @relation("stock_transfers_from_branch_idTobranches", fields: [from_branch_id], references: [id])
+  profiles_stock_transfers_initiated_byToprofiles   profiles?              @relation("stock_transfers_initiated_byToprofiles", fields: [initiated_by], references: [id])
+  branches_stock_transfers_to_branch_idTobranches   branches               @relation("stock_transfers_to_branch_idTobranches", fields: [to_branch_id], references: [id])
+
+  @@index([transfer_status])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model suppliers {
+  id                 String               @id @db.Uuid
+  clinic_id          String               @db.Uuid
+  name               String
+  contact_person     String?
+  phone              String?
+  email              String?
+  address            String?
+  created_at         DateTime             @default(now())
+  medication_batches medication_batches[]
+  purchase_orders    purchase_orders[]
+  clinics            clinics              @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+}
+
+enum AppointmentStatus {
+  scheduled
+  checked_in
+  completed
+  cancelled
+  no_show
+}
+
+enum BranchStatus {
+  active
+  inactive
+}
+
+enum ClaimStatus {
+  submitted
+  approved
+  rejected
+  processing
+}
+
+enum ClinicStatus {
+  active
+  suspended
+  trial
+}
+
+enum EncounterType {
+  consultation
+  follow_up
+  emergency
+  procedure
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  cancelled
+}
+
+enum LabOrderStatus {
+  ordered
+  in_progress
+  completed
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  refunded
+}
+
+enum PharmacySaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
+  EXPIRED
+  TRANSFER_IN
+  TRANSFER_OUT
+}
+
+enum UserStatus {
+  active
+  inactive
+  blocked
+}
