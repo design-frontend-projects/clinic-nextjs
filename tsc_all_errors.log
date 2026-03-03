@@ -1,1 +1,0 @@
-src/app/actions/doctor.ts(192,7): error TS2353: Object literal may only specify known properties, and 'appointment_id' does not exist in type 'Without<encountersCreateInput, encountersUncheckedCreateInput> & encountersUncheckedCreateInput'.

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import {
   Activity,
   CalendarDays,
@@ -106,15 +107,32 @@ export default function LandingPage() {
             <span className="text-xl font-bold">ClinicPro</span>
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/sign-in">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button>
-                Start Free Trial
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            <SignedOut>
+              <Link href="/sign-in">
+                <Button variant="ghost">Sign In</Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button>
+                  Start Free Trial
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/dashboard">
+                <Button variant="ghost" className="mr-2">
+                  Dashboard
+                </Button>
+              </Link>
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "h-9 w-9",
+                  },
+                }}
+              />
+            </SignedIn>
           </div>
         </div>
       </header>
@@ -136,12 +154,22 @@ export default function LandingPage() {
             billing, and pharmacy — built for modern healthcare.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <Link href="/sign-up">
-              <Button size="lg" className="h-12 px-8 text-base">
-                Get Started Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <SignedOut>
+              <Link href="/sign-up">
+                <Button size="lg" className="h-12 px-8 text-base">
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/dashboard">
+                <Button size="lg" className="h-12 px-8 text-base">
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </SignedIn>
             <Button size="lg" variant="outline" className="h-12 px-8 text-base">
               Watch Demo
             </Button>

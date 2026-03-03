@@ -1,5 +1,0 @@
-src/app/(dashboard)/admin/page.tsx(90,46): error TS7006: Parameter 'apt' implicitly has an 'any' type.
-src/app/actions/admin.ts(53,49): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/lib/prisma.ts(1,30): error TS2307: Cannot find module '@/generated/prisma' or its corresponding type declarations.
-src/lib/rbac.ts(39,27): error TS7006: Parameter 'p' implicitly has an 'any' type.
-src/lib/rbac.ts(52,21): error TS7006: Parameter 'r' implicitly has an 'any' type.
