@@ -15,7 +15,7 @@ export default async function AdminLayout({
       redirect(`/${tenant.role || ""}`);
     }
   } catch {
-    redirect("/sign-in");
+    redirect("/sign-up");
   }
 
   return <>{children}</>;

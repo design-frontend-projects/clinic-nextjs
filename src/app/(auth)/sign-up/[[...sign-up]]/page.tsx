@@ -1,8 +1,7 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
-
-import { useState } from "react";
+import { useSignUp, useAuth, useUser } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
 import { Activity, CheckCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -28,11 +27,20 @@ const highlights = [
 ];
 
 export default function CustomSignUpPage() {
-  const { isLoaded, signUp, setActive } = useSignUp();
+  const { isLoaded: isSignUpLoaded, signUp, setActive } = useSignUp();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
 
   const [step, setStep] = useState<"account" | "verification" | "onboarding">(
     "account",
   );
+
+  // Jump to onboarding if already authenticated (e.g. redirected from /admin)
+  useEffect(() => {
+    if (isAuthLoaded && isSignedIn && step !== "onboarding") {
+      setStep("onboarding");
+    }
+  }, [isAuthLoaded, isSignedIn, step]);
 
   // Form state
   const [emailAddress, setEmailAddress] = useState("");
@@ -47,7 +55,7 @@ export default function CustomSignUpPage() {
   // 1. Create Clerk Account
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isSignUpLoaded) return;
     setLoading(true);
 
     try {
@@ -78,7 +86,7 @@ export default function CustomSignUpPage() {
   // 2. Verify Email → Open Onboarding Dialog
   const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isSignUpLoaded) return;
     setLoading(true);
 
     try {
@@ -102,7 +110,10 @@ export default function CustomSignUpPage() {
     }
   };
 
-  const fullName = [firstName, lastName].filter(Boolean).join(" ");
+  const formFullName = [firstName, lastName].filter(Boolean).join(" ");
+  const defaultFullName = formFullName || user?.fullName || "";
+  const defaultEmail =
+    emailAddress || user?.primaryEmailAddress?.emailAddress || "";
 
   return (
     <div className="flex min-h-screen">
@@ -272,8 +283,8 @@ export default function CustomSignUpPage() {
       {/* Onboarding Dialog — fires after verification */}
       <OnboardingDialog
         open={step === "onboarding"}
-        defaultEmail={emailAddress}
-        defaultFullName={fullName}
+        defaultEmail={defaultEmail}
+        defaultFullName={defaultFullName}
       />
     </div>
   );

@@ -1,3 +1,6 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import { getDashboardStats } from "@/app/actions/admin";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -17,19 +20,25 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-export default async function AdminDashboard() {
-  let stats;
-  try {
-    stats = await getDashboardStats();
-  } catch {
-    stats = {
-      totalPatients: 0,
-      totalDoctors: 0,
-      todayAppointments: 0,
-      pendingPayments: 0,
-      recentAppointments: [],
-    };
-  }
+const defaultStats = {
+  totalPatients: 0,
+  totalDoctors: 0,
+  todayAppointments: 0,
+  pendingPayments: 0,
+  recentAppointments: [] as {
+    id: string;
+    patientName: string;
+    doctorName: string;
+    date: string;
+    status: string;
+  }[],
+};
+
+export default function AdminDashboard() {
+  const { data: stats = defaultStats } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: () => getDashboardStats(),
+  });
 
   return (
     <div className="space-y-8">
