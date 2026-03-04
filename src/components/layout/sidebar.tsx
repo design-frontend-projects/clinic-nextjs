@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   Activity,
   User,
+  Building,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -36,6 +37,7 @@ const navConfig = {
     { title: "Lab Orders", href: "/admin/lab-orders", icon: FlaskConical },
     { title: "Inventory", href: "/admin/inventory", icon: Package },
     { title: "Reports", href: "/admin/reports", icon: ClipboardList },
+    { title: "Clinic Definition", href: "/admin/clinics", icon: Building },
     { title: "Settings", href: "/admin/settings", icon: Settings },
   ],
   doctor: [

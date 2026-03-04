@@ -14,9 +14,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 
+import { useQuery } from "@tanstack/react-query";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import { BranchSelector } from "./branch-selector";
+
 export function Header() {
   const { isOpen, toggle } = useSidebarStore();
   const { theme, setTheme } = useTheme();
+
+  const { data: tenant } = useQuery({
+    queryKey: ["tenant-info"],
+    queryFn: () => fetchTenantInfoAction(),
+  });
 
   return (
     <header
@@ -34,6 +43,16 @@ export function Header() {
         >
           <Menu className="h-5 w-5" />
         </Button>
+
+        {tenant?.clinicId && (
+          <div className="hidden md:block">
+            <BranchSelector
+              clinicId={tenant.clinicId}
+              currentBranchId={tenant.branchId}
+            />
+          </div>
+        )}
+
         <div>
           <h2 className="text-lg font-semibold">Welcome back</h2>
           <p className="text-sm text-muted-foreground">
