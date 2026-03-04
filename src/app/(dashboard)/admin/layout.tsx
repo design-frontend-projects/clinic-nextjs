@@ -8,6 +8,9 @@ export default async function AdminLayout({
 }) {
   try {
     const tenant = await requireTenantInfo();
+    console.log("tenant data here");
+    console.log(tenant);
+
     if (tenant.role !== "admin") {
       redirect(`/${tenant.role || ""}`);
     }
