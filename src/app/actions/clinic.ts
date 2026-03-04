@@ -7,19 +7,17 @@ import { clinicSchema, branchSchema } from "@/types/clinic.types";
 import { z } from "zod";
 
 export async function getClinics() {
-  // For now, return the user's current clinic or all clinics if super admin
-  // Since we don't have a specific "super admin" check yet, we'll return based on tenant info
-  const tenant = await requireTenantInfo();
+  await requireTenantInfo();
 
-  // In a multi-tenant SaaS, users usually see only their clinic
-  // But the "Clinic Definition" screen seems to imply managing multiple if applicable
-  // For now, let's fetch clinics the user is associated with via profiles
-  const profile = await prisma.profiles.findFirst({
-    where: { clerk_user_id: tenant.userId },
-    include: { clinics: { include: { branches: true } } },
+  // Fetch all clinics and display them (with included branches)
+  return prisma.clinics.findMany({
+    include: {
+      branches: true,
+    },
+    orderBy: {
+      created_at: "desc",
+    },
   });
-
-  return profile?.clinics ? [profile.clinics] : [];
 }
 
 export async function createClinic(data: z.infer<typeof clinicSchema>) {

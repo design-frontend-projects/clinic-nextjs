@@ -144,12 +144,14 @@ export default function ClinicAdminPage() {
         </Dialog>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         {clinics?.map((clinic) => (
           <Card
             key={clinic.id}
             className={
-              selectedClinicId === clinic.id ? "ring-2 ring-primary" : ""
+              selectedClinicId === clinic.id
+                ? "ring-2 ring-primary transition-all duration-200"
+                : "transition-all duration-200 hover:shadow-md"
             }
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

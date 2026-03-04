@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { profileSchema, type Profile } from "@/types/clinic.types";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export async function getPersonnel(clinicId: string, role?: string) {
   await requireTenantInfo();
@@ -24,12 +25,14 @@ export async function upsertPersonnel(data: Profile) {
   const tenant = await requireTenantInfo();
   const validatedData = profileSchema.parse(data);
 
+  const isNewRecord = !validatedData.id;
+
   const personnel = await prisma.profiles.upsert({
     where: { id: validatedData.id || "new-id" },
     create: {
       id: crypto.randomUUID(),
       clerk_user_id:
-        validatedData.clerk_user_id || `temp-${crypto.randomUUID()}`, // Temporary for manual additions
+        validatedData.clerk_user_id || `temp-${crypto.randomUUID()}`,
       clinic_id: validatedData.clinic_id || tenant.clinicId || "",
       branch_id: validatedData.branch_id,
       full_name: validatedData.full_name,
@@ -50,6 +53,29 @@ export async function upsertPersonnel(data: Profile) {
     },
   });
 
+  // Send Clerk organization invitation for new personnel with a valid email
+  if (isNewRecord && validatedData.email && tenant.orgId) {
+    try {
+      const client = await clerkClient();
+      await client.organizations.createOrganizationInvitation({
+        organizationId: tenant.orgId,
+        inviterUserId: tenant.userId,
+        emailAddress: validatedData.email,
+        role: "org:member",
+        publicMetadata: {
+          profileId: personnel.id,
+          internalRole: validatedData.role,
+        },
+      });
+    } catch (error) {
+      // Log but don't fail the profile creation
+      console.error(
+        "[Clerk Invitation] Failed to send organization invitation:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
   revalidatePath("/admin/doctors");
   revalidatePath("/admin/staff");
   return personnel;
@@ -57,10 +83,6 @@ export async function upsertPersonnel(data: Profile) {
 
 export async function deletePersonnel(id: string) {
   await requireTenantInfo();
-
-  // Rule: Check if personnel has linked data (appointments, etc.) before deleting
-  // For now, let's just delete if no critical links exist or handle via Cascade if appropriate
-  // Profiles in our schema have many relations. Let's be careful.
 
   await prisma.profiles.delete({
     where: { id },

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { OnboardingDialog } from "@/components/onboarding/onboarding-dialog";
 import { toast } from "sonner";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const highlights = [
   "Manage appointments & patients",
@@ -30,6 +31,7 @@ export default function CustomSignUpPage() {
   const { isLoaded: isSignUpLoaded, signUp, setActive } = useSignUp();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
+  const supabase = createSupabaseServerClient();
 
   const [step, setStep] = useState<"account" | "verification" | "onboarding">(
     "account",
@@ -72,6 +74,23 @@ export default function CustomSignUpPage() {
       });
 
       setStep("verification");
+      // start create profilein supabaseafter success
+      //TODO: check if user already exists
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          clerk_user_id: user?.id,
+          email: emailAddress,
+          full_name: firstName + " " + lastName,
+          is_profile_completed: false,
+          role: "admin",
+        });
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
+        toast.error("Failed to create profile. Please try again.");
+      } else {
+        toast.success("Profile created successfully.");
+      }
     } catch (err: unknown) {
       const error = err as { errors?: { message?: string }[] };
       console.error(JSON.stringify(error, null, 2));
