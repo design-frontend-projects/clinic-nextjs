@@ -1,7 +1,7 @@
 "use client";
 
 import { useSignUp } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { Activity, CheckCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { completeOnboarding } from "@/app/actions/onboarding";
+import { OnboardingDialog } from "@/components/onboarding/onboarding-dialog";
 import { toast } from "sonner";
 
 const highlights = [
@@ -29,21 +29,19 @@ const highlights = [
 
 export default function CustomSignUpPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
-  const router = useRouter();
 
   const [step, setStep] = useState<"account" | "verification" | "onboarding">(
     "account",
   );
 
-  // Form parsing state
+  // Form state
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [code, setCode] = useState("");
-  const [clinicName, setClinicName] = useState("");
 
-  // Request loading state
+  // Loading state
   const [loading, setLoading] = useState(false);
 
   // 1. Create Clerk Account
@@ -67,7 +65,7 @@ export default function CustomSignUpPage() {
 
       setStep("verification");
     } catch (err: unknown) {
-      const error = err as any;
+      const error = err as { errors?: { message?: string }[] };
       console.error(JSON.stringify(error, null, 2));
       toast.error(
         error.errors?.[0]?.message || "Something went wrong. Please try again.",
@@ -77,7 +75,7 @@ export default function CustomSignUpPage() {
     }
   };
 
-  // 2. Verify Email
+  // 2. Verify Email → Open Onboarding Dialog
   const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded) return;
@@ -92,12 +90,11 @@ export default function CustomSignUpPage() {
         await setActive({ session: completeSignUp.createdSessionId });
         setStep("onboarding");
       } else {
-        // e.g. "missing_requirements" if more fields are needed
         console.error(JSON.stringify(completeSignUp, null, 2));
         toast.error("Verification incomplete. Check the console for details.");
       }
     } catch (err: unknown) {
-      const error = err as any;
+      const error = err as { errors?: { message?: string }[] };
       console.error(JSON.stringify(error, null, 2));
       toast.error(error.errors?.[0]?.message || "Invalid verification code");
     } finally {
@@ -105,28 +102,7 @@ export default function CustomSignUpPage() {
     }
   };
 
-  // 3. Complete Custom Onboarding (Supabase Sync)
-  const handleOnboarding = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const res = await completeOnboarding(clinicName);
-
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-
-      toast.success("Clinic initialized successfully!");
-      router.push("/admin");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to initialize clinic");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
   return (
     <div className="flex min-h-screen">
@@ -279,40 +255,26 @@ export default function CustomSignUpPage() {
           </Card>
         )}
 
+        {/* Onboarding happens via dialog now — the card below is just a loading state */}
         {step === "onboarding" && (
           <Card className="w-full max-w-md shadow-xl border-primary/20">
-            <CardHeader>
-              <CardTitle>Set up your clinic</CardTitle>
-              <CardDescription>
-                Almost there! Give your new workspace a name.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleOnboarding} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clinicName">Clinic Name</Label>
-                  <Input
-                    id="clinicName"
-                    required
-                    value={clinicName}
-                    onChange={(e) => setClinicName(e.target.value)}
-                    placeholder="e.g. Acme Health"
-                    autoFocus
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Initialize Clinic & Dashboard
-                </Button>
-              </form>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <CheckCircle className="h-12 w-12 text-primary mb-4" />
+              <p className="text-lg font-semibold">Account verified!</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Setting up your workspace...
+              </p>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* Onboarding Dialog — fires after verification */}
+      <OnboardingDialog
+        open={step === "onboarding"}
+        defaultEmail={emailAddress}
+        defaultFullName={fullName}
+      />
     </div>
   );
 }
