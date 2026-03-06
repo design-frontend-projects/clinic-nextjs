@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getBranches } from "@/app/actions/clinic";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +14,7 @@ import { Building2, ChevronDown, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { updateProfileBranch } from "@/app/actions/profile";
+import { createSupabaseClient } from "@/lib/supabase/client";
 
 interface BranchSelectorProps {
   currentBranchId: string | null;
@@ -26,10 +26,20 @@ export function BranchSelector({
   clinicId,
 }: BranchSelectorProps) {
   const queryClient = useQueryClient();
+  const supabase = createSupabaseClient();
 
   const { data: branches, isLoading } = useQuery({
     queryKey: ["branches", clinicId],
-    queryFn: () => getBranches(clinicId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("branches")
+        .select("*")
+        .eq("clinic_id", clinicId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const updateBranchMutation = useMutation({

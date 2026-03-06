@@ -71,25 +71,25 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     queryFn: () => fetchTenantInfoAction(),
   });
 
-  const clinicId = tenant?.clinicId;
+  const clerkUserId: string = tenant?.clerk_user_id as string;
 
   const { data: personnel, isLoading } = useQuery({
-    queryKey: ["personnel", clinicId, role],
-    queryFn: () => getPersonnel(clinicId!, role),
-    enabled: !!clinicId,
+    queryKey: ["personnel", tenant?.clerk_user_id],
+    queryFn: () => getPersonnel(clerkUserId),
+    enabled: !!tenant?.clerk_user_id,
   });
 
   const { data: branches } = useQuery({
-    queryKey: ["branches", clinicId],
-    queryFn: () => getBranches(clinicId!),
-    enabled: !!clinicId,
+    queryKey: ["branches", tenant?.clerk_user_id],
+    queryFn: () => getBranches(clerkUserId!),
+    enabled: !!tenant?.clerk_user_id,
   });
 
   const upsertMutation = useMutation({
     mutationFn: (data: Profile) => upsertPersonnel(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["personnel", clinicId, role],
+        queryKey: ["personnel", clerkUserId],
       });
       toast.success(editingPersonnel ? `${title} updated` : `${title} created`);
       setIsOpen(false);
@@ -104,7 +104,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     mutationFn: (id: string) => deletePersonnel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["personnel", clinicId, role],
+        queryKey: ["personnel", tenant?.clerk_user_id],
       });
       toast.success(`${title} deleted`);
       setPersonnelToDelete(null);
@@ -126,7 +126,6 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     defaultValues: {
       role: role,
       status: "active",
-      clinic_id: clinicId ?? "",
     },
   });
 
@@ -135,12 +134,10 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     reset({
       role,
       status: "active",
-      clinic_id: clinicId ?? "",
       full_name: "",
       email: "",
       phone: "",
       specialty: "",
-      branch_id: null,
     });
     setIsOpen(true);
   };
@@ -152,10 +149,10 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   };
 
   const onSubmit: SubmitHandler<Profile> = (data) => {
-    upsertMutation.mutate({ ...data, clinic_id: clinicId, role: role });
+    upsertMutation.mutate({ ...data, role: role });
   };
 
-  if (!clinicId) return <div>Initializing...</div>;
+  if (!tenant?.clerk_user_id) return <div>Initializing...</div>;
   if (isLoading) return <div>Loading {role}s...</div>;
 
   return (
@@ -198,10 +195,6 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                 {role === "doctor" && (
                   <TableCell>{p.specialty || "General"}</TableCell>
                 )}
-                <TableCell>
-                  {branches?.find((b) => b.id === p.branch_id)?.name ||
-                    "All Branches"}
-                </TableCell>
                 <TableCell>
                   <Badge
                     variant={p.status === "active" ? "default" : "secondary"}

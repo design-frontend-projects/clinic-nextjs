@@ -130,7 +130,7 @@ export async function getClinicStaff() {
 
   const staffs = await prisma.profiles.findMany({
     where: {
-      clinic_id: tenant.clinicId,
+      clerk_user_id: tenant.clerk_user_id as string,
       // exclude the self or return all, based on preference.
     },
     include: {
@@ -149,7 +149,6 @@ export async function getClinicStaff() {
     email: staff.email,
     clerk_user_id: staff.clerk_user_id,
     role: staff.role,
-    assigned_roles: staff.profile_roles.map((pr) => pr.roles),
   }));
 }
 
@@ -159,7 +158,7 @@ export async function assignStaffRoles(profileId: string, roleIds: string[]) {
   try {
     // Verify profile exists in this clinic
     const profile = await prisma.profiles.findFirst({
-      where: { id: profileId, clinic_id: tenant.clinicId },
+      where: { id: profileId, clerk_user_id: tenant.clerk_user_id as string },
     });
 
     if (!profile) return { error: "Profile not found in this clinic" };

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 
 export type TenantInfo = {
   userId: string;
@@ -10,6 +11,8 @@ export type TenantInfo = {
   email: string | null;
   is_profile_completed: boolean;
   clinicId: string | null;
+  branchId: string | null;
+  clerk_user_id: string | null;
 };
 
 export type CompleteTenantInfo = TenantInfo & { clinicId: string };
@@ -36,6 +39,9 @@ export async function getTenantInfo(): Promise<TenantInfo | null> {
     select: { id: true },
   });
 
+  const cookieStore = await cookies();
+  const branchId = cookieStore.get("active_branch_id")?.value ?? null;
+
   return {
     userId,
     orgId: orgId ?? null,
@@ -45,6 +51,8 @@ export async function getTenantInfo(): Promise<TenantInfo | null> {
     email: profile.email,
     is_profile_completed: profile.is_profile_completed ?? false,
     clinicId: clinic?.id ?? null,
+    branchId,
+    clerk_user_id: userId,
   };
 }
 

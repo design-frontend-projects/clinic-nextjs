@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
+import { cookies } from "next/headers";
+
 export async function updateProfileBranch(branchId: string) {
   const tenant = await requireTenantInfo();
 
@@ -19,9 +21,10 @@ export async function updateProfileBranch(branchId: string) {
     throw new Error("Invalid branch for this clinic");
   }
 
-  await prisma.profiles.update({
-    where: { id: tenant.profileId },
-    data: { branch_id: branchId },
+  const cookieStore = await cookies();
+  cookieStore.set("active_branch_id", branchId, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
   });
 
   revalidatePath("/");
