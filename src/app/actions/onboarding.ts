@@ -39,6 +39,7 @@ export async function createClinic(data: ClinicFormData) {
       console.error("Failed to create clinic:", clinicError);
       return { error: "Failed to create clinic" };
     }
+    // update profile with clinic id and mark profile as completed
     const { error: profileUpdateError } = await supabase
       .from("profiles")
       .update({

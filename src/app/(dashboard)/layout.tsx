@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { requireTenantInfo } from "@/lib/auth";
+import { requireAuthenticatedTenant } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export default async function DashboardLayout({
@@ -10,7 +10,7 @@ export default async function DashboardLayout({
 }) {
   let role = "admin";
   try {
-    const tenant = await requireTenantInfo();
+    const tenant = await requireAuthenticatedTenant();
     role = tenant.role || "admin";
   } catch {
     // defaults to admin for safe UI render when bypassing
