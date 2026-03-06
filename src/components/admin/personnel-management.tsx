@@ -7,7 +7,6 @@ import {
   deletePersonnel,
 } from "@/app/actions/personnel";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
-import { getBranches } from "@/app/actions/clinic";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -71,18 +70,12 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     queryFn: () => fetchTenantInfoAction(),
   });
 
-  const clerkUserId: string = tenant?.clerk_user_id as string;
+  const clerkUserId = tenant?.clerk_user_id as string;
 
   const { data: personnel, isLoading } = useQuery({
-    queryKey: ["personnel", tenant?.clerk_user_id],
+    queryKey: ["personnel", clerkUserId],
     queryFn: () => getPersonnel(clerkUserId),
-    enabled: !!tenant?.clerk_user_id,
-  });
-
-  const { data: branches } = useQuery({
-    queryKey: ["branches", tenant?.clerk_user_id],
-    queryFn: () => getBranches(clerkUserId!),
-    enabled: !!tenant?.clerk_user_id,
+    enabled: !!clerkUserId,
   });
 
   const upsertMutation = useMutation({
@@ -91,7 +84,9 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
       queryClient.invalidateQueries({
         queryKey: ["personnel", clerkUserId],
       });
-      toast.success(editingPersonnel ? `${title} updated` : `${title} created`);
+      toast.success(
+        editingPersonnel ? `${title} updated` : `${title} invited & created`,
+      );
       setIsOpen(false);
       setEditingPersonnel(null);
     },
@@ -104,7 +99,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     mutationFn: (id: string) => deletePersonnel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["personnel", tenant?.clerk_user_id],
+        queryKey: ["personnel", clerkUserId],
       });
       toast.success(`${title} deleted`);
       setPersonnelToDelete(null);
@@ -152,7 +147,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     upsertMutation.mutate({ ...data, role: role });
   };
 
-  if (!tenant?.clerk_user_id) return <div>Initializing...</div>;
+  if (!clerkUserId) return <div>Initializing...</div>;
   if (isLoading) return <div>Loading {role}s...</div>;
 
   return (
@@ -161,7 +156,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
         <h3 className="text-lg font-semibold">{title}s</h3>
         <Button size="sm" onClick={onOpenAdd}>
           <Plus className="mr-2 h-4 w-4" />
-          Add {title}
+          Invite {title}
         </Button>
       </div>
 
@@ -172,7 +167,6 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               <TableHead>Name</TableHead>
               <TableHead>Contact</TableHead>
               {role === "doctor" && <TableHead>Specialty</TableHead>}
-              <TableHead>Branch</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -224,10 +218,10 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
             {personnel?.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={role === "doctor" ? 6 : 5}
+                  colSpan={role === "doctor" ? 5 : 4}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  No {role}s found. Add one to get started.
+                  No {role}s found. Invite one to get started.
                 </TableCell>
               </TableRow>
             )}
@@ -239,10 +233,12 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
-              {editingPersonnel ? `Edit ${title}` : `Add ${title}`}
+              {editingPersonnel ? `Edit ${title}` : `Invite ${title}`}
             </DialogTitle>
             <DialogDescription>
-              Enter the details for the {role} member.
+              {editingPersonnel
+                ? `Update the details for this ${role}.`
+                : `Enter details to invite a new ${role}. They will receive a Clerk invitation email.`}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -261,8 +257,29 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register("email")} />
+                <Label htmlFor="email">
+                  Email{" "}
+                  {!editingPersonnel && (
+                    <span className="text-destructive">*</span>
+                  )}
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register("email")}
+                  placeholder="doctor@clinic.com"
+                  disabled={!!editingPersonnel}
+                />
+                {errors.email && (
+                  <p className="text-xs text-destructive">
+                    {errors.email.message}
+                  </p>
+                )}
+                {!editingPersonnel && (
+                  <p className="text-xs text-muted-foreground">
+                    A Clerk invitation will be sent to this email.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
@@ -278,27 +295,6 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   />
                 </div>
               )}
-              <div className="space-y-2">
-                <Label>Branch</Label>
-                <Select
-                  value={watch("branch_id") || "all"}
-                  onValueChange={(val) =>
-                    setValue("branch_id", val === "all" ? null : val)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Branches</SelectItem>
-                    {branches?.map((branch) => (
-                      <SelectItem key={branch.id} value={branch.id!}>
-                        {branch.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
@@ -323,7 +319,11 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               className="w-full"
               disabled={upsertMutation.isPending}
             >
-              {upsertMutation.isPending ? "Saving..." : "Save Details"}
+              {upsertMutation.isPending
+                ? "Processing..."
+                : editingPersonnel
+                  ? "Save Changes"
+                  : `Invite & Create ${title}`}
             </Button>
           </form>
         </DialogContent>

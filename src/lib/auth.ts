@@ -6,7 +6,7 @@ export type TenantInfo = {
   userId: string;
   orgId: string | null;
   profileId: string;
-  role: string | null;
+  role: string;
   fullName: string | null;
   email: string | null;
   is_profile_completed: boolean;
@@ -46,7 +46,7 @@ export async function getTenantInfo(): Promise<TenantInfo | null> {
     userId,
     orgId: orgId ?? null,
     profileId: profile.id,
-    role: profile.role,
+    role: profile.role as string,
     fullName: profile.full_name,
     email: profile.email,
     is_profile_completed: profile.is_profile_completed ?? false,

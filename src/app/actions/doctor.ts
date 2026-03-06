@@ -193,7 +193,6 @@ export async function createEncounter(
       encounter_date: new Date(),
       notes: data.notes,
       diagnosis: data.diagnosis || null,
-      treatment_plan: data.treatment_plan || null,
     },
   });
 

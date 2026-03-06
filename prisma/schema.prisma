@@ -76,6 +76,7 @@ model appointments {
   clinics          clinics           @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   profiles         profiles?         @relation(fields: [doctor_id], references: [id])
   patients         patients          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  encounters       encounters[]
 
   @@index([appointment_date])
   @@index([clinic_id])
@@ -120,6 +121,9 @@ model encounters {
   encounter_type   String?
   diagnosis        String?
   encounter_date   DateTime           @default(now())
+  appointment_id   String?            @db.Uuid
+  notes            String?
+  appointments     appointments?      @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   branches         branches?          @relation(fields: [branch_id], references: [id])
   clinics          clinics            @relation(fields: [clinic_id], references: [id])
   profiles         profiles?          @relation(fields: [doctor_id], references: [id])

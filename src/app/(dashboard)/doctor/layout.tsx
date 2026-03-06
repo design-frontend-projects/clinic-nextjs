@@ -1,4 +1,5 @@
-import { requireTenantInfo } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 export default async function DoctorLayout({
@@ -6,13 +7,23 @@ export default async function DoctorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  try {
-    const tenant = await requireTenantInfo();
-    if (tenant.role !== "admin" && tenant.role !== "doctor") {
-      redirect(`/${tenant.role || ""}`);
-    }
-  } catch {
-    redirect("/sign-in");
+  const { userId } = await auth();
+  console.log("userId", userId);
+
+  if (!userId) {
+    redirect("/");
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, is_profile_completed, email, full_name")
+    .eq("clerk_user_id", userId)
+    .single();
+  console.log("profile", profile);
+
+  if (!profile || profile.role !== "doctor") {
+    redirect("/");
   }
 
   return <>{children}</>;

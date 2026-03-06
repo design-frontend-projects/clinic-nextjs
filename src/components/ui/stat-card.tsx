@@ -1,4 +1,4 @@
-"use client";
+// Server Component — no hooks or interactivity needed
 
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
