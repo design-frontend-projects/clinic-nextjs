@@ -1,7 +1,7 @@
 "use client";
 
 import { useSignUp, useAuth, useUser } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Activity, CheckCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 import { OnboardingDialog } from "@/components/onboarding/onboarding-dialog";
 import { toast } from "sonner";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { useRouter } from "next/navigation";
 
 const highlights = [
   "Manage appointments & patients",
@@ -32,17 +33,36 @@ export default function CustomSignUpPage() {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
   const supabase = createSupabaseServerClient();
+  const router = useRouter();
 
   const [step, setStep] = useState<"account" | "verification" | "onboarding">(
     "account",
   );
 
-  // Jump to onboarding if already authenticated (e.g. redirected from /admin)
-  useEffect(() => {
-    if (isAuthLoaded && isSignedIn && step !== "onboarding") {
+  // Check if user already completed onboarding → redirect to /admin
+  const checkIfProfileCompleted = useCallback(async () => {
+    if (!user?.id) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_profile_completed")
+      .eq("clerk_user_id", user.id)
+      .single();
+
+    if (profile?.is_profile_completed) {
+      router.push("/admin");
+    } else {
+      // Profile exists but not completed → show onboarding
       setStep("onboarding");
     }
-  }, [isAuthLoaded, isSignedIn, step]);
+  }, [user?.id, supabase, router]);
+
+  // When user is already authenticated, check profile status
+  useEffect(() => {
+    if (isAuthLoaded && isSignedIn && user?.id && step === "account") {
+      checkIfProfileCompleted();
+    }
+  }, [isAuthLoaded, isSignedIn, user?.id, step, checkIfProfileCompleted]);
 
   // Form state
   const [emailAddress, setEmailAddress] = useState("");
@@ -74,23 +94,6 @@ export default function CustomSignUpPage() {
       });
 
       setStep("verification");
-      // start create profilein supabaseafter success
-      //TODO: check if user already exists
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          clerk_user_id: user?.id,
-          email: emailAddress,
-          full_name: firstName + " " + lastName,
-          is_profile_completed: false,
-          role: "admin",
-        });
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
-        toast.error("Failed to create profile. Please try again.");
-      } else {
-        toast.success("Profile created successfully.");
-      }
     } catch (err: unknown) {
       const error = err as { errors?: { message?: string }[] };
       console.error(JSON.stringify(error, null, 2));
@@ -114,6 +117,24 @@ export default function CustomSignUpPage() {
       });
 
       if (completeSignUp.status === "complete") {
+        // Create profile in Supabase now that we have a valid Clerk user ID
+        const clerkUserId = completeSignUp.createdUserId;
+        const { error: profileError } = await supabase.from("profiles").upsert(
+          {
+            clerk_user_id: clerkUserId,
+            email: emailAddress,
+            full_name: firstName + " " + lastName,
+            is_profile_completed: false,
+            role: "admin",
+          },
+          { onConflict: "clerk_user_id" },
+        );
+
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+          toast.error("Failed to create profile.");
+        }
+
         await setActive({ session: completeSignUp.createdSessionId });
         setStep("onboarding");
       } else {

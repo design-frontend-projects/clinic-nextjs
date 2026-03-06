@@ -39,6 +39,18 @@ export async function createClinic(data: ClinicFormData) {
       console.error("Failed to create clinic:", clinicError);
       return { error: "Failed to create clinic" };
     }
+    const { error: profileUpdateError } = await supabase
+      .from("profiles")
+      .update({
+        clinic_id: clinic.id,
+        is_profile_completed: true,
+      })
+      .eq("clerk_user_id", userAuth.userId);
+
+    if (profileUpdateError) {
+      console.error("Failed to update profile:", profileUpdateError);
+      return { error: "Failed to update profile" };
+    }
 
     return { success: true, clinicId: clinic.id as string };
   } catch (error) {
@@ -68,7 +80,7 @@ export async function createProfile(
 
     const supabase = createSupabaseServerClient();
 
-    // Idempotency: check if profile already exists
+    // Idempotency: if profile already exists, update it with clinic link
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("id")
@@ -76,6 +88,25 @@ export async function createProfile(
       .single();
 
     if (existingProfile) {
+      // Update the existing profile with onboarding data
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          clinic_id: data.clinicId,
+          full_name: parsed.data.full_name,
+          email: parsed.data.email,
+          phone: parsed.data.phone || null,
+          role: parsed.data.role || "admin",
+          specialty: parsed.data.specialty || null,
+          status: "active",
+        })
+        .eq("id", existingProfile.id);
+
+      if (updateError) {
+        console.error("Failed to update existing profile:", updateError);
+        return { error: "Failed to update profile" };
+      }
+
       return { success: true, profileId: existingProfile.id as string };
     }
 
