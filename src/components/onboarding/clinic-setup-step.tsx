@@ -58,6 +58,7 @@ export function ClinicSetupStep({
       email: defaultValues?.email ?? "",
       phone: defaultValues?.phone ?? "",
       subscription_plan: defaultValues?.subscription_plan ?? "free",
+      is_primary: defaultValues?.is_primary ?? true,
     },
   });
 

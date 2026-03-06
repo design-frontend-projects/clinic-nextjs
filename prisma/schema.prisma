@@ -7,10 +7,8 @@ datasource db {
 }
 
 model profiles {
-  id                                                     String                   @id @default(uuid()) @db.Uuid
+  id                                                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clerk_user_id                                          String                   @unique
-  clinic_id                                              String                   @db.Uuid
-  branch_id                                              String?                  @db.Uuid
   full_name                                              String?
   email                                                  String?
   phone                                                  String?
@@ -18,6 +16,8 @@ model profiles {
   specialty                                              String?
   status                                                 UserStatus               @default(active)
   created_at                                             DateTime                 @default(now())
+  is_profile_completed                                   Boolean?                 @default(false)
+  address                                                Json?
   appointments                                           appointments[]
   encounters                                             encounters[]
   lab_orders                                             lab_orders[]
@@ -26,14 +26,11 @@ model profiles {
   pharmacy_sales                                         pharmacy_sales[]
   prescription_dispenses                                 prescription_dispenses[]
   profile_roles                                          profile_roles[]
-  branches                                               branches?                @relation(fields: [branch_id], references: [id])
-  clinics                                                clinics                  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   stock_movements                                        stock_movements[]
   stock_transfers_stock_transfers_approved_byToprofiles  stock_transfers[]        @relation("stock_transfers_approved_byToprofiles")
   stock_transfers_stock_transfers_initiated_byToprofiles stock_transfers[]        @relation("stock_transfers_initiated_byToprofiles")
 
   @@index([clerk_user_id])
-  @@index([clinic_id])
 }
 
 model patients {
@@ -47,7 +44,6 @@ model patients {
   phone                  String?
   email                  String?
   address                String?
-  blood_type             String?
   created_at             DateTime                 @default(now())
   appointments           appointments[]
   encounters             encounters[]
@@ -121,11 +117,8 @@ model encounters {
   patient_id       String             @db.Uuid
   branch_id        String?            @db.Uuid
   doctor_id        String?            @db.Uuid
-  appointment_id   String?            @db.Uuid
   encounter_type   String?
   diagnosis        String?
-  notes            String?
-  treatment_plan   String?
   encounter_date   DateTime           @default(now())
   branches         branches?          @relation(fields: [branch_id], references: [id])
   clinics          clinics            @relation(fields: [clinic_id], references: [id])
@@ -233,7 +226,6 @@ model branches {
   pharmacy_inventory                                       pharmacy_inventory[]
   pharmacy_sales                                           pharmacy_sales[]
   prescription_dispenses                                   prescription_dispenses[]
-  profiles                                                 profiles[]
   purchase_orders                                          purchase_orders[]
   stock_movements                                          stock_movements[]
   stock_transfers_stock_transfers_from_branch_idTobranches stock_transfers[]        @relation("stock_transfers_from_branch_idTobranches")
@@ -244,7 +236,7 @@ model branches {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model clinics {
-  id                     String                   @id @db.Uuid
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                   String
   registration_number    String?
   email                  String?
@@ -253,6 +245,8 @@ model clinics {
   status                 ClinicStatus             @default(trial)
   created_at             DateTime                 @default(now())
   updated_at             DateTime                 @default(now())
+  clerk_user_id          String?
+  is_primary             Boolean?                 @default(false)
   appointments           appointments[]
   branches               branches[]
   encounters             encounters[]
@@ -267,7 +261,6 @@ model clinics {
   pharmacy_inventory     pharmacy_inventory[]
   pharmacy_sales         pharmacy_sales[]
   prescription_dispenses prescription_dispenses[]
-  profiles               profiles[]
   purchase_orders        purchase_orders[]
   roles                  roles[]
   stock_movements        stock_movements[]

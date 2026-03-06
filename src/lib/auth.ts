@@ -5,11 +5,11 @@ export type TenantInfo = {
   userId: string;
   orgId: string | null;
   profileId: string;
-  clinicId: string | null;
-  branchId: string | null;
   role: string | null;
   fullName: string | null;
   email: string | null;
+  is_profile_completed: boolean;
+  clinicId: string | null;
 };
 
 export type CompleteTenantInfo = TenantInfo & { clinicId: string };
@@ -23,24 +23,28 @@ export async function getTenantInfo(): Promise<TenantInfo | null> {
     where: { clerk_user_id: userId },
     select: {
       id: true,
-      clinic_id: true,
-      branch_id: true,
       role: true,
       full_name: true,
       email: true,
+      is_profile_completed: true,
     },
   });
   if (!profile) return null;
+  // check at least one clinic is linked to the user by clerk user id
+  const clinic = await prisma.clinics.findFirst({
+    where: { clerk_user_id: userId, AND: { is_primary: true } },
+    select: { id: true },
+  });
 
   return {
     userId,
     orgId: orgId ?? null,
     profileId: profile.id,
-    clinicId: profile.clinic_id,
-    branchId: profile.branch_id,
     role: profile.role,
     fullName: profile.full_name,
     email: profile.email,
+    is_profile_completed: profile.is_profile_completed ?? false,
+    clinicId: clinic?.id ?? null,
   };
 }
 

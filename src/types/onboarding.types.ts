@@ -18,6 +18,7 @@ export const clinicSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
   subscription_plan: z.string().optional(),
+  is_primary: z.boolean().optional(),
 });
 
 export type ClinicFormData = z.infer<typeof clinicSchema>;

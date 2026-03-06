@@ -21,6 +21,17 @@ export async function createClinic(data: ClinicFormData) {
     }
 
     const supabase = createSupabaseServerClient();
+    // check first if tenant by clerk_user_id have clinic and primary
+    const { data: existingClinic } = await supabase
+      .from("clinics")
+      .select("id")
+      .eq("clerk_user_id", userAuth.userId)
+      .eq("is_primary", true)
+      .single();
+
+    if (existingClinic) {
+      return { error: "You already have a primary clinic" };
+    }
 
     const { data: clinic, error: clinicError } = await supabase
       .from("clinics")
@@ -30,7 +41,10 @@ export async function createClinic(data: ClinicFormData) {
         email: parsed.data.email || null,
         phone: parsed.data.phone || null,
         subscription_plan: parsed.data.subscription_plan || null,
-        status: "trial",
+        status: "active",
+        is_primary: existingClinic ? false : true,
+        // this column used to create clinic linked to clerk user and profile
+        clerk_user_id: userAuth.userId,
       })
       .select("id")
       .single();
@@ -38,19 +52,6 @@ export async function createClinic(data: ClinicFormData) {
     if (clinicError || !clinic) {
       console.error("Failed to create clinic:", clinicError);
       return { error: "Failed to create clinic" };
-    }
-    // update profile with clinic id and mark profile as completed
-    const { error: profileUpdateError } = await supabase
-      .from("profiles")
-      .update({
-        clinic_id: clinic.id,
-        is_profile_completed: true,
-      })
-      .eq("clerk_user_id", userAuth.userId);
-
-    if (profileUpdateError) {
-      console.error("Failed to update profile:", profileUpdateError);
-      return { error: "Failed to update profile" };
     }
 
     return { success: true, clinicId: clinic.id as string };

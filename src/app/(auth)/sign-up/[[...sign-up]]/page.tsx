@@ -40,12 +40,13 @@ export default function CustomSignUpPage() {
   );
 
   // Check if user already completed onboarding → redirect to /admin
+  // Check if user already completed onboarding → redirect to /admin
   const checkIfProfileCompleted = useCallback(async () => {
     if (!user?.id) return;
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_profile_completed")
+      .select("*")
       .eq("clerk_user_id", user.id)
       .single();
 

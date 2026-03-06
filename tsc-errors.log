@@ -1,0 +1,22 @@
+scripts/test-db.ts(7,46): error TS2353: Object literal may only specify known properties, and 'clinic_id' does not exist in type 'profilesSelect<DefaultArgs>'.
+src/app/(dashboard)/doctor/patients/[id]/page.tsx(35,36): error TS2339: Property 'blood_type' does not exist on type '{ id: string; email: string | null; phone: string | null; created_at: Date; address: string | null; clinic_id: string; branch_id: string | null; first_name: string | null; last_name: string | null; gender: Gender | null; date_of_birth: Date | null; }'.
+src/app/actions/admin.ts(20,16): error TS2353: Object literal may only specify known properties, and 'clinic_id' does not exist in type 'profilesWhereInput'.
+src/app/actions/admin.ts(103,25): error TS2339: Property 'branchId' does not exist on type 'CompleteTenantInfo'.
+src/app/actions/admin.ts(156,7): error TS2353: Object literal may only specify known properties, and 'clinic_id' does not exist in type 'profilesWhereInput'.
+src/app/actions/admin.ts(205,25): error TS2339: Property 'branchId' does not exist on type 'CompleteTenantInfo'.
+src/app/actions/clinic.ts(120,38): error TS2353: Object literal may only specify known properties, and 'branch_id' does not exist in type 'profilesWhereInput'.
+src/app/actions/doctor.ts(189,25): error TS2339: Property 'branchId' does not exist on type 'CompleteTenantInfo'.
+src/app/actions/doctor.ts(192,7): error TS2353: Object literal may only specify known properties, and 'appointment_id' does not exist in type 'Without<encountersCreateInput, encountersUncheckedCreateInput> & encountersUncheckedCreateInput'.
+src/app/actions/personnel.ts(14,7): error TS2353: Object literal may only specify known properties, and 'clinic_id' does not exist in type 'profilesWhereInput'.
+src/app/actions/personnel.ts(19,7): error TS2353: Object literal may only specify known properties, and 'branches' does not exist in type 'profilesInclude<DefaultArgs>'.
+src/app/actions/personnel.ts(36,7): error TS2353: Object literal may only specify known properties, and 'clinic_id' does not exist in type '(Without<profilesCreateInput, profilesUncheckedCreateInput> & profilesUncheckedCreateInput) | (Without<...> & profilesCreateInput)'.
+src/app/actions/personnel.ts(46,7): error TS2353: Object literal may only specify known properties, and 'branch_id' does not exist in type '(Without<profilesUpdateInput, profilesUncheckedUpdateInput> & profilesUncheckedUpdateInput) | (Without<...> & profilesUpdateInput)'.
+src/app/actions/profile.ts(24,13): error TS2353: Object literal may only specify known properties, and 'branch_id' does not exist in type '(Without<profilesUpdateInput, profilesUncheckedUpdateInput> & profilesUncheckedUpdateInput) | (Without<...> & profilesUpdateInput)'.
+src/app/actions/rbac.ts(133,7): error TS2353: Object literal may only specify known properties, and 'clinic_id' does not exist in type 'profilesWhereInput'.
+src/app/actions/rbac.ts(152,27): error TS2339: Property 'profile_roles' does not exist on type '{ id: string; clerk_user_id: string; full_name: string | null; email: string | null; phone: string | null; role: string | null; specialty: string | null; status: UserStatus; created_at: Date; is_profile_completed: boolean | null; address: JsonValue; }'.
+src/app/actions/rbac.ts(152,46): error TS7006: Parameter 'pr' implicitly has an 'any' type.
+src/app/actions/rbac.ts(162,31): error TS2353: Object literal may only specify known properties, and 'clinic_id' does not exist in type 'profilesWhereInput'.
+src/components/admin/personnel-management.tsx(155,38): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/components/admin/personnel-management.tsx(202,53): error TS2339: Property 'branch_id' does not exist on type '{ id: string; clerk_user_id: string; full_name: string | null; email: string | null; phone: string | null; role: string | null; specialty: string | null; status: UserStatus; created_at: Date; is_profile_completed: boolean | null; address: JsonValue; }'.
+src/components/layout/header.tsx(51,39): error TS2339: Property 'branchId' does not exist on type 'TenantInfo'.
