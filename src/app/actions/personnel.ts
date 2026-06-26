@@ -47,7 +47,8 @@ export async function upsertPersonnel(data: Profile) {
     // ── Step 2: Insert new profile into Supabase ──
     const personnel = await prisma.profiles.create({
       data: {
-        clerk_user_id: invitation.id,
+        clerk_user_id: "",
+        org_id: invitation.id,
         full_name: validatedData.full_name,
         email: validatedData.email,
         phone: validatedData.phone ?? null,

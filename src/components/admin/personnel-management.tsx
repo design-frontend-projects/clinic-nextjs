@@ -313,6 +313,31 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   </SelectContent>
                 </Select>
               </div>
+              {/* add roles list 
+              ['admin', 'doctor', 'staff','patient']
+              */}
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={watch("role")}
+                  onValueChange={(val) =>
+                    setValue(
+                      "role",
+                      val as "admin" | "doctor" | "staff" | "patient",
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="doctor">Doctor</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="patient">Patient</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Button
               type="submit"
