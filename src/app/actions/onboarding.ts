@@ -1,6 +1,6 @@
 "use server";
 
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { getSupabaseSession } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ProfileFormData, ClinicFormData } from "@/types/onboarding.types";
 import { profileSchema, clinicSchema } from "@/types/onboarding.types";
@@ -8,8 +8,8 @@ import { profileSchema, clinicSchema } from "@/types/onboarding.types";
 // ─── Create Clinic ──────────────────────────────────────────────
 export async function createClinic(data: ClinicFormData) {
   try {
-    const userAuth = await auth();
-    if (!userAuth.userId) {
+    const session = await getSupabaseSession();
+    if (!session) {
       return { error: "Unauthorized" };
     }
 
@@ -21,11 +21,10 @@ export async function createClinic(data: ClinicFormData) {
     }
 
     const supabase = createSupabaseServerClient();
-    // check first if tenant by clerk_user_id have clinic and primary
     const { data: existingClinic } = await supabase
       .from("clinics")
       .select("id")
-      .eq("clerk_user_id", userAuth.userId)
+      .eq("auth_user_id", session.user.id)
       .eq("is_primary", true)
       .single();
 
@@ -43,8 +42,7 @@ export async function createClinic(data: ClinicFormData) {
         subscription_plan: parsed.data.subscription_plan || null,
         status: "active",
         is_primary: existingClinic ? false : true,
-        // this column used to create clinic linked to clerk user and profile
-        clerk_user_id: userAuth.userId,
+        auth_user_id: session.user.id,
       })
       .select("id")
       .single();
@@ -66,10 +64,10 @@ export async function createProfile(
   data: ProfileFormData & { clinicId: string },
 ) {
   try {
-    const userAuth = await auth();
-    const clerkId = userAuth.userId;
+    const session = await getSupabaseSession();
+    const authId = session?.user.id;
 
-    if (!clerkId) {
+    if (!authId) {
       return { error: "Unauthorized" };
     }
 
@@ -86,7 +84,7 @@ export async function createProfile(
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("id")
-      .eq("clerk_user_id", clerkId)
+      .eq("auth_user_id", authId)
       .single();
 
     if (existingProfile) {
@@ -94,7 +92,7 @@ export async function createProfile(
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
-          clinic_id: data.clinicId,
+          org_id: data.clinicId, // clinicId matches org_id in profiles
           full_name: parsed.data.full_name,
           email: parsed.data.email,
           phone: parsed.data.phone || null,
@@ -115,8 +113,8 @@ export async function createProfile(
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .insert({
-        clerk_user_id: clerkId,
-        clinic_id: data.clinicId,
+        auth_user_id: authId,
+        org_id: data.clinicId,
         full_name: parsed.data.full_name,
         email: parsed.data.email,
         phone: parsed.data.phone || null,
@@ -143,14 +141,13 @@ export async function createProfile(
 
 // ─── Complete Onboarding (Legacy compat — redirects to new flow) ─
 export async function completeOnboarding(clinicName: string) {
-  const currUser = await currentUser();
-  const primaryEmail = currUser?.emailAddresses[0]?.emailAddress ?? "";
-  const fullName =
-    [currUser?.firstName, currUser?.lastName].filter(Boolean).join(" ") ||
-    "Admin User";
+  const session = await getSupabaseSession();
+  const currUser = session?.user;
+  const primaryEmail = currUser?.email ?? "";
+  const fullName = currUser?.user_metadata?.full_name || "Admin User";
 
   const clinicRes = await createClinic({
-    name: clinicName || `${currUser?.firstName || "My"}'s Clinic`,
+    name: clinicName || `${fullName}'s Clinic`,
     email: primaryEmail,
   });
 
@@ -171,3 +168,4 @@ export async function completeOnboarding(clinicName: string) {
 
   return { success: true };
 }
+

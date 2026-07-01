@@ -7,7 +7,7 @@ RETURNS UUID AS $$
   SELECT COALESCE(
     NULLIF(current_setting('request.jwt.claims', true)::jsonb->>'clinic_id', '')::uuid,
     NULLIF(current_setting('app.current_tenant_id', true), '')::uuid,
-    (SELECT id FROM clinics WHERE clerk_user_id = auth.uid() LIMIT 1)
+    (SELECT id FROM clinics WHERE auth_user_id = auth.uid() LIMIT 1)
   );
 $$ LANGUAGE sql SECURITY DEFINER;
 
@@ -19,7 +19,7 @@ RETURNS BOOLEAN AS $$
     (SELECT EXISTS (
        SELECT 1 FROM user_roles ur
        JOIN roles r ON ur.role_id = r.id
-       WHERE ur.profile_id = (SELECT id FROM profiles WHERE clerk_user_id = auth.uid() LIMIT 1)
+       WHERE ur.profile_id = (SELECT id FROM profiles WHERE auth_user_id = auth.uid() LIMIT 1)
          AND r.name = 'Super Admin'
          AND ur.is_active = TRUE
     ))

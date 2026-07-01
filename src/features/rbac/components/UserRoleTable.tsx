@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Shield, ShieldAlert, UserCog } from "lucide-react";
 
@@ -18,7 +19,7 @@ interface Profile {
   id: string;
   full_name: string | null;
   email: string | null;
-  clerk_user_id: string;
+  auth_user_id: string;
   user_roles: { roles: Role }[];
 }
 

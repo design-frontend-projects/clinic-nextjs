@@ -4,14 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { profileSchema, type Profile } from "@/types/clinic.types";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function getPersonnel(userId: string) {
   await requireTenantInfo();
 
   return prisma.profiles.findMany({
     where: {
-      clerk_user_id: userId,
+      auth_user_id: userId,
     },
     orderBy: { created_at: "desc" },
   });
@@ -24,31 +24,31 @@ export async function upsertPersonnel(data: Profile) {
   const isNewRecord = !validatedData.id;
 
   if (isNewRecord) {
-    // ── Step 1: Invite user via Clerk ──
     if (!validatedData.email) {
       throw new Error("Email is required to invite a new user");
     }
 
-    const client = await clerkClient();
-    const invitation = await client.organizations.createOrganizationInvitation({
-      emailAddress: validatedData.email,
-      role: "org:doctor",
-      organizationId: tenant.orgId as string,
-      publicMetadata: {
-        profileId: validatedData.id,
-        internalRole: validatedData.role || "doctor",
-      },
+    const supabaseAdmin = createSupabaseServerClient();
+    
+    // Invite user via Supabase Admin API
+    const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(validatedData.email, {
+      data: {
+        full_name: validatedData.full_name,
+        role: validatedData.role || "doctor",
+        tenant_id: tenant.clinicId,
+      }
     });
 
-    if (!invitation.id) {
-      throw new Error("Failed to send Clerk invitation");
+    if (inviteError || !authData.user) {
+      console.error("[Supabase Invitation] Failed to send invitation:", inviteError);
+      throw new Error("Failed to send invitation");
     }
 
-    // ── Step 2: Insert new profile into Supabase ──
+    // Insert new profile into Supabase
     const personnel = await prisma.profiles.create({
       data: {
-        clerk_user_id: "",
-        org_id: invitation.id,
+        auth_user_id: authData.user.id,
+        org_id: tenant.clinicId,
         full_name: validatedData.full_name,
         email: validatedData.email,
         phone: validatedData.phone ?? null,
@@ -61,32 +61,11 @@ export async function upsertPersonnel(data: Profile) {
       },
     });
 
-    // ── Step 3: Send org invitation if org exists ──
-    if (tenant.orgId) {
-      try {
-        await client.organizations.createOrganizationInvitation({
-          organizationId: tenant.orgId,
-          inviterUserId: tenant.userId,
-          emailAddress: validatedData.email,
-          role: "org:doctor",
-          publicMetadata: {
-            profileId: personnel.id,
-            internalRole: validatedData.role || "doctor",
-          },
-        });
-      } catch (error) {
-        console.error(
-          "[Clerk Invitation] Failed to send organization invitation:",
-          error instanceof Error ? error.message : error,
-        );
-      }
-    }
-
     revalidatePath("/admin/doctors");
     revalidatePath("/admin/staff");
     return personnel;
   } else {
-    // ── Update existing profile in Supabase ──
+    // Update existing profile in database
     const personnel = await prisma.profiles.update({
       where: { id: validatedData.id },
       data: {

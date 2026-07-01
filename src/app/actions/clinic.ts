@@ -115,20 +115,13 @@ export async function upsertBranch(data: z.infer<typeof branchSchema>) {
 export async function deleteBranch(id: string) {
   await requireTenantInfo();
 
-  // Rule: Branch cannot be deleted if doctors assigned or future appointments exist
-  const [doctorCount, appointmentCount] = await Promise.all([
-    prisma.profiles.count({ where: { branch_id: id } }),
-    prisma.appointments.count({
-      where: {
-        branch_id: id,
-        appointment_date: { gte: new Date() },
-      },
-    }),
-  ]);
-
-  if (doctorCount > 0) {
-    throw new Error("Cannot delete branch with assigned doctors");
-  }
+  // Rule: Branch cannot be deleted if future appointments exist
+  const appointmentCount = await prisma.appointments.count({
+    where: {
+      branch_id: id,
+      appointment_date: { gte: new Date() },
+    },
+  });
 
   if (appointmentCount > 0) {
     throw new Error("Cannot delete branch with future appointments");

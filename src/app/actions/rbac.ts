@@ -89,8 +89,12 @@ export async function getClinicStaff() {
         id: staff.id,
         full_name: staff.full_name,
         email: staff.email,
-        clerk_user_id: staff.clerk_user_id,
-        role: userRoles[0]?.roles.name || "Viewer"
+        auth_user_id: staff.auth_user_id,
+        role: userRoles[0]?.roles.name || "Viewer",
+        assigned_roles: userRoles.map((ur: any) => ({
+          id: ur.roles.id,
+          name: ur.roles.name,
+        }))
       };
     })
   );

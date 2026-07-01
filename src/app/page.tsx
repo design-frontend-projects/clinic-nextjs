@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { getSupabaseSession } from "@/lib/auth";
 import {
   Activity,
   CalendarDays,
@@ -94,7 +94,9 @@ const plans = [
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await getSupabaseSession();
+
   return (
     <div className="min-h-screen bg-canvas font-inter" data-theme="dark">
       {/* Header */}
@@ -107,32 +109,30 @@ export default function LandingPage() {
             <span className="text-xl font-semibold text-ink">ClinicPro</span>
           </Link>
           <div className="flex items-center gap-4">
-            <SignedOut>
-              <Link href="/sign-in">
-                <Button variant="secondary">Sign In</Button>
-              </Link>
-              <Link href="/sign-up">
-                <Button>
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/dashboard">
-                <Button variant="secondary" className="mr-2">
-                  Dashboard
-                </Button>
-              </Link>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "h-9 w-9",
-                  },
-                }}
-              />
-            </SignedIn>
+            {!session ? (
+              <>
+                <Link href="/sign-in">
+                  <Button variant="secondary">Sign In</Button>
+                </Link>
+                <Link href="/sign-up">
+                  <Button>
+                    Start Free Trial
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="secondary" className="mr-2">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Link href="/sign-in">
+                  <Button variant="outline">Sign Out</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -154,22 +154,21 @@ export default function LandingPage() {
             billing, and pharmacy — built for modern healthcare.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <SignedOut>
+            {!session ? (
               <Link href="/sign-up">
                 <Button size="lg" className="h-12 px-8 text-base">
                   Get Started Free
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-            </SignedOut>
-            <SignedIn>
+            ) : (
               <Link href="/dashboard">
                 <Button size="lg" className="h-12 px-8 text-base">
                   Go to Dashboard
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-            </SignedIn>
+            )}
             <Button size="lg" variant="secondary" className="h-12 px-8 text-base">
               Watch Demo
             </Button>

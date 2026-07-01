@@ -70,19 +70,19 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     queryFn: () => fetchTenantInfoAction(),
   });
 
-  const clerkUserId = tenant?.clerk_user_id as string;
+  const authUserId = tenant?.auth_user_id as string;
 
   const { data: personnel, isLoading } = useQuery({
-    queryKey: ["personnel", clerkUserId],
-    queryFn: () => getPersonnel(clerkUserId),
-    enabled: !!clerkUserId,
+    queryKey: ["personnel", authUserId],
+    queryFn: () => getPersonnel(authUserId),
+    enabled: !!authUserId,
   });
 
   const upsertMutation = useMutation({
     mutationFn: (data: Profile) => upsertPersonnel(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["personnel", clerkUserId],
+        queryKey: ["personnel", authUserId],
       });
       toast.success(
         editingPersonnel ? `${title} updated` : `${title} invited & created`,
@@ -99,7 +99,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     mutationFn: (id: string) => deletePersonnel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["personnel", clerkUserId],
+        queryKey: ["personnel", authUserId],
       });
       toast.success(`${title} deleted`);
       setPersonnelToDelete(null);
@@ -147,7 +147,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     upsertMutation.mutate({ ...data, role: role });
   };
 
-  if (!clerkUserId) return <div>Initializing...</div>;
+  if (!authUserId) return <div>Initializing...</div>;
   if (isLoading) return <div>Loading {role}s...</div>;
 
   return (
@@ -238,7 +238,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
             <DialogDescription>
               {editingPersonnel
                 ? `Update the details for this ${role}.`
-                : `Enter details to invite a new ${role}. They will receive a Clerk invitation email.`}
+                : `Enter details to invite a new ${role}. They will receive an invitation email.`}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -277,7 +277,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                 )}
                 {!editingPersonnel && (
                   <p className="text-xs text-muted-foreground">
-                    A Clerk invitation will be sent to this email.
+                    An invitation will be sent to this email.
                   </p>
                 )}
               </div>

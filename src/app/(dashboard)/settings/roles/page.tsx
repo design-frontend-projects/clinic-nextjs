@@ -19,6 +19,7 @@ import {
 import { RoleCard } from "@/features/rbac/components/RoleCard";
 import { RoleHierarchyTree } from "@/features/rbac/components/RoleHierarchyTree";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function RolesSettingsPage() {
   const router = useRouter();
@@ -206,7 +207,7 @@ export default function RolesSettingsPage() {
                       e.stopPropagation();
                       handleDelete(role);
                     }}
-                    onToggleActive={(e, active) => {
+                    onToggleActive={(e, role, active) => {
                       e.stopPropagation();
                       handleToggleActive(role, active);
                     }}

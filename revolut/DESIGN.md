@@ -131,7 +131,6 @@ typography:
     fontSize: 14px
     fontWeight: 600
     lineHeight: 1.43
-    letterSpacing: 0
   caption:
     fontFamily: Inter
     fontSize: 13px
@@ -590,3 +589,48 @@ The system has **no traditional drop-shadow language**. Surfaces register depth 
 - Don't loosen Aeonik Pro `lineHeight` past 1.0 on display sizes. Tight stacking is structural.
 - Don't bump body Inter to weight 500. Use 400 (default) or 600 (emphatic) — never the in-between.
 - Don't pair `{colors.canvas-dark}` with another dark surface beyond `{colors.surface-elevated}`. The surface ladder has only two dark steps.
+
+## Responsive Behavior
+
+### Breakpoints
+
+| Name | Width | Key Changes |
+|---|---|---|
+| Desktop XL | ≥ 1440px | 4-up plan grid, full-bleed product mockup bands, max content 1200. |
+| Desktop | 1280–1439px | Container shrinks; xl side padding. |
+| Tablet Large | 1024–1279px | Plan grid 4-up; feature grid 3-up. |
+| Tablet | 768–1023px | Plan grid 2-up; feature grid 2-up. |
+| Mobile Large | 426–767px | Plan grid 1-up; feature grid 1-up; nav collapses to hamburger; hero `display-xxl` clamps to 64px. |
+| Mobile | ≤ 425px | All grids 1-up; hero clamps to 48px; section padding `{spacing.section}` collapses to 64px. |
+
+### Touch Targets
+- All buttons ship at minimum 48px tall — comfortably exceeds WCAG AAA (44px). Default `{component.button-primary}` is 48px.
+- `{component.text-input}` is 56px tall — fintech-grade accessibility.
+- `{component.button-pill-sm}` (36px) is bumped to 44px on mobile via padding adjustment.
+
+### Collapsing Strategy
+- Top-level nav collapses to hamburger at < 1024px; the wordmark and `{component.button-primary}` stay anchored.
+- Hero `{typography.display-xxl}` clamps: 136px → 80px → 64px → 48px across the breakpoint ladder.
+- Plan grid steps from 4-up to 2-up at < 1024px to 1-up at < 768px.
+- Product mockup bands maintain full-bleed at every breakpoint; the asset crops inward rather than letterboxing.
+- Sub-nav pills convert from a wrap row to a horizontal scroll-rail at < 768px.
+
+### Image Behavior
+- Phone and card mockups are served at 1.5× and 2× DPR; below 768px the system swaps to a smaller hero crop.
+- Product photography retains its own atmospheric lighting at every breakpoint — no responsive variant assets.
+
+## Iteration Guide
+
+1. Focus on ONE component at a time. Most surfaces share the `{colors.canvas-dark}` / `{colors.canvas-light}` pair with `{rounded.full}` for buttons and `{rounded.lg}` for cards.
+2. Reference component names and tokens directly (`{colors.primary}`, `{component.plan-card-featured}`, `{rounded.lg}`) — do not paraphrase.
+3. Run `npx @google/design.md lint DESIGN.md` after edits; orphaned-tokens warnings will catch unused entries.
+4. Add new variants as separate entries (`-pressed`, `-featured`, `-disabled`) — do not bury them in prose.
+5. Default body type to `{typography.body-md}` (Inter 400 with positive tracking); reach for `{typography.body-md-bold}` only on emphasis.
+6. Keep `{colors.primary}` scarce — if more than one cobalt-violet element appears per viewport, ask whether one should drop to `{component.plan-card}` (`{colors.surface-elevated}`) instead.
+
+## Known Gaps
+
+- Pressed/active visual states are documented for `button-primary-pressed` only; other components rely on focus-ring (browser default) for interactive feedback.
+- Logged-in app surfaces (transactions, transfers, account settings) are out of scope — only the public marketing canvas is documented.
+- The wide accent palette (`{colors.accent-teal}` through `{colors.accent-brown}`) is captured from the extracted token set, but exact usage inside product illustrations varies per market and product line; document per-illustration rather than as system buttons.
+- Mobile-app screenshot art direction (phone bezels, status bars) is product-photography territory and not standardised as design tokens.

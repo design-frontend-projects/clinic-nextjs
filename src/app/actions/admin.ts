@@ -17,7 +17,7 @@ export async function getDashboardStats() {
   ] = await Promise.all([
     prisma.patients.count({ where: { clinic_id: clinicId } }),
     prisma.profiles.count({
-      where: { clinic_id: clinicId, role: "doctor", status: "active" },
+      where: { org_id: clinicId, role: "doctor", status: "active" },
     }),
     prisma.appointments.count({
       where: {
@@ -153,7 +153,7 @@ export async function getDoctors() {
 
   return prisma.profiles.findMany({
     where: {
-      clinic_id: tenant.clinicId,
+      org_id: tenant.clinicId,
       role: "doctor",
     },
     orderBy: { created_at: "desc" },

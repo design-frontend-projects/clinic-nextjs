@@ -26,7 +26,7 @@ export const branchSchema = z.object({
 
 export const profileSchema = z.object({
   id: z.string().uuid().optional(),
-  clerk_user_id: z.string().optional(),
+  auth_user_id: z.string().optional(),
   full_name: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.email("Invalid email address").optional().nullable(),
   phone: z.string().optional().nullable(),

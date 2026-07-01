@@ -31,8 +31,7 @@ export default async function PatientConsultationPage({
             {patient.gender} • DOB:{" "}
             {patient.date_of_birth
               ? format(new Date(patient.date_of_birth), "MMM d, yyyy")
-              : "N/A"}{" "}
-            • Blood Type: {patient.blood_type || "Unknown"}
+              : "N/A"}
           </p>
         </div>
       </div>

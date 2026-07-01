@@ -18,10 +18,10 @@ interface Role {
 interface RoleCardProps {
   role: Role;
   permissionsCount: number;
-  onEdit: (role: Role) => void;
-  onClone: (role: Role) => void;
-  onDelete: (role: Role) => void;
-  onToggleActive: (role: Role, isActive: boolean) => void;
+  onEdit: (e: React.MouseEvent, role: Role) => void;
+  onClone: (e: React.MouseEvent, role: Role) => void;
+  onDelete: (e: React.MouseEvent, role: Role) => void;
+  onToggleActive: (e: React.MouseEvent, role: Role, isActive: boolean) => void;
   isLoading?: boolean;
 }
 
@@ -47,7 +47,7 @@ export function RoleCard({
             )}
           </CardTitle>
           <button
-            onClick={() => onToggleActive(role, !role.is_active)}
+            onClick={(e) => onToggleActive(e, role, !role.is_active)}
             disabled={role.is_system || isLoading}
             className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase transition-colors focus:outline-none ${
               role.is_active
@@ -82,7 +82,7 @@ export function RoleCard({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onClone(role)}
+          onClick={(e) => onClone(e, role)}
           disabled={isLoading}
           className="h-8 text-xs flex gap-1.5"
         >
@@ -91,7 +91,7 @@ export function RoleCard({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onEdit(role)}
+          onClick={(e) => onEdit(e, role)}
           disabled={isLoading}
           className="h-8 text-xs flex gap-1.5"
         >
@@ -100,7 +100,7 @@ export function RoleCard({
         <Button
           variant="destructive"
           size="sm"
-          onClick={() => onDelete(role)}
+          onClick={(e) => onDelete(e, role)}
           disabled={role.is_system || isLoading}
           className="h-8 text-xs flex gap-1.5 bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
         >

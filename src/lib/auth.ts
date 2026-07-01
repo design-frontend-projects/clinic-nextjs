@@ -1,29 +1,62 @@
-import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@supabase/supabase-js";
+
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export type TenantInfo = {
-  userId: string;
-  orgId: string | null;
-  profileId: string;
-  role: string;
-  fullName: string | null;
-  email: string | null;
-  is_profile_completed: boolean;
-  clinicId: string | null;
-  branchId: string | null;
-  clerk_user_id: string | null;
-};
+/**
+ * Helper to fetch the current authenticated user's session from cookies (server-side).
+ */
+export async function getSupabaseSession() {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch (error) {
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing user sessions.
+          }
+        },
+      },
+    }
+  );
 
-export type CompleteTenantInfo = TenantInfo & { clinicId: string };
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error("Supabase session error:", error);
+    return null;
+  }
+  return data.session;
+}
 
-export async function getTenantInfo(): Promise<TenantInfo | null> {
-  const { userId, orgId } = await auth();
+/**
+ * Retrieve tenant information for the currently logged‑in user. This replaces the
+ * legacy Clerk‑based `getTenantInfo` implementation.
+ *
+ * The function reads the user ID from the Supabase session, then looks up the
+ * associated profile and clinic in the Prisma database. All queries are scoped
+ * to the tenant using the `tenantId` column – ensure your Prisma models include
+ * this field and have RLS policies defined in Supabase.
+ */
+export async function getTenantInfo() {
+  const session = await getSupabaseSession();
+  if (!session?.user?.id) return null;
+  const userId = session.user.id;
 
-  if (!userId) return null;
+  // Import Prisma client from the shared lib.
+  const { prisma } = await import("@/lib/prisma");
 
   const profile = await prisma.profiles.findFirst({
-    where: { clerk_user_id: userId },
+    where: { auth_user_id: userId }, // Adjust field if you store Supabase user ID elsewhere
     select: {
       id: true,
       role: true,
@@ -33,34 +66,36 @@ export async function getTenantInfo(): Promise<TenantInfo | null> {
     },
   });
   if (!profile) return null;
-  // check at least one clinic is linked to the user by clerk user id
+
   const clinic = await prisma.clinics.findFirst({
-    where: { clerk_user_id: userId, AND: { is_primary: true } },
-    select: { id: true },
+    where: { auth_user_id: userId, AND: { is_primary: true } },
+    select: { id: true, subscription_plan: true },
   });
 
+  // Retrieve branch ID from cookies (if you still store it there).
+  const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
   const branchId = cookieStore.get("active_branch_id")?.value ?? null;
 
   return {
     userId,
-    orgId: orgId ?? null,
+    orgId: null,
     profileId: profile.id,
     role: profile.role as string,
     fullName: profile.full_name,
     email: profile.email,
     is_profile_completed: profile.is_profile_completed ?? false,
     clinicId: clinic?.id ?? null,
+    subscriptionPlan: clinic?.subscription_plan ?? "free",
     branchId,
-    clerk_user_id: userId,
+    auth_user_id: userId,
   };
 }
 
 /**
- * Requires only that the user is authenticated and has a profile.
- * clinicId may be null (user hasn't completed onboarding yet).
+ * Ensure the user is authenticated and has a valid profile.
  */
-export async function requireAuthenticatedTenant(): Promise<TenantInfo> {
+export async function requireAuthenticatedTenant() {
   const tenant = await getTenantInfo();
   if (!tenant) {
     throw new Error("Unauthorized: No tenant info found");
@@ -69,19 +104,20 @@ export async function requireAuthenticatedTenant(): Promise<TenantInfo> {
 }
 
 /**
- * Requires the user to be authenticated AND have a linked clinic.
- * Use this for routes that need full tenant context.
+ * Ensure the user also has an associated clinic (full tenant context).
  */
-export async function requireTenantInfo(): Promise<CompleteTenantInfo> {
+export async function requireTenantInfo() {
   const tenant = await getTenantInfo();
   if (!tenant) {
     throw new Error("Unauthorized: No tenant info found");
   }
-
   if (!tenant.clinicId) {
     throw new Error(
-      "Configuration Error: The logged-in user's profile does not have an assigned clinic_id. Please ensure your profile is linked to a clinic.",
+      "Configuration Error: The logged‑in user's profile does not have an assigned clinic_id. Please ensure your profile is linked to a clinic."
     );
   }
-  return tenant as CompleteTenantInfo;
+  return {
+    ...tenant,
+    clinicId: tenant.clinicId,
+  };
 }

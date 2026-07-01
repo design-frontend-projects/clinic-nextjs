@@ -29,7 +29,7 @@ type ProfileStaff = {
   id: string;
   full_name: string | null;
   email: string | null;
-  clerk_user_id: string;
+  auth_user_id: string;
   role: string | null;
   assigned_roles: {
     id: string;
