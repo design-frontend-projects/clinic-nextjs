@@ -26,7 +26,8 @@ model profiles {
   medical_records                                        medical_records[]
   pharmacy_sales                                         pharmacy_sales[]
   prescription_dispenses                                 prescription_dispenses[]
-  profile_roles                                          profile_roles[]
+  user_roles                                             user_roles[]
+  user_permissions                                       user_permissions[]
   stock_movements                                        stock_movements[]
   stock_transfers_stock_transfers_approved_byToprofiles  stock_transfers[]        @relation("stock_transfers_approved_byToprofiles")
   stock_transfers_stock_transfers_initiated_byToprofiles stock_transfers[]        @relation("stock_transfers_initiated_byToprofiles")
@@ -180,35 +181,250 @@ model prescription_dispenses {
 
 model roles {
   id               String             @id @default(uuid()) @db.Uuid
-  clinic_id        String             @db.Uuid
+  tenant_id        String             @db.Uuid
   name             String
-  profile_roles    profile_roles[]
-  role_permissions role_permissions[]
-  clinics          clinics            @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  description      String?
+  is_system        Boolean            @default(false)
+  is_active        Boolean            @default(true)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @default(now()) @updatedAt
+  deleted_at       DateTime?
+  created_by       String?            @db.Uuid
+  updated_by       String?            @db.Uuid
+
+  clinics               clinics            @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  user_roles            user_roles[]
+  role_permissions      role_permissions[]
+  tenant_roles          tenant_roles[]
+  role_hierarchy_parent role_hierarchy[]   @relation("parent_role")
+  role_hierarchy_child  role_hierarchy[]   @relation("child_role")
+  role_group_roles      role_group_roles[]
+
+  @@unique([tenant_id, name])
 }
 
 model permissions {
-  id               String             @id @default(uuid()) @db.Uuid
-  name             String             @unique
-  role_permissions role_permissions[]
+  id                   String                 @id @default(uuid()) @db.Uuid
+  tenant_id            String?                @db.Uuid
+  name                 String                 @unique
+  description          String?
+  category_id          String?                @db.Uuid
+  group_id             String?                @db.Uuid
+  is_active            Boolean                @default(true)
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @default(now()) @updatedAt
+  deleted_at           DateTime?
+  created_by           String?                @db.Uuid
+  updated_by           String?                @db.Uuid
+
+  permission_categories permission_categories? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  permission_groups     permission_groups?     @relation(fields: [group_id], references: [id], onDelete: SetNull)
+  role_permissions      role_permissions[]
+  user_permissions      user_permissions[]
+  tenant_permissions    tenant_permissions[]
 }
 
-model profile_roles {
-  profile_id String   @db.Uuid
-  role_id    String   @db.Uuid
-  profiles   profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  roles      roles    @relation(fields: [role_id], references: [id], onDelete: Cascade)
+model permission_categories {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenant_id   String?       @db.Uuid
+  name        String        @unique
+  description String?
+  is_active   Boolean       @default(true)
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @default(now()) @updatedAt
+  deleted_at  DateTime?
+  created_by  String?       @db.Uuid
+  updated_by  String?       @db.Uuid
 
-  @@id([profile_id, role_id])
+  permissions permissions[]
+}
+
+model permission_groups {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenant_id   String?       @db.Uuid
+  name        String        @unique
+  description String?
+  is_active   Boolean       @default(true)
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @default(now()) @updatedAt
+  deleted_at  DateTime?
+  created_by  String?       @db.Uuid
+  updated_by  String?       @db.Uuid
+
+  permissions permissions[]
+}
+
+model user_roles {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenant_id   String    @db.Uuid
+  profile_id  String    @db.Uuid
+  role_id     String    @db.Uuid
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @default(now()) @updatedAt
+  deleted_at  DateTime?
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+
+  clinics     clinics   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  profiles    profiles  @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  roles       roles     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, profile_id, role_id])
 }
 
 model role_permissions {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenant_id     String      @db.Uuid
   role_id       String      @db.Uuid
   permission_id String      @db.Uuid
-  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
-  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  is_deny       Boolean     @default(false)
+  is_active     Boolean     @default(true)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @default(now()) @updatedAt
+  deleted_at    DateTime?
+  created_by    String?     @db.Uuid
+  updated_by    String?     @db.Uuid
 
-  @@id([role_id, permission_id])
+  clinics       clinics     @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, role_id, permission_id])
+}
+
+model user_permissions {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenant_id     String      @db.Uuid
+  profile_id    String      @db.Uuid
+  permission_id String      @db.Uuid
+  is_deny       Boolean     @default(false)
+  expires_at    DateTime?
+  is_active     Boolean     @default(true)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @default(now()) @updatedAt
+  deleted_at    DateTime?
+  created_by    String?     @db.Uuid
+  updated_by    String?     @db.Uuid
+
+  clinics       clinics     @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  profiles      profiles    @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, profile_id, permission_id])
+}
+
+model tenant_permissions {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenant_id     String      @db.Uuid
+  permission_id String      @db.Uuid
+  is_active     Boolean     @default(true)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @default(now()) @updatedAt
+  deleted_at    DateTime?
+  created_by    String?     @db.Uuid
+  updated_by    String?     @db.Uuid
+
+  clinics       clinics     @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, permission_id])
+}
+
+model tenant_roles {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenant_id   String    @db.Uuid
+  role_id     String    @db.Uuid
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @default(now()) @updatedAt
+  deleted_at  DateTime?
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+
+  clinics     clinics   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  roles       roles     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, role_id])
+}
+
+model role_hierarchy {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenant_id      String    @db.Uuid
+  parent_role_id String    @db.Uuid
+  child_role_id  String    @db.Uuid
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now()) @updatedAt
+  deleted_at     DateTime?
+  created_by     String?   @db.Uuid
+  updated_by     String?   @db.Uuid
+
+  clinics        clinics   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  parent_role    roles     @relation("parent_role", fields: [parent_role_id], references: [id], onDelete: Cascade)
+  child_role     roles     @relation("child_role", fields: [child_role_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, parent_role_id, child_role_id])
+}
+
+model role_groups {
+  id          String             @id @default(uuid()) @db.Uuid
+  tenant_id   String             @db.Uuid
+  name        String
+  description String?
+  is_active   Boolean            @default(true)
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @default(now()) @updatedAt
+  deleted_at  DateTime?
+  created_by  String?            @db.Uuid
+  updated_by  String?            @db.Uuid
+
+  clinics     clinics            @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  roles       role_group_roles[]
+
+  @@unique([tenant_id, name])
+}
+
+model role_group_roles {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenant_id     String      @db.Uuid
+  role_group_id String      @db.Uuid
+  role_id       String      @db.Uuid
+  is_active     Boolean     @default(true)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @default(now()) @updatedAt
+  deleted_at    DateTime?
+  created_by    String?     @db.Uuid
+  updated_by    String?     @db.Uuid
+
+  clinics       clinics     @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  role_group    role_groups @relation(fields: [role_group_id], references: [id], onDelete: Cascade)
+  role          roles       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, role_group_id, role_id])
+}
+
+model audit_logs {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenant_id   String    @db.Uuid
+  action      String
+  actor_id    String?   @db.Uuid
+  actor_email String?
+  entity_type String?
+  entity_id   String?   @db.Uuid
+  old_values  Json?
+  new_values  Json?
+  ip_address  String?
+  user_agent  String?
+  device      String?
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @default(now()) @updatedAt
+  deleted_at  DateTime?
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+
+  clinics     clinics   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -268,6 +484,15 @@ model clinics {
   prescription_dispenses prescription_dispenses[]
   purchase_orders        purchase_orders[]
   roles                  roles[]
+  user_roles             user_roles[]
+  role_permissions       role_permissions[]
+  user_permissions       user_permissions[]
+  tenant_permissions     tenant_permissions[]
+  tenant_roles           tenant_roles[]
+  role_hierarchy         role_hierarchy[]
+  role_groups            role_groups[]
+  role_group_roles       role_group_roles[]
+  audit_logs             audit_logs[]
   stock_movements        stock_movements[]
   suppliers              suppliers[]
 }

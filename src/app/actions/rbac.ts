@@ -1,185 +1,114 @@
+// src/app/actions/rbac.ts
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { getTenantInfo, requireTenantInfo } from "@/lib/auth";
+import { rbacService } from "@/features/rbac/services/rbac.service";
+import { requireTenantInfo } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { clerkClient } from "@clerk/nextjs/server";
-
-// --- Helper Functions ---
-async function verifyAdmin() {
-  const tenant = await requireTenantInfo();
-  if (tenant.role !== "admin") {
-    throw new Error("Unauthorized: Only admins can perform RBAC actions.");
-  }
-  return tenant;
-}
-
-// --- Roles & Permissions Management ---
 
 export async function getClinicRoles() {
   const tenant = await requireTenantInfo();
-  return prisma.roles.findMany({
-    where: { clinic_id: tenant.clinicId },
-    include: {
-      role_permissions: {
-        include: {
-          permissions: true,
-        },
-      },
-    },
-  });
+  const roles = await rbacService.getRoles(tenant.clinicId);
+  const detailedRoles = await Promise.all(
+    roles.map(async (r) => {
+      const detail = await rbacService.getRole(tenant.clinicId, r.id);
+      return {
+        id: r.id,
+        name: r.name,
+        clinic_id: r.tenant_id,
+        is_active: r.is_active,
+        role_permissions: detail?.permissions.map((p) => ({
+          permissions: { id: p.id, name: p.name }
+        })) || []
+      };
+    })
+  );
+  return detailedRoles;
 }
 
 export async function getAllPermissions() {
-  await requireTenantInfo(); // require login only
-  return prisma.permissions.findMany();
+  return rbacService.getPermissions();
 }
 
 export async function createRole(name: string, permissionIds: string[]) {
-  const tenant = await verifyAdmin();
-
+  const tenant = await requireTenantInfo();
   try {
-    const role = await prisma.roles.create({
-      data: {
-        clinic_id: tenant.clinicId,
-        name,
-        role_permissions: {
-          create: permissionIds.map((permission_id) => ({
-            permission_id,
-          })),
-        },
-      },
-    });
-
+    const role = await rbacService.createRole(
+      tenant.clinicId,
+      { name, permissionIds },
+      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" }
+    );
     revalidatePath("/admin/rbac");
     return { success: true, role };
-  } catch (error) {
-    console.error("Failed to create role: ", error);
-    return { error: "Failed to create role." };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 
-export async function updateRole(
-  roleId: string,
-  name: string,
-  permissionIds: string[],
-) {
-  const tenant = await verifyAdmin();
-
+export async function updateRole(roleId: string, name: string, permissionIds: string[]) {
+  const tenant = await requireTenantInfo();
   try {
-    // verify role belongs to this clinic
-    const existingRole = await prisma.roles.findFirst({
-      where: { id: roleId, clinic_id: tenant.clinicId },
-    });
-
-    if (!existingRole) throw new Error("Role not found or unauthorized");
-
-    // Update name and reset permissions
-    // Run in transaction: delete old permissions, set new ones
-    await prisma.$transaction([
-      prisma.roles.update({
-        where: { id: roleId },
-        data: { name },
-      }),
-      prisma.role_permissions.deleteMany({
-        where: { role_id: roleId },
-      }),
-      prisma.role_permissions.createMany({
-        data: permissionIds.map((permission_id) => ({
-          role_id: roleId,
-          permission_id,
-        })),
-      }),
-    ]);
-
+    await rbacService.updateRole(
+      tenant.clinicId,
+      roleId,
+      { name, permissionIds },
+      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" }
+    );
     revalidatePath("/admin/rbac");
     return { success: true };
-  } catch (error) {
-    console.error("Failed to update role:", error);
-    return { error: "Failed to update role." };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 
 export async function deleteRole(roleId: string) {
-  const tenant = await verifyAdmin();
-
+  const tenant = await requireTenantInfo();
   try {
-    // Verify role ownership
-    const existingRole = await prisma.roles.findFirst({
-      where: { id: roleId, clinic_id: tenant.clinicId },
-    });
-
-    if (!existingRole) throw new Error("Role not found");
-
-    await prisma.roles.delete({
-      where: { id: roleId },
-    });
-
+    await rbacService.deleteRole(
+      tenant.clinicId,
+      roleId,
+      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" }
+    );
     revalidatePath("/admin/rbac");
     return { success: true };
-  } catch (error) {
-    console.error("Failed to delete role:", error);
-    return { error: "Failed to delete role" };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 
-// --- Staff Management ---
-
 export async function getClinicStaff() {
   const tenant = await requireTenantInfo();
-
+  const { prisma } = await import("@/lib/prisma");
   const staffs = await prisma.profiles.findMany({
-    where: {
-      clerk_user_id: tenant.clerk_user_id as string,
-      // exclude the self or return all, based on preference.
-    },
-    include: {
-      profile_roles: {
-        include: {
-          roles: true,
-        },
-      },
-    },
+    orderBy: { full_name: "asc" }
   });
 
-  // To prevent exposing everyone's stuff, we return just what's needed
-  return staffs.map((staff) => ({
-    id: staff.id,
-    full_name: staff.full_name,
-    email: staff.email,
-    clerk_user_id: staff.clerk_user_id,
-    role: staff.role,
-  }));
+  const detailedStaffs = await Promise.all(
+    staffs.map(async (staff) => {
+      const userRoles = await rbacService.getUserRoles(tenant.clinicId, staff.id);
+      return {
+        id: staff.id,
+        full_name: staff.full_name,
+        email: staff.email,
+        clerk_user_id: staff.clerk_user_id,
+        role: userRoles[0]?.roles.name || "Viewer"
+      };
+    })
+  );
+
+  return detailedStaffs;
 }
 
 export async function assignStaffRoles(profileId: string, roleIds: string[]) {
-  const tenant = await verifyAdmin();
-
+  const tenant = await requireTenantInfo();
   try {
-    // Verify profile exists in this clinic
-    const profile = await prisma.profiles.findFirst({
-      where: { id: profileId, clerk_user_id: tenant.clerk_user_id as string },
-    });
-
-    if (!profile) return { error: "Profile not found in this clinic" };
-
-    // Reset and Create
-    await prisma.$transaction([
-      prisma.profile_roles.deleteMany({
-        where: { profile_id: profileId },
-      }),
-      prisma.profile_roles.createMany({
-        data: roleIds.map((role_id) => ({
-          profile_id: profileId,
-          role_id,
-        })),
-      }),
-    ]);
-
+    await rbacService.assignUserRoles(
+      tenant.clinicId,
+      { profileId, roleIds },
+      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" }
+    );
     revalidatePath("/admin/rbac");
     return { success: true };
-  } catch (error) {
-    console.error("Failed to assign staff roles", error);
-    return { error: "Failed to assign roles" };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }

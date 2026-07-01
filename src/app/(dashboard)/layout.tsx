@@ -11,8 +11,9 @@ export default async function DashboardLayout({
   let role = "admin";
   try {
     const tenant = await requireAuthenticatedTenant();
-    
+
     role = tenant.role || "admin";
+    console.log("role: ", role);
   } catch {
     // defaults to admin for safe UI render when bypassing
   }

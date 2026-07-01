@@ -85,8 +85,8 @@ export default function StaffManagementTable({
       toast.success("Staff roles updated successfully");
       setIsDialogOpen(false);
       window.location.reload();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update staff roles");
+    } catch (error: unknown) {
+      toast.error((error as Error).message || "Failed to update staff roles");
     } finally {
       setIsLoading(false);
     }
@@ -177,7 +177,7 @@ export default function StaffManagementTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {staff.assigned_roles.map((r: any) => (
+                    {staff.assigned_roles.map((r) => (
                       <Badge key={r.id} variant="secondary" className="text-xs">
                         {r.name}
                       </Badge>
