@@ -25,75 +25,75 @@ const statusConfig: Record<
   scheduled: {
     label: "Scheduled",
     className:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+      "bg-accent-blue-soft text-accent-blue",
   },
   checked_in: {
     label: "Checked In",
     className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+      "bg-accent-yellow-soft text-accent-yellow",
   },
   completed: {
     label: "Completed",
     className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+      "bg-accent-green-soft text-accent-green",
   },
   cancelled: {
     label: "Cancelled",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    className: "bg-accent-red-soft text-accent-red",
   },
   no_show: {
     label: "No Show",
     className:
-      "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+      "bg-surface-elevated text-mute",
   },
   active: {
     label: "Active",
     className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+      "bg-accent-green-soft text-accent-green",
   },
   inactive: {
     label: "Inactive",
     className:
-      "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+      "bg-surface-elevated text-mute",
   },
   blocked: {
     label: "Blocked",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    className: "bg-accent-red-soft text-accent-red",
   },
   draft: {
     label: "Draft",
     className:
-      "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+      "bg-surface-elevated text-mute",
   },
   issued: {
     label: "Issued",
     className:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+      "bg-accent-blue-soft text-accent-blue",
   },
   paid: {
     label: "Paid",
     className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+      "bg-accent-green-soft text-accent-green",
   },
   pending: {
     label: "Pending",
     className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+      "bg-accent-yellow-soft text-accent-yellow",
   },
   refunded: {
     label: "Refunded",
     className:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+      "bg-accent-blue-soft text-accent-blue",
   },
   trial: {
     label: "Trial",
     className:
-      "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
+      "bg-accent-blue-soft text-accent-blue",
   },
   suspended: {
     label: "Suspended",
     className:
-      "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+      "bg-accent-yellow-soft text-accent-yellow",
   },
 };
 
@@ -105,14 +105,14 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const config = statusConfig[status as StatusVariant] || {
     label: status,
-    className: "bg-gray-100 text-gray-800",
+    className: "bg-surface-elevated text-mute",
   };
 
   return (
     <Badge
       variant="secondary"
       className={cn(
-        "border-0 font-medium capitalize",
+        "border-0 font-medium capitalize font-inter",
         config.className,
         className,
       )}

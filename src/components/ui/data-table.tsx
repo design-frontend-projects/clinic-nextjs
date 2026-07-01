@@ -57,7 +57,7 @@ export function DataTable<TData, TValue>({
       {/* Search */}
       {searchKey && (
         <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-mute" />
           <Input
             placeholder={searchPlaceholder}
             value={
@@ -72,7 +72,7 @@ export function DataTable<TData, TValue>({
       )}
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-md border border-hairline bg-surface">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -111,7 +111,7 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
+                  className="h-24 text-center text-mute font-inter"
                 >
                   No results found.
                 </TableCell>
@@ -123,7 +123,7 @@ export function DataTable<TData, TValue>({
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-mute font-inter">
           Showing{" "}
           {table.getState().pagination.pageIndex *
             table.getState().pagination.pageSize +
@@ -138,7 +138,7 @@ export function DataTable<TData, TValue>({
         </p>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
@@ -147,7 +147,7 @@ export function DataTable<TData, TValue>({
             Previous
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}

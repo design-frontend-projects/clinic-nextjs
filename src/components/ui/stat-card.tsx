@@ -26,25 +26,25 @@ export function StatCard({
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
+            <p className="text-sm font-medium text-mute font-inter">{title}</p>
+            <p className="text-3xl font-semibold tracking-tight text-ink">{value}</p>
             {description && (
-              <p className="text-xs text-muted-foreground">{description}</p>
+              <p className="text-xs text-mute font-inter">{description}</p>
             )}
             {trend && (
               <p
                 className={cn(
-                  "text-xs font-medium",
-                  trend.positive ? "text-emerald-600" : "text-red-600",
+                  "text-xs font-medium font-inter",
+                  trend.positive ? "text-accent-green" : "text-accent-red",
                 )}
               >
                 {trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}%{" "}
-                <span className="text-muted-foreground">vs last month</span>
+                <span className="text-mute">vs last month</span>
               </p>
             )}
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Icon className="h-6 w-6 text-primary" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-elevated">
+            <Icon className={cn("h-6 w-6", trend?.positive ? "text-accent-green" : trend ? "text-accent-red" : "text-accent-blue")} />
           </div>
         </div>
       </CardContent>

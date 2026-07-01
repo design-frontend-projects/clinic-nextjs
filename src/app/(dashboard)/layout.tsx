@@ -11,13 +11,14 @@ export default async function DashboardLayout({
   let role = "admin";
   try {
     const tenant = await requireAuthenticatedTenant();
+    
     role = tenant.role || "admin";
   } catch {
     // defaults to admin for safe UI render when bypassing
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-canvas dark">
       <Sidebar role={role} />
       <Header />
       <main className="ml-64 p-6 transition-all duration-300 data-[collapsed=true]:ml-16">

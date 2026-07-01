@@ -71,22 +71,22 @@ export function Sidebar({ role = "admin" }: { role?: string }) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r bg-card transition-all duration-300",
+        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-hairline bg-surface transition-all duration-300",
         isOpen ? "w-64" : "w-16",
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b px-4">
+      <div className="flex h-16 items-center justify-between border-b border-hairline px-4">
         <Link href={baseUrl} className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Activity className="h-5 w-5 text-primary-foreground" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+            <Activity className="h-5 w-5 text-black" />
           </div>
           {isOpen && (
-            <span className="text-lg font-bold tracking-tight">ClinicPro</span>
+            <span className="text-lg font-semibold tracking-tight text-ink font-inter">ClinicPro</span>
           )}
         </Link>
         <Button
-          variant="ghost"
+          variant="secondary"
           size="icon"
           onClick={toggle}
           className="h-8 w-8"
@@ -112,10 +112,10 @@ export function Sidebar({ role = "admin" }: { role?: string }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors font-inter",
                   isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    ? "bg-surface-elevated text-on-dark"
+                    : "text-mute hover:bg-surface-elevated hover:text-on-dark",
                   !isOpen && "justify-center px-2",
                 )}
               >
@@ -131,7 +131,7 @@ export function Sidebar({ role = "admin" }: { role?: string }) {
       <Separator />
       <div className="p-4">
         {isOpen && (
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-xs text-mute text-center font-inter">
             © 2026 ClinicPro
           </p>
         )}

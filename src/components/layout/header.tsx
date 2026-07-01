@@ -30,13 +30,13 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60 transition-all duration-300",
+        "sticky top-0 z-30 flex h-16 items-center justify-between border-b border-hairline bg-canvas/95 px-6 backdrop-blur supports-backdrop-filter:bg-canvas/60 transition-all duration-300",
         isOpen ? "ml-64" : "ml-16",
       )}
     >
       <div className="flex items-center gap-4">
         <Button
-          variant="ghost"
+          variant="secondary"
           size="icon"
           onClick={toggle}
           className="lg:hidden"
@@ -54,8 +54,8 @@ export function Header() {
         )}
 
         <div>
-          <h2 className="text-lg font-semibold">Welcome back</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-lg font-semibold text-ink font-inter">Welcome back</h2>
+          <p className="text-sm text-mute font-inter">
             Manage your clinic operations
           </p>
         </div>
@@ -64,7 +64,7 @@ export function Header() {
       <div className="flex items-center gap-3">
         {/* Theme Toggle */}
         <Button
-          variant="ghost"
+          variant="secondary"
           size="icon"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="h-9 w-9"
@@ -76,7 +76,7 @@ export function Header() {
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9">
+            <Button variant="secondary" size="icon" className="relative h-9 w-9">
               <Bell className="h-4 w-4" />
               <Badge
                 variant="destructive"
@@ -86,23 +86,23 @@ export function Header() {
               </Badge>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
+          <DropdownMenuContent align="end" className="w-80 bg-surface border-hairline">
             <DropdownMenuItem>
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">New appointment request</p>
-                <p className="text-xs text-muted-foreground">2 minutes ago</p>
+                <p className="text-sm font-medium text-on-dark font-inter">New appointment request</p>
+                <p className="text-xs text-mute font-inter">2 minutes ago</p>
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">Lab results ready</p>
-                <p className="text-xs text-muted-foreground">1 hour ago</p>
+                <p className="text-sm font-medium text-on-dark font-inter">Lab results ready</p>
+                <p className="text-xs text-mute font-inter">1 hour ago</p>
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">Payment received</p>
-                <p className="text-xs text-muted-foreground">3 hours ago</p>
+                <p className="text-sm font-medium text-on-dark font-inter">Payment received</p>
+                <p className="text-xs text-mute font-inter">3 hours ago</p>
               </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
