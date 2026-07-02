@@ -1,9 +1,9 @@
-import { SignInForm } from "@/components/auth/sign-in-form";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import Link from "next/link";
 import { Activity } from "lucide-react";
 
-export default function SignInPage() {
+export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f] p-4 relative overflow-hidden font-sans">
       {/* Background Spotlight Glow */}
@@ -22,16 +22,18 @@ export default function SignInPage() {
 
         <Card className="bg-[#181818] border border-[#222222] shadow-[0_0_50px_rgba(26,38,255,0.08)] text-white rounded-xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-medium tracking-tight text-white">Welcome back</CardTitle>
-            <CardDescription className="text-sm text-[#a8a8a8]">Sign in to your dashboard</CardDescription>
+            <CardTitle className="text-2xl font-medium tracking-tight text-white">Reset password</CardTitle>
+            <CardDescription className="text-sm text-[#a8a8a8]">
+              Enter your email and we'll send you a password reset link
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <SignInForm />
+            <ForgotPasswordForm />
           </CardContent>
           <CardFooter className="flex justify-center text-sm text-[#a8a8a8] border-t border-[#222222]/50 pt-4">
-            Don't have an account?{" "}
-            <Link href="/sign-up" className="ml-1 text-[#00d4ff] hover:underline font-medium">
-              Sign up
+            Remember your password?{" "}
+            <Link href="/sign-in" className="ml-1 text-[#00d4ff] hover:underline font-medium">
+              Sign in
             </Link>
           </CardFooter>
         </Card>

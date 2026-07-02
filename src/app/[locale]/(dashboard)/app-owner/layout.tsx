@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { requireAppOwner } from "@/lib/app-owner-auth";
 import { AppOwnerSidebar } from "@/components/app-owner/sidebar";
 
@@ -19,9 +18,7 @@ export default async function AppOwnerLayout({
             <h1 className="font-semibold text-lg">Platform Administration</h1>
           </div>
         </header>
-        <div className="flex-1 p-4 lg:p-6 overflow-auto">
-          {children}
-        </div>
+        <div className="flex-1 p-4 lg:p-6 overflow-auto">{children}</div>
       </main>
     </div>
   );

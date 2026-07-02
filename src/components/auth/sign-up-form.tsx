@@ -31,6 +31,11 @@ export function SignUpForm() {
     formState: { errors },
   } = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+    }
   });
 
   const onSubmit = async (data: SignUpValues) => {
@@ -51,7 +56,7 @@ export function SignUpForm() {
         throw error;
       }
 
-      toast.success("Account created! Please check your email to verify your account or proceed to onboarding.");
+      toast.success("Account created! Redirecting to onboarding...");
       // Redirect to onboarding to create clinic profile
       router.push("/onboarding");
       router.refresh();
@@ -63,46 +68,54 @@ export function SignUpForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
       <div className="space-y-2">
-        <Label htmlFor="fullName">Full Name</Label>
+        <Label htmlFor="fullName" className="text-white">Full Name</Label>
         <Input
           id="fullName"
           type="text"
           placeholder="Dr. John Doe"
+          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("fullName")}
         />
         {errors.fullName && (
-          <p className="text-sm text-destructive">{errors.fullName.message}</p>
+          <p className="text-xs text-red-400">{errors.fullName.message}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">Email address</Label>
+        <Label htmlFor="email" className="text-white">Email address</Label>
         <Input
           id="email"
           type="email"
           placeholder="doctor@clinic.com"
+          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("email")}
         />
         {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
+          <p className="text-xs text-red-400">{errors.email.message}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password" className="text-white">Password</Label>
         <Input
           id="password"
           type="password"
+          placeholder="••••••••"
+          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("password")}
         />
         {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
+          <p className="text-xs text-red-400">{errors.password.message}</p>
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button
+        type="submit"
+        className="w-full bg-[#0007cd] text-white hover:bg-[#0005a3] border-none text-sm font-medium mt-2"
+        disabled={isLoading}
+      >
         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Create account
       </Button>
