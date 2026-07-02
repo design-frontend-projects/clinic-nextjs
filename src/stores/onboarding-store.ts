@@ -3,20 +3,25 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   ProfileFormData,
   ClinicFormData,
+  BranchFormData,
   OnboardingStep,
 } from "@/types/onboarding.types";
 
 type OnboardingState = {
   profileData: Partial<ProfileFormData>;
   clinicData: Partial<ClinicFormData>;
+  branchData: Partial<BranchFormData>;
   currentStep: OnboardingStep;
+  clinicId: string | null;
   isComplete: boolean;
 };
 
 type OnboardingActions = {
   setProfileData: (data: Partial<ProfileFormData>) => void;
   setClinicData: (data: Partial<ClinicFormData>) => void;
+  setBranchData: (data: Partial<BranchFormData>) => void;
   setStep: (step: OnboardingStep) => void;
+  setClinicId: (id: string) => void;
   markComplete: () => void;
   clearOnboarding: () => void;
 };
@@ -24,7 +29,9 @@ type OnboardingActions = {
 const initialState: OnboardingState = {
   profileData: {},
   clinicData: {},
+  branchData: {},
   currentStep: "profile",
+  clinicId: null,
   isComplete: false,
 };
 
@@ -43,7 +50,14 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
           clinicData: { ...state.clinicData, ...data },
         })),
 
+      setBranchData: (data) =>
+        set((state) => ({
+          branchData: { ...state.branchData, ...data },
+        })),
+
       setStep: (step) => set({ currentStep: step }),
+
+      setClinicId: (id) => set({ clinicId: id }),
 
       markComplete: () => set({ isComplete: true }),
 
@@ -51,7 +65,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
     }),
     {
       name: "clinic-onboarding",
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => localStorage),
     },
   ),
 );

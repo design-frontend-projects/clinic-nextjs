@@ -63,14 +63,26 @@ export async function getTenantInfo() {
       full_name: true,
       email: true,
       is_profile_completed: true,
+      tenant_id: true,
+      org_id: true,
     },
   });
   if (!profile) return null;
 
-  const clinic = await prisma.clinics.findFirst({
-    where: { auth_user_id: userId, AND: { is_primary: true } },
-    select: { id: true, subscription_plan: true },
-  });
+  const tenantId = profile.tenant_id || profile.org_id;
+
+  let clinic = null;
+  if (tenantId) {
+    clinic = await prisma.clinics.findUnique({
+      where: { id: tenantId },
+      select: { id: true, subscription_plan: true },
+    });
+  } else {
+    clinic = await prisma.clinics.findFirst({
+      where: { auth_user_id: userId, AND: { is_primary: true } },
+      select: { id: true, subscription_plan: true },
+    });
+  }
 
   // Retrieve branch ID from cookies (if you still store it there).
   const { cookies } = await import("next/headers");

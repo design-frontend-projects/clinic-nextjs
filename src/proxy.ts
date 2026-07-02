@@ -48,6 +48,25 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  const isOnboardingRoute = request.nextUrl.pathname.startsWith("/onboarding");
+  const hasCompletedOnboarding = request.cookies.get("onboarding_complete")?.value === "1";
+
+  if (user) {
+    if (!hasCompletedOnboarding && !isOnboardingRoute && !isPublicRoute) {
+      // Authenticated but onboarding not complete, and not on public route
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+
+    if (hasCompletedOnboarding && isOnboardingRoute) {
+      // Completed onboarding but trying to access onboarding page
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
 

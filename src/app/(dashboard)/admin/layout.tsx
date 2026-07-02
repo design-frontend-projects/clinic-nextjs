@@ -1,27 +1,19 @@
 import { redirect } from "next/navigation";
-import { requireTenantInfo } from "@/lib/auth";
-import { AdminOnboardingGate } from "@/components/onboarding/admin-onboarding-gate";
-
+import { getTenantInfo } from "@/lib/auth";
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const tenant = await requireTenantInfo();
+  const tenant = await getTenantInfo();
 
-  if (tenant.role !== "admin") {
+  if (!tenant) {
+    redirect("/sign-in");
+  }
+
+  if (tenant.role !== "owner") {
     redirect("/");
   }
 
-  const needsOnboarding = !tenant.is_profile_completed;
-
-  return (
-    <AdminOnboardingGate
-      needsOnboarding={needsOnboarding}
-      defaultEmail={tenant.email ?? undefined}
-      defaultFullName={tenant.fullName ?? undefined}
-    >
-      {children}
-    </AdminOnboardingGate>
-  );
+  return <>{children}</>;
 }

@@ -16,17 +16,20 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-md">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-gray-900">
+    <div className="flex min-h-screen w-full items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-6 rounded-lg bg-card border border-border p-8">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground font-inter">
             Welcome to Clinic Pro
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Let's set up your clinic profile
+          <p className="text-sm text-muted-foreground font-inter">
+            Let's set up your profile and clinic workspace
           </p>
         </div>
-        <OnboardingForm />
+        <OnboardingForm
+          defaultEmail={session.user.email ?? undefined}
+          defaultFullName={session.user.user_metadata?.full_name ?? undefined}
+        />
       </div>
     </div>
   );

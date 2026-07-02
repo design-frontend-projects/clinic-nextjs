@@ -12,13 +12,14 @@ model profiles {
   full_name                                              String?
   email                                                  String?
   phone                                                  String?
-  role                                                   String?
+  role                                                   ProfileRole?
   specialty                                              String?
   status                                                 UserStatus               @default(active)
   created_at                                             DateTime                 @default(now())
   is_profile_completed                                   Boolean?                 @default(false)
   address                                                Json?
   org_id                                                 String?
+  tenant_id                                              String?                  @db.Uuid
   appointments                                           appointments[]
   encounters                                             encounters[]
   lab_orders                                             lab_orders[]
@@ -32,7 +33,10 @@ model profiles {
   user_permissions                                       user_permissions[]
   user_roles                                             user_roles[]
 
+  clinics_tenant                                         clinics?                 @relation("profile_tenant", fields: [tenant_id], references: [id], onDelete: SetNull)
+
   @@index([auth_user_id])
+  @@index([tenant_id])
 }
 
 model patients {
@@ -416,7 +420,7 @@ model audit_logs {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model branches {
-  id                                                       String                   @id @db.Uuid
+  id                                                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clinic_id                                                String                   @db.Uuid
   name                                                     String
   address                                                  String?
@@ -455,6 +459,8 @@ model clinics {
   updated_at             DateTime                 @default(now())
   auth_user_id           String?
   is_primary             Boolean?                 @default(false)
+  onboarding_completed_at DateTime?
+  staff_profiles         profiles[]               @relation("profile_tenant")
   appointments           appointments[]
   audit_logs             audit_logs[]
   branches               branches[]
@@ -873,6 +879,14 @@ enum StockMovementType {
   EXPIRED
   TRANSFER_IN
   TRANSFER_OUT
+}
+
+enum ProfileRole {
+  owner
+  staff
+  doctor
+  admin
+  patient
 }
 
 enum UserStatus {

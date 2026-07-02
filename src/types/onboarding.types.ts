@@ -23,11 +23,22 @@ export const clinicSchema = z.object({
 
 export type ClinicFormData = z.infer<typeof clinicSchema>;
 
-// ─── Onboarding Cache (sessionStorage) ──────────────────────────
-export type OnboardingStep = "profile" | "clinic";
+// ─── Branch Form ────────────────────────────────────────────────
+export const branchSchema = z.object({
+  name: z.string().min(2, "Branch name is required"),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+});
+
+export type BranchFormData = z.infer<typeof branchSchema>;
+
+// ─── Onboarding Cache (sessionStorage/localStorage) ──────────────────────────
+export type OnboardingStep = "profile" | "clinic" | "branch";
 
 export type OnboardingCache = {
   profileData: Partial<ProfileFormData>;
   clinicData: Partial<ClinicFormData>;
+  branchData: Partial<BranchFormData>;
   currentStep: OnboardingStep;
+  clinicId: string | null;
 };

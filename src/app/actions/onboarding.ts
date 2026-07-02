@@ -1,171 +1,230 @@
 "use server";
 
 import { getSupabaseSession } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ProfileFormData, ClinicFormData } from "@/types/onboarding.types";
-import { profileSchema, clinicSchema } from "@/types/onboarding.types";
+import { prisma } from "@/lib/prisma";
+import type { ProfileFormData, ClinicFormData, BranchFormData } from "@/types/onboarding.types";
+import { profileSchema, clinicSchema, branchSchema } from "@/types/onboarding.types";
+import { cookies } from "next/headers";
 
-// ─── Create Clinic ──────────────────────────────────────────────
-export async function createClinic(data: ClinicFormData) {
-  try {
-    const session = await getSupabaseSession();
-    if (!session) {
-      return { error: "Unauthorized" };
-    }
+export async function getOnboardingProgress() {
+  const session = await getSupabaseSession();
+  if (!session?.user?.id) return { error: "Unauthorized" };
 
-    const parsed = clinicSchema.safeParse(data);
-    if (!parsed.success) {
-      return {
-        error: parsed.error.issues[0]?.message || "Invalid clinic data",
-      };
-    }
+  const authId = session.user.id;
 
-    const supabase = createSupabaseServerClient();
-    const { data: existingClinic } = await supabase
-      .from("clinics")
-      .select("id")
-      .eq("auth_user_id", session.user.id)
-      .eq("is_primary", true)
-      .single();
+  const profile = await prisma.profiles.findUnique({
+    where: { auth_user_id: authId },
+  });
 
-    if (existingClinic) {
-      return { error: "You already have a primary clinic" };
-    }
-
-    const { data: clinic, error: clinicError } = await supabase
-      .from("clinics")
-      .insert({
-        name: parsed.data.name,
-        registration_number: parsed.data.registration_number || null,
-        email: parsed.data.email || null,
-        phone: parsed.data.phone || null,
-        subscription_plan: parsed.data.subscription_plan || null,
-        status: "active",
-        is_primary: existingClinic ? false : true,
-        auth_user_id: session.user.id,
-      })
-      .select("id")
-      .single();
-
-    if (clinicError || !clinic) {
-      console.error("Failed to create clinic:", clinicError);
-      return { error: "Failed to create clinic" };
-    }
-
-    return { success: true, clinicId: clinic.id as string };
-  } catch (error) {
-    console.error("Error creating clinic:", error);
-    return { error: "An unexpected error occurred" };
+  if (!profile) {
+    return { step: "profile" as const, data: {} };
   }
+
+  const clinic = await prisma.clinics.findFirst({
+    where: { auth_user_id: authId, is_primary: true },
+  });
+
+  if (!clinic) {
+    return {
+      step: "clinic" as const,
+      data: {
+        profileData: {
+          full_name: profile.full_name || "",
+          email: profile.email || "",
+          phone: profile.phone || "",
+          role: profile.role || "owner",
+          specialty: profile.specialty || "",
+        },
+      },
+    };
+  }
+
+  const branch = await prisma.branches.findFirst({
+    where: { clinic_id: clinic.id },
+  });
+
+  if (clinic.onboarding_completed_at && profile.is_profile_completed) {
+    return { step: "completed" as const, clinicId: clinic.id };
+  }
+
+  return {
+    step: "branch" as const,
+    data: {
+      profileData: {
+        full_name: profile.full_name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        role: profile.role || "owner",
+        specialty: profile.specialty || "",
+      },
+      clinicData: {
+        name: clinic.name,
+        registration_number: clinic.registration_number || "",
+        email: clinic.email || "",
+        phone: clinic.phone || "",
+        subscription_plan: clinic.subscription_plan || "free",
+        is_primary: clinic.is_primary ?? true,
+      },
+      branchData: branch
+        ? {
+            name: branch.name,
+            address: branch.address || "",
+            phone: branch.phone || "",
+          }
+        : {},
+      clinicId: clinic.id,
+    },
+  };
 }
 
-// ─── Create Profile ─────────────────────────────────────────────
-export async function createProfile(
-  data: ProfileFormData & { clinicId: string },
-) {
+export async function saveProfileStep(data: ProfileFormData) {
   try {
     const session = await getSupabaseSession();
-    const authId = session?.user.id;
-
-    if (!authId) {
-      return { error: "Unauthorized" };
-    }
+    if (!session?.user?.id) return { error: "Unauthorized" };
 
     const parsed = profileSchema.safeParse(data);
-    if (!parsed.success) {
-      return {
-        error: parsed.error.issues[0]?.message || "Invalid profile data",
-      };
-    }
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message || "Invalid data" };
 
-    const supabase = createSupabaseServerClient();
-
-    // Idempotency: if profile already exists, update it with clinic link
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("auth_user_id", authId)
-      .single();
-
-    if (existingProfile) {
-      // Update the existing profile with onboarding data
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          org_id: data.clinicId, // clinicId matches org_id in profiles
-          full_name: parsed.data.full_name,
-          email: parsed.data.email,
-          phone: parsed.data.phone || null,
-          role: parsed.data.role || "admin",
-          specialty: parsed.data.specialty || null,
-          status: "active",
-        })
-        .eq("id", existingProfile.id);
-
-      if (updateError) {
-        console.error("Failed to update existing profile:", updateError);
-        return { error: "Failed to update profile" };
-      }
-
-      return { success: true, profileId: existingProfile.id as string };
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .insert({
-        auth_user_id: authId,
-        org_id: data.clinicId,
+    const profile = await prisma.profiles.upsert({
+      where: { auth_user_id: session.user.id },
+      update: {
         full_name: parsed.data.full_name,
         email: parsed.data.email,
         phone: parsed.data.phone || null,
-        role: parsed.data.role || "admin",
+        role: "owner",
         specialty: parsed.data.specialty || null,
+      },
+      create: {
+        auth_user_id: session.user.id,
+        full_name: parsed.data.full_name,
+        email: parsed.data.email,
+        phone: parsed.data.phone || null,
+        role: "owner",
+        specialty: parsed.data.specialty || null,
+        is_profile_completed: false,
         status: "active",
-      })
-      .select("id")
-      .single();
+      },
+    });
 
-    if (profileError || !profile) {
-      console.error("Failed to create profile:", profileError);
-      // Rollback: delete the clinic we just created
-      await supabase.from("clinics").delete().eq("id", data.clinicId);
-      return { error: "Failed to create profile" };
+    return { success: true, profileId: profile.id };
+  } catch (error) {
+    console.error("Error saving profile:", error);
+    return { error: "Failed to save profile" };
+  }
+}
+
+export async function saveClinicStep(data: ClinicFormData) {
+  try {
+    const session = await getSupabaseSession();
+    if (!session?.user?.id) return { error: "Unauthorized" };
+
+    const parsed = clinicSchema.safeParse(data);
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message || "Invalid data" };
+
+    // Find if primary clinic already exists
+    let clinic = await prisma.clinics.findFirst({
+      where: { auth_user_id: session.user.id, is_primary: true },
+    });
+
+    if (clinic) {
+      clinic = await prisma.clinics.update({
+        where: { id: clinic.id },
+        data: {
+          name: parsed.data.name,
+          registration_number: parsed.data.registration_number || null,
+          email: parsed.data.email || null,
+          phone: parsed.data.phone || null,
+          subscription_plan: parsed.data.subscription_plan || "free",
+        },
+      });
+    } else {
+      clinic = await prisma.clinics.create({
+        data: {
+          auth_user_id: session.user.id,
+          is_primary: true,
+          name: parsed.data.name,
+          registration_number: parsed.data.registration_number || null,
+          email: parsed.data.email || null,
+          phone: parsed.data.phone || null,
+          subscription_plan: parsed.data.subscription_plan || "free",
+          status: "active",
+        },
+      });
     }
 
-    return { success: true, profileId: profile.id as string };
+    // Link the profile to this clinic
+    await prisma.profiles.update({
+      where: { auth_user_id: session.user.id },
+      data: {
+        org_id: clinic.id,
+        tenant_id: clinic.id,
+      },
+    });
+
+    return { success: true, clinicId: clinic.id };
   } catch (error) {
-    console.error("Error creating profile:", error);
-    return { error: "An unexpected error occurred" };
+    console.error("Error saving clinic:", error);
+    return { error: "Failed to save clinic" };
   }
 }
 
-// ─── Complete Onboarding (Legacy compat — redirects to new flow) ─
-export async function completeOnboarding(clinicName: string) {
-  const session = await getSupabaseSession();
-  const currUser = session?.user;
-  const primaryEmail = currUser?.email ?? "";
-  const fullName = currUser?.user_metadata?.full_name || "Admin User";
+export async function saveBranchStep(data: BranchFormData, clinicId: string) {
+  try {
+    const session = await getSupabaseSession();
+    if (!session?.user?.id) return { error: "Unauthorized" };
 
-  const clinicRes = await createClinic({
-    name: clinicName || `${fullName}'s Clinic`,
-    email: primaryEmail,
-  });
+    const parsed = branchSchema.safeParse(data);
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message || "Invalid data" };
 
-  if (clinicRes.error || !clinicRes.clinicId) {
-    return { error: clinicRes.error || "Failed to create clinic" };
+    // Transaction to ensure branch creation, profile completion, and clinic onboarding mark succeed together
+    await prisma.$transaction(async (tx) => {
+      let branch = await tx.branches.findFirst({
+        where: { clinic_id: clinicId, name: parsed.data.name },
+      });
+
+      if (branch) {
+        branch = await tx.branches.update({
+          where: { id: branch.id },
+          data: {
+            address: parsed.data.address || null,
+            phone: parsed.data.phone || null,
+          },
+        });
+      } else {
+        branch = await tx.branches.create({
+          data: {
+            clinic_id: clinicId,
+            name: parsed.data.name,
+            address: parsed.data.address || null,
+            phone: parsed.data.phone || null,
+            status: "active",
+          },
+        });
+      }
+
+      await tx.clinics.update({
+        where: { id: clinicId },
+        data: { onboarding_completed_at: new Date() },
+      });
+
+      await tx.profiles.update({
+        where: { auth_user_id: session.user.id },
+        data: { is_profile_completed: true },
+      });
+    });
+
+    // Set cookie for middleware
+    const cookieStore = await cookies();
+    cookieStore.set("onboarding_complete", "1", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      sameSite: "lax",
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving branch:", error);
+    return { error: "Failed to save branch" };
   }
-
-  const profileRes = await createProfile({
-    full_name: fullName,
-    email: primaryEmail,
-    role: "admin",
-    clinicId: clinicRes.clinicId,
-  });
-
-  if (profileRes.error) {
-    return { error: profileRes.error };
-  }
-
-  return { success: true };
 }
-

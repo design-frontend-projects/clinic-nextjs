@@ -5,13 +5,14 @@ import { requireTenantInfo } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { profileSchema, type Profile } from "@/types/clinic.types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ProfileRole } from "@prisma/client";
 
 export async function getPersonnel(userId: string) {
-  await requireTenantInfo();
+  const tenant = await requireTenantInfo();
 
   return prisma.profiles.findMany({
     where: {
-      auth_user_id: userId,
+      tenant_id: tenant.clinicId,
     },
     orderBy: { created_at: "desc" },
   });
@@ -45,21 +46,29 @@ export async function upsertPersonnel(data: Profile) {
     }
 
     // Insert new profile into Supabase
-    const personnel = await prisma.profiles.create({
-      data: {
-        auth_user_id: authData.user.id,
-        org_id: tenant.clinicId,
-        full_name: validatedData.full_name,
-        email: validatedData.email,
-        phone: validatedData.phone ?? null,
-        role: validatedData.role || "doctor",
-        specialty: validatedData.specialty ?? null,
-        status:
-          (validatedData.status as "active" | "inactive" | "blocked") ||
-          "active",
-        is_profile_completed: true,
-      },
-    });
+    let personnel;
+    try {
+      personnel = await prisma.profiles.create({
+        data: {
+          auth_user_id: authData.user.id,
+          org_id: tenant.clinicId,
+          tenant_id: tenant.clinicId,
+          full_name: validatedData.full_name,
+          email: validatedData.email,
+          phone: validatedData.phone ?? null,
+          role: (validatedData.role || "doctor") as ProfileRole,
+          specialty: validatedData.specialty ?? null,
+          status:
+            (validatedData.status as "active" | "inactive" | "blocked") ||
+            "active",
+          is_profile_completed: false, // They must complete onboarding/password
+        },
+      });
+    } catch (profileError) {
+      console.error("Profile creation failed, rolling back auth user:", profileError);
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      throw new Error("Failed to create staff profile. Rolled back.");
+    }
 
     revalidatePath("/admin/doctors");
     revalidatePath("/admin/staff");
@@ -72,7 +81,7 @@ export async function upsertPersonnel(data: Profile) {
         full_name: validatedData.full_name,
         email: validatedData.email,
         phone: validatedData.phone ?? null,
-        role: validatedData.role,
+        role: validatedData.role as ProfileRole,
         specialty: validatedData.specialty ?? null,
         status: validatedData.status as "active" | "inactive" | "blocked",
       },
