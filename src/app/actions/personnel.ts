@@ -51,7 +51,6 @@ export async function upsertPersonnel(data: Profile) {
       personnel = await prisma.profiles.create({
         data: {
           auth_user_id: authData.user.id,
-          org_id: tenant.clinicId,
           tenant_id: tenant.clinicId,
           full_name: validatedData.full_name,
           email: validatedData.email,

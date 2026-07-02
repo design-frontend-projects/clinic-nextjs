@@ -1,5 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
-
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -27,7 +25,7 @@ export async function getSupabaseSession() {
           }
         },
       },
-    }
+    },
   );
 
   const { data, error } = await supabase.auth.getSession();
@@ -64,12 +62,11 @@ export async function getTenantInfo() {
       email: true,
       is_profile_completed: true,
       tenant_id: true,
-      org_id: true,
     },
   });
   if (!profile) return null;
 
-  const tenantId = profile.tenant_id || profile.org_id;
+  const tenantId = profile.tenant_id;
 
   let clinic = null;
   if (tenantId) {
@@ -125,7 +122,7 @@ export async function requireTenantInfo() {
   }
   if (!tenant.clinicId) {
     throw new Error(
-      "Configuration Error: The logged‑in user's profile does not have an assigned clinic_id. Please ensure your profile is linked to a clinic."
+      "Configuration Error: The logged‑in user's profile does not have an assigned clinic_id. Please ensure your profile is linked to a clinic.",
     );
   }
   return {

@@ -156,7 +156,6 @@ export async function saveClinicStep(data: ClinicFormData) {
     await prisma.profiles.update({
       where: { auth_user_id: session.user.id },
       data: {
-        org_id: clinic.id,
         tenant_id: clinic.id,
       },
     });

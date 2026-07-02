@@ -17,10 +17,10 @@ export async function inviteStaffMember(data: StaffInviteFormData) {
     // Get current user's clinic to assign the staff member to
     const doctorProfile = await prisma.profiles.findUnique({
       where: { auth_user_id: session.user.id },
-      select: { tenant_id: true, org_id: true },
+      select: { tenant_id: true },
     });
 
-    const tenantId = doctorProfile?.tenant_id || doctorProfile?.org_id;
+    const tenantId = doctorProfile?.tenant_id;
     if (!tenantId) {
       return { error: "You must complete onboarding and have a clinic first." };
     }
@@ -57,7 +57,6 @@ export async function inviteStaffMember(data: StaffInviteFormData) {
           data: {
             auth_user_id: authData.user.id,
             tenant_id: tenantId,
-            org_id: tenantId,
             full_name: parsed.data.full_name,
             email: parsed.data.email,
             role: "staff",

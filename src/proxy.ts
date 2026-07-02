@@ -1,12 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import createMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
+
+const handleI18nRouting = createMiddleware(routing);
 
 const publicRoutes = ["/", "/sign-in", "/sign-up", "/api/webhooks"];
 
 export default async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  const response = handleI18nRouting(request);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,11 +22,8 @@ export default async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            response.cookies.set(name, value, options)
           );
         },
       },
@@ -35,39 +34,54 @@ export default async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const pathname = request.nextUrl.pathname;
+  const localeMatch = pathname.match(new RegExp(`^/(${routing.locales.join("|")})/?`));
+  const locale = localeMatch ? localeMatch[1] : routing.defaultLocale;
+
+  const pathnameWithoutLocale = pathname.replace(new RegExp(`^/(${routing.locales.join("|")})/?`), "/") || "/";
+
   const isPublicRoute = publicRoutes.some(
     (route) =>
-      request.nextUrl.pathname === route ||
-      request.nextUrl.pathname.startsWith(`${route}/`)
+      pathnameWithoutLocale === route ||
+      pathnameWithoutLocale.startsWith(`${route}/`)
   );
 
   if (!user && !isPublicRoute) {
-    // Redirect unauthenticated users to login
     const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
-    return NextResponse.redirect(url);
+    url.pathname = `/${locale}/sign-in`;
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any);
+    });
+    return redirectResponse;
   }
 
-  const isOnboardingRoute = request.nextUrl.pathname.startsWith("/onboarding");
+  const isOnboardingRoute = pathnameWithoutLocale.startsWith("/onboarding");
   const hasCompletedOnboarding = request.cookies.get("onboarding_complete")?.value === "1";
 
   if (user) {
     if (!hasCompletedOnboarding && !isOnboardingRoute && !isPublicRoute) {
-      // Authenticated but onboarding not complete, and not on public route
       const url = request.nextUrl.clone();
-      url.pathname = "/onboarding";
-      return NextResponse.redirect(url);
+      url.pathname = `/${locale}/onboarding`;
+      const redirectResponse = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any);
+      });
+      return redirectResponse;
     }
 
     if (hasCompletedOnboarding && isOnboardingRoute) {
-      // Completed onboarding but trying to access onboarding page
       const url = request.nextUrl.clone();
-      url.pathname = "/admin";
-      return NextResponse.redirect(url);
+      url.pathname = `/${locale}/admin`;
+      const redirectResponse = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any);
+      });
+      return redirectResponse;
     }
   }
 
-  return supabaseResponse;
+  return response;
 }
 
 export const config = {

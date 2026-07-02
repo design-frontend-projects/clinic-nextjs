@@ -1,0 +1,47 @@
+{
+  "appOwner": {
+    "plans": {
+      "title": "Subscription Plans",
+      "subtitle": "Manage plans, pricing, and feature access.",
+      "newButton": "New Plan"
+    },
+    "settings": {
+      "title": "Global Settings",
+      "subtitle": "Configure platform-wide settings and limits.",
+      "empty": "No global settings configured yet."
+    },
+    "dashboard": {
+      "overviewTitle": "Platform Overview",
+      "overviewSubtitle": "Global metrics and system status.",
+      "totalTenants": "Total Tenants",
+      "totalUsers": "Total Users",
+      "activeSubscriptions": "Active Subscriptions",
+      "activePlans": "Active Plans"
+    },
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "tenants": "Tenants",
+      "plans": "Subscription Plans",
+      "settings": "Global Settings"
+    }
+  },
+  "patients": {
+    "title": "Patients",
+    "subtitle": "Manage patient records and medical history.",
+    "newButton": "New Patient"
+  },
+    "dashboard": {
+      "overviewTitle": "Platform Overview",
+      "overviewSubtitle": "Global metrics and system status.",
+      "totalTenants": "Total Tenants",
+      "totalUsers": "Total Users",
+      "activeSubscriptions": "Active Subscriptions",
+      "activePlans": "Active Plans"
+    },
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "tenants": "Tenants",
+      "plans": "Subscription Plans",
+      "settings": "Global Settings"
+    }
+  }

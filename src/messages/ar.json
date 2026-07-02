@@ -1,0 +1,27 @@
+{
+  "appOwner": {
+    "plans": {
+      "title": "خطط الاشتراك",
+      "subtitle": "إدارة الخطط والأسعار وإمكانية الوصول إلى الميزات.",
+      "newButton": "خطة جديدة"
+    },
+    "settings": {
+      "title": "الإعدادات العامة",
+      "subtitle": "تكوين إعدادات المنصة العامة والحدود."
+    },
+    "dashboard": {
+      "overviewTitle": "نظرة عامة على المنصة",
+      "overviewSubtitle": "المقاييس العالمية وحالة النظام.",
+      "totalTenants": "إجمالي المستأجرين",
+      "totalUsers": "إجمالي المستخدمين",
+      "activeSubscriptions": "الاشتراكات النشطة",
+      "activePlans": "الخطط النشطة"
+    },
+    "sidebar": {
+      "dashboard": "لوحة القيادة",
+      "tenants": "المستأجرون",
+      "plans": "خطط الاشتراك",
+      "settings": "الإعدادات العامة"
+    }
+  }
+}

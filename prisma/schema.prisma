@@ -8,32 +8,34 @@ datasource db {
 
 model profiles {
   id                                                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  auth_user_id                                           String                   @unique
   full_name                                              String?
   email                                                  String?
   phone                                                  String?
-  role                                                   ProfileRole?
   specialty                                              String?
   status                                                 UserStatus               @default(active)
   created_at                                             DateTime                 @default(now())
   is_profile_completed                                   Boolean?                 @default(false)
   address                                                Json?
-  org_id                                                 String?
+  auth_user_id                                           String                   @unique
   tenant_id                                              String?                  @db.Uuid
+  role                                                   ProfileRole?
+  is_owner                                               Boolean                  @default(false)
   appointments                                           appointments[]
   encounters                                             encounters[]
   lab_orders                                             lab_orders[]
   medical_files                                          medical_files[]
   medical_records                                        medical_records[]
+  patients                                               patients[]
   pharmacy_sales                                         pharmacy_sales[]
   prescription_dispenses                                 prescription_dispenses[]
+  clinics_tenant                                         clinics?                 @relation("profile_tenant", fields: [tenant_id], references: [id])
   stock_movements                                        stock_movements[]
   stock_transfers_stock_transfers_approved_byToprofiles  stock_transfers[]        @relation("stock_transfers_approved_byToprofiles")
   stock_transfers_stock_transfers_initiated_byToprofiles stock_transfers[]        @relation("stock_transfers_initiated_byToprofiles")
   user_permissions                                       user_permissions[]
   user_roles                                             user_roles[]
-
-  clinics_tenant                                         clinics?                 @relation("profile_tenant", fields: [tenant_id], references: [id], onDelete: SetNull)
+  clinic_id                                              String?                  @db.Uuid
+  clinics                                                clinics?                 @relation(fields: [clinic_id], references: [id])
 
   @@index([auth_user_id])
   @@index([tenant_id])
@@ -51,6 +53,7 @@ model patients {
   email                  String?
   address                String?
   created_at             DateTime                 @default(now())
+  profile_id             String?                  @db.Uuid
   appointments           appointments[]
   encounters             encounters[]
   file_storage           file_storage[]
@@ -62,6 +65,7 @@ model patients {
   patient_insurances     patient_insurances[]
   branches               branches?                @relation(fields: [branch_id], references: [id])
   clinics                clinics                  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  profiles               profiles?                @relation(fields: [profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   pharmacy_sales         pharmacy_sales[]
   prescription_dispenses prescription_dispenses[]
 
@@ -448,46 +452,48 @@ model branches {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model clinics {
-  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                   String
-  registration_number    String?
-  email                  String?
-  phone                  String?
-  subscription_plan      String?
-  status                 ClinicStatus             @default(trial)
-  created_at             DateTime                 @default(now())
-  updated_at             DateTime                 @default(now())
-  auth_user_id           String?
-  is_primary             Boolean?                 @default(false)
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                    String
+  registration_number     String?
+  email                   String?
+  phone                   String?
+  subscription_plan       String?
+  status                  ClinicStatus             @default(trial)
+  created_at              DateTime                 @default(now())
+  updated_at              DateTime                 @default(now())
+  is_primary              Boolean?                 @default(false)
+  auth_user_id            String?
   onboarding_completed_at DateTime?
-  staff_profiles         profiles[]               @relation("profile_tenant")
-  appointments           appointments[]
-  audit_logs             audit_logs[]
-  branches               branches[]
-  encounters             encounters[]
-  file_storage           file_storage[]
-  insurance_claims       insurance_claims[]
-  invoices               invoices[]
-  lab_orders             lab_orders[]
-  medical_records        medical_records[]
-  medication_batches     medication_batches[]
-  medications            medications[]
-  patients               patients[]
-  pharmacy_inventory     pharmacy_inventory[]
-  pharmacy_sales         pharmacy_sales[]
-  prescription_dispenses prescription_dispenses[]
-  purchase_orders        purchase_orders[]
-  role_group_roles       role_group_roles[]
-  role_groups            role_groups[]
-  role_hierarchy         role_hierarchy[]
-  role_permissions       role_permissions[]
-  roles                  roles[]
-  stock_movements        stock_movements[]
-  suppliers              suppliers[]
-  tenant_permissions     tenant_permissions[]
-  tenant_roles           tenant_roles[]
-  user_permissions       user_permissions[]
-  user_roles             user_roles[]
+  tenant_subscription     tenant_subscriptions?
+  appointments            appointments[]
+  audit_logs              audit_logs[]
+  branches                branches[]
+  encounters              encounters[]
+  file_storage            file_storage[]
+  insurance_claims        insurance_claims[]
+  invoices                invoices[]
+  lab_orders              lab_orders[]
+  medical_records         medical_records[]
+  medication_batches      medication_batches[]
+  medications             medications[]
+  patients                patients[]
+  pharmacy_inventory      pharmacy_inventory[]
+  pharmacy_sales          pharmacy_sales[]
+  prescription_dispenses  prescription_dispenses[]
+  staff_profiles          profiles[]               @relation("profile_tenant")
+  purchase_orders         purchase_orders[]
+  role_group_roles        role_group_roles[]
+  role_groups             role_groups[]
+  role_hierarchy          role_hierarchy[]
+  role_permissions        role_permissions[]
+  roles                   roles[]
+  stock_movements         stock_movements[]
+  suppliers               suppliers[]
+  tenant_permissions      tenant_permissions[]
+  tenant_roles            tenant_roles[]
+  user_permissions        user_permissions[]
+  user_roles              user_roles[]
+  profiles                profiles[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -887,10 +893,138 @@ enum ProfileRole {
   doctor
   admin
   patient
+  app_owner
 }
 
 enum UserStatus {
   active
   inactive
   blocked
+}
+
+enum BillingPeriod {
+  monthly
+  quarterly
+  semi_annual
+  annual
+  lifetime
+}
+
+enum PlanStatus {
+  active
+  inactive
+  archived
+}
+
+enum SubscriptionStatus {
+  active
+  past_due
+  suspended
+  cancelled
+}
+
+model subscription_plans {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  description      String?
+  billing_period   BillingPeriod
+  trial_days       Int           @default(14)
+  price            Decimal       @db.Decimal(10, 2)
+  currency         String        @default("USD")
+  max_users        Int?
+  max_storage_mb   Int?
+  max_branches     Int?
+  max_doctors      Int?
+  max_appointments Int?
+  max_patients     Int?
+  api_limits       Int?
+  status           PlanStatus    @default(active)
+  display_order    Int           @default(0)
+  public_notes     String?
+  internal_notes   String?
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @default(now()) @updatedAt
+  deleted_at       DateTime?
+  created_by       String?       @db.Uuid
+  updated_by       String?       @db.Uuid
+
+  features             subscription_features[]
+  tenant_subscriptions tenant_subscriptions[]
+}
+
+model subscription_features {
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plan_id       String  @db.Uuid
+  feature_name  String
+  is_enabled    Boolean @default(true)
+  configuration Json?
+
+  plan subscription_plans @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+
+  @@unique([plan_id, feature_name])
+}
+
+model tenant_subscriptions {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id         String             @unique @db.Uuid
+  plan_id           String             @db.Uuid
+  start_date        DateTime
+  end_date          DateTime?
+  renewal_date      DateTime?
+  status            SubscriptionStatus @default(active)
+  billing_cycle     BillingPeriod
+  price             Decimal            @db.Decimal(10, 2)
+  discount          Decimal?           @db.Decimal(10, 2)
+  currency          String             @default("USD")
+  payment_status    PaymentStatus      @default(pending)
+  payment_reference String?
+  notes             String?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @default(now()) @updatedAt
+  created_by        String?            @db.Uuid
+  updated_by        String?            @db.Uuid
+
+  tenant   clinics                       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  plan     subscription_plans            @relation(fields: [plan_id], references: [id])
+  history  tenant_subscription_history[]
+  payments payment_records[]
+}
+
+model tenant_subscription_history {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_subscription_id String   @db.Uuid
+  action                 String
+  previous_data          Json?
+  new_data               Json?
+  changed_by             String   @db.Uuid
+  changed_at             DateTime @default(now())
+
+  subscription tenant_subscriptions @relation(fields: [tenant_subscription_id], references: [id], onDelete: Cascade)
+}
+
+model global_settings {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category    String
+  key         String   @unique
+  value       Json
+  is_public   Boolean  @default(false)
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+  updated_by  String?  @db.Uuid
+
+  @@index([category])
+}
+
+model payment_records {
+  id                     String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_subscription_id String        @db.Uuid
+  amount                 Decimal       @db.Decimal(10, 2)
+  currency               String        @default("USD")
+  status                 PaymentStatus @default(pending)
+  payment_date           DateTime      @default(now())
+  reference              String?
+  notes                  String?
+
+  subscription tenant_subscriptions @relation(fields: [tenant_subscription_id], references: [id], onDelete: Cascade)
 }
