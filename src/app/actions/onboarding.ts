@@ -2,8 +2,8 @@
 
 import { getSupabaseSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { ProfileFormData, ClinicFormData, BranchFormData } from "@/types/onboarding.types";
-import { profileSchema, clinicSchema, branchSchema } from "@/types/onboarding.types";
+import type { ProfileFormData, ClinicFormData, BranchFormData, SubscriptionFormData } from "@/types/onboarding.types";
+import { profileSchema, clinicSchema, branchSchema, subscriptionSchema } from "@/types/onboarding.types";
 import { cookies } from "next/headers";
 
 export async function getOnboardingProgress() {
@@ -113,13 +113,18 @@ export async function saveProfileStep(data: ProfileFormData) {
   }
 }
 
-export async function saveClinicStep(data: ClinicFormData) {
+export async function saveClinicStep(data: ClinicFormData, subscriptionData: SubscriptionFormData) {
   try {
     const session = await getSupabaseSession();
     if (!session?.user?.id) return { error: "Unauthorized" };
 
     const parsed = clinicSchema.safeParse(data);
-    if (!parsed.success) return { error: parsed.error.issues[0]?.message || "Invalid data" };
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message || "Invalid clinic data" };
+
+    const subParsed = subscriptionSchema.safeParse(subscriptionData);
+    if (!subParsed.success) return { error: subParsed.error.issues[0]?.message || "Invalid subscription data" };
+
+    const planIdString = subParsed.data.plan_id;
 
     // Find if primary clinic already exists
     let clinic = await prisma.clinics.findFirst({
@@ -157,6 +162,55 @@ export async function saveClinicStep(data: ClinicFormData) {
       where: { auth_user_id: session.user.id },
       data: {
         tenant_id: clinic.id,
+        clinic_id: clinic.id,
+      },
+    });
+
+    // Ensure the subscription plan exists (mock data for now)
+    const existingPlan = await prisma.subscription_plans.findFirst({
+      where: { name: planIdString === "basic" ? "Basic" : "Pro" },
+    });
+
+    let planId = existingPlan?.id;
+
+    if (!planId) {
+      const newPlan = await prisma.subscription_plans.create({
+        data: {
+          name: planIdString === "basic" ? "Basic" : "Pro",
+          billing_period: "monthly",
+          price: planIdString === "basic" ? 29 : 99,
+          currency: "USD",
+        },
+      });
+      planId = newPlan.id;
+    }
+
+    // Create or update tenant subscription
+    const startDate = new Date();
+    // Add 1 month using vanilla JS date
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    await prisma.tenant_subscriptions.upsert({
+      where: { tenant_id: clinic.id },
+      update: {
+        plan_id: planId,
+        start_date: startDate,
+        end_date: endDate,
+        renewal_date: endDate,
+        status: "active",
+        billing_cycle: "monthly",
+        price: planIdString === "basic" ? 29 : 99,
+      },
+      create: {
+        tenant_id: clinic.id,
+        plan_id: planId,
+        start_date: startDate,
+        end_date: endDate,
+        renewal_date: endDate,
+        status: "active",
+        billing_cycle: "monthly",
+        price: planIdString === "basic" ? 29 : 99,
       },
     });
 

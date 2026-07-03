@@ -32,13 +32,22 @@ export const branchSchema = z.object({
 
 export type BranchFormData = z.infer<typeof branchSchema>;
 
+// ─── Subscription Form ──────────────────────────────────────────────
+export const subscriptionSchema = z.object({
+  plan_id: z.string().min(1, "Please select a plan"),
+});
+
+export type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
+
 // ─── Onboarding Cache (sessionStorage/localStorage) ──────────────────────────
-export type OnboardingStep = "profile" | "clinic" | "branch";
+export type OnboardingStep = "subscription" | "profile" | "clinic" | "branch";
 
 export type OnboardingCache = {
   profileData: Partial<ProfileFormData>;
   clinicData: Partial<ClinicFormData>;
   branchData: Partial<BranchFormData>;
+  subscriptionData: Partial<SubscriptionFormData>;
   currentStep: OnboardingStep;
   clinicId: string | null;
 };
+

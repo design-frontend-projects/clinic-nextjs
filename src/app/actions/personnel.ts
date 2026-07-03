@@ -31,9 +31,15 @@ export async function upsertPersonnel(data: Profile) {
 
     const supabaseAdmin = createSupabaseServerClient();
     
-    // Invite user via Supabase Admin API
-    const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(validatedData.email, {
-      data: {
+    // Generate a random temporary password
+    const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
+
+    // Create user via Supabase Admin API
+    const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.createUser({
+      email: validatedData.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
         full_name: validatedData.full_name,
         role: validatedData.role || "doctor",
         tenant_id: tenant.clinicId,
@@ -41,9 +47,11 @@ export async function upsertPersonnel(data: Profile) {
     });
 
     if (inviteError || !authData.user) {
-      console.error("[Supabase Invitation] Failed to send invitation:", inviteError);
-      throw new Error("Failed to send invitation");
+      console.error("[Supabase Creation] Failed to create user:", inviteError);
+      throw new Error("Failed to create user");
     }
+
+    // TODO: Send an invitation email via custom mailer with the tempPassword
 
     // Insert new profile into Supabase
     let personnel;

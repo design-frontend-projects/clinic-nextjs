@@ -35,7 +35,7 @@ export function SignUpForm() {
       fullName: "",
       email: "",
       password: "",
-    }
+    },
   });
 
   const onSubmit = async (data: SignUpValues) => {
@@ -48,7 +48,7 @@ export function SignUpForm() {
           data: {
             full_name: data.fullName,
           },
-          emailRedirectTo: `${location.origin}/auth/callback`,
+          emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding`,
         },
       });
 
@@ -57,7 +57,6 @@ export function SignUpForm() {
       }
 
       toast.success("Account created! Redirecting to onboarding...");
-      // Redirect to onboarding to create clinic profile
       router.push("/onboarding");
       router.refresh();
     } catch (error: any) {
@@ -70,7 +69,9 @@ export function SignUpForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
       <div className="space-y-2">
-        <Label htmlFor="fullName" className="text-white">Full Name</Label>
+        <Label htmlFor="fullName" className="text-white">
+          Full Name
+        </Label>
         <Input
           id="fullName"
           type="text"
@@ -84,7 +85,9 @@ export function SignUpForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-white">Email address</Label>
+        <Label htmlFor="email" className="text-white">
+          Email address
+        </Label>
         <Input
           id="email"
           type="email"
@@ -98,7 +101,9 @@ export function SignUpForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-white">Password</Label>
+        <Label htmlFor="password" className="text-white">
+          Password
+        </Label>
         <Input
           id="password"
           type="password"

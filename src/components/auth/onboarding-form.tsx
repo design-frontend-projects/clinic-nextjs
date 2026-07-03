@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ProfileSetupStep } from "@/components/onboarding/profile-setup-step";
+import { SubscriptionSetupStep } from "@/components/onboarding/subscription-setup-step";
 import { ClinicSetupStep } from "@/components/onboarding/clinic-setup-step";
 import { BranchSetupStep } from "@/components/onboarding/branch-setup-step";
 import { useOnboardingStore } from "@/stores/onboarding-store";
-import { saveProfileStep, saveClinicStep, saveBranchStep, getOnboardingProgress } from "@/app/actions/onboarding";
-import type { ProfileFormData, ClinicFormData, BranchFormData } from "@/types/onboarding.types";
+import { saveClinicStep, saveBranchStep, getOnboardingProgress } from "@/app/actions/onboarding";
+import type { ClinicFormData, BranchFormData, SubscriptionFormData } from "@/types/onboarding.types";
 import { Loader2 } from "lucide-react";
 
 type OnboardingFormProps = {
@@ -25,12 +25,12 @@ export function OnboardingForm({
   const [initializing, setInitializing] = useState(true);
 
   const {
-    profileData,
+    subscriptionData,
     clinicData,
     branchData,
     currentStep,
     clinicId,
-    setProfileData,
+    setSubscriptionData,
     setClinicData,
     setBranchData,
     setStep,
@@ -52,10 +52,13 @@ export function OnboardingForm({
           return;
         }
 
-        if (res.data?.profileData) setProfileData(res.data.profileData as any);
-        if (res.data?.clinicData) setClinicData(res.data.clinicData as any);
-        if (res.data?.branchData) setBranchData(res.data.branchData as any);
-        if ((res.data as any)?.clinicId) setClinicId((res.data as any).clinicId);
+        if ("data" in res && res.data) {
+          const data = res.data as any;
+          if (data.subscriptionData) setSubscriptionData(data.subscriptionData);
+          if (data.clinicData) setClinicData(data.clinicData);
+          if (data.branchData) setBranchData(data.branchData);
+          if (data.clinicId) setClinicId(data.clinicId);
+        }
         
         setStep(res.step as any);
       } catch (err) {
@@ -65,23 +68,23 @@ export function OnboardingForm({
       }
     }
     loadProgress();
-  }, [setProfileData, setClinicData, setBranchData, setStep, setClinicId, router]);
+  }, [setSubscriptionData, setClinicData, setBranchData, setStep, setClinicId, router]);
 
-  const handleProfileSubmit = async (data: ProfileFormData) => {
+  const handleSubscriptionSubmit = async (data: SubscriptionFormData) => {
     setLoading(true);
-    setProfileData(data);
+    setSubscriptionData(data);
     
     try {
-      const res = await saveProfileStep(data);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      setStep("clinic");
+      // In a real app, this might redirect to Stripe or call a server action
+      // For now, we simulate success and move to clinic setup
+      // TODO: Implement server action for subscription saving
+      setTimeout(() => {
+        setStep("clinic");
+        setLoading(false);
+      }, 500);
     } catch (err) {
       console.error(err);
       toast.error("An error occurred");
-    } finally {
       setLoading(false);
     }
   };
@@ -91,7 +94,7 @@ export function OnboardingForm({
     setClinicData(data);
 
     try {
-      const res = await saveClinicStep(data);
+      const res = await saveClinicStep(data, subscriptionData as SubscriptionFormData);
       if (res.error || !res.clinicId) {
         toast.error(res.error || "Failed to save clinic");
         return;
@@ -133,8 +136,8 @@ export function OnboardingForm({
     }
   };
 
-  const handleBackToProfile = () => {
-    setStep("profile");
+  const handleBackToSubscription = () => {
+    setStep("subscription");
   };
 
   const handleBackToClinic = () => {
@@ -154,14 +157,14 @@ export function OnboardingForm({
       {/* Simple step indicator */}
       <div className="flex items-center justify-between border-b border-border pb-3">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {currentStep === "profile" && "Step 1 of 3: Profile"}
+          {currentStep === "subscription" && "Step 1 of 3: Plan"}
           {currentStep === "clinic" && "Step 2 of 3: Clinic"}
           {currentStep === "branch" && "Step 3 of 3: Branch"}
         </span>
         <div className="flex gap-1">
           <div
             className={`h-1.5 w-4 rounded-full ${
-              currentStep === "profile" ? "bg-primary" : "bg-primary/30"
+              currentStep === "subscription" ? "bg-primary" : "bg-primary/30"
             }`}
           />
           <div
@@ -177,16 +180,10 @@ export function OnboardingForm({
         </div>
       </div>
 
-      {currentStep === "profile" && (
-        <ProfileSetupStep
-          defaultValues={{
-            full_name: profileData.full_name || defaultFullName || "",
-            email: profileData.email || defaultEmail || "",
-            phone: profileData.phone || "",
-            role: "owner",
-            specialty: profileData.specialty || "",
-          }}
-          onSubmit={handleProfileSubmit}
+      {currentStep === "subscription" && (
+        <SubscriptionSetupStep
+          defaultValues={subscriptionData}
+          onSubmit={handleSubscriptionSubmit}
           loading={loading}
         />
       )}
@@ -195,7 +192,7 @@ export function OnboardingForm({
         <ClinicSetupStep
           defaultValues={clinicData}
           onSubmit={handleClinicSubmit}
-          onBack={handleBackToProfile}
+          onBack={handleBackToSubscription}
           loading={loading}
         />
       )}

@@ -1,0 +1,129 @@
+<USER_REQUEST>
+**Enhanced Sign-Up and Onboarding Flow – Step‑by‑Step Specification**
+
+---
+
+### 1. Overview  
+This document describes the complete tenant (doctor/clinic owner) sign‑up, onboarding, and initial setup flow. It covers account creation, email verification, subscription selection, organization structure setup, staff user creation, and subsequent role management via RBAC. No implementation code is provided; the steps are purely a requirements specification for the development team.
+
+---
+
+### 2. Data Models Involved  
+
+| Model | Purpose |
+|-------|---------|
+| `profiles` | Stores tenant account metadata (owner profile). One record per tenant. |
+| `subscription_plans` | Available plans configured by the app owner. |
+| `subscription_features` | Features linked to each plan. |
+| `tenant_subscriptions` | Active subscription for a tenant (plan, start/end dates). |
+| `branches` | Physical branches belonging to a tenant. |
+| `clinics` | Clinics operating under a branch. |
+| `roles` / `permissions` (RBAC module) | Roles and permissions that a tenant can assign to their users. |
+
+All steps assume an authenticated session after sign‑up / email verification.
+
+---
+
+### 3. Step‑by‑Step Flow  
+
+#### A. Sign‑Up & Immediate Profile Creation  
+
+1. **User initiates sign‑up** with email and password using the authentication system (Supabase Auth).  
+2. **Immediately after successful auth sign‑up**, a background operation must **create a record in the `profiles` table** for this tenant. The record contains at least the user’s unique ID and marks the account as incomplete/onboarding required.  
+   - If profile creation fails, the sign‑up should be rolled back or the user notified to retry.  
+3. **Fix the email redirect URL**: The confirmation email’s `emailRedirectTo` parameter must point to the **onboarding screen**, not `/auth/callback`.  
+   - Example target: `https://yourapp.com/onboarding` (or a deep link).  
+   - This change is made in the authentication configuration or in the API call that sends the confirmation email.
+
+#### B. Email Verification & Onboarding Entry  
+
+4. **User clicks the confirmation link** in the email and is redirected to the onboarding screen.  
+5. **Onboarding screen guard**:  
+   - Verify that a `profiles` record exists for the currently authenticated user.  
+   - If no profile exists, display an error and do not allow progress (the sign‑up profile creation step failed or was bypassed).  
+6. If the profile exists, **proceed to subscription selection**.
+
+#### C. Subscription Plan Selection  
+
+7. **Fetch available subscription plans** from the `subscription_plans` table (as configured by the app owner).  
+8. For each plan, display its associated **features** from `subscription_features`.  
+9. **User selects a plan** and confirms.  
+10. **Create a row in the `tenant_subscriptions` model**:  
+    - `start_date` = current date/time.  
+    - `end_date` = `start_date` + plan duration **in months** (e.g., 1 month, 12 months). Month‑addition logic must handle end‑of‑month gracefully.  
+    - Store the selected plan reference and tenant ID.  
+11. Update the tenant’s profile record to reflect an active subscription (e.g., status flag).
+
+#### D. Branch & Clinic Setup  
+
+12. **After subscription**, guide the tenant to set up their organization structure.  
+13. **Add branches**:  
+    - The tenant can create one or more records in the `branches` table.  
+    - Each branch belongs to the current tenant (`tenant_id`).  
+    - Basic branch details (name, address, etc.) are captured.  
+14. **Add clinics**:  
+    - For each branch, the tenant can create records in the `clinics` table.  
+    - Each clinic is linked to a branch and implicitly to the tenant.  
+15. This step may be optional; a “skip for now” button should be available, with the ability to return later.
+
+#### E. Adding Staff Users  
+
+16. **Tenant can add users** (e.g., other doctors, assistants) to their tenant:  
+    - Provide an interface to enter the new user’s email (and optionally a name).  
+17. **Create the user account** using the **Supabase Auth Admin API** (server‑side).  
+    - Generate a temporary password or send an invite email automatically.  
+    - **Assign the default role** `user` in the authentication system (if role metadata is supported).  
+18. **Create a corresponding profile** in the `profiles` table for this new user:  
+    - `is_owner` = **false**.  
+    - `tenant_id` = the ID of the currently logged‑in tenant (the owner).  
+    - The user’s auth ID must be linked to this profile.  
+19. The new user will then complete account setup (e.g., set password) via the standard email invitation flow.
+
+#### F. RBAC – Role & Permission Management  
+
+20. **After onboarding**, the tenant (owner/doctor) can access an RBAC module to manage their staff:  
+    - View all users belonging to their tenant.  
+    - Change a user’s **role** (e.g., from `user` to `manager`, `doctor`, `receptionist`).  
+    - Assign or revoke specific **permissions** (as defined in the RBAC system).  
+21. These changes are scoped **only to users within the tenant**; the tenant cannot modify other tenants’ users.  
+22. The RBAC system must ensure that role updates are reflected in both the auth system and the application’s authorization checks.
+
+---
+
+### 4. Edge Cases & Error Handling  
+
+- **Profile creation fails during sign‑up**: Transactional handling – if profile insert fails, delete the auth user and show a descriptive error.  
+- **Onboarding accessed without profile**: Redirect to an error page or prompt re‑sign‑up.  
+- **Subscription creation failure**: Roll back any profile updates; allow retry.  
+- **Email redirect link broken**: Ensure the `emailRedirectTo` is correctly set and the onboarding route handles the authenticated state properly.  
+- **Date calculation for month‑based subscriptions**: Use a library/function that adds months accurately, accounting for months with fewer days (e.g., Jan 31 + 1 month → Feb 28).  
+- **Staff user creation failure**: If Auth Admin API fails, do not create the profile; show a clear error and allow retry.  
+- **RBAC assignment**: Prevent the owner from removing their own admin privileges unintentionally.
+
+---
+
+### 5. Summary of Changes to Existing Flow  
+
+- **Fix**: `emailRedirectTo` changed from `/auth/callback` to the onboarding screen URL.  
+- **Addition**: Automatic profile creation immediately after sign‑up.  
+- **Addition**: Onboarding guard that checks for profile existence.  
+- **Addition**: Subscription selection integrated into onboarding with proper `tenant_subscriptions` row creation and month‑based end‑date calculation.  
+- **Addition**: Branch and clinic setup steps.  
+- **Addition**: Staff user creation via Admin API with default role and profile.  
+- **Addition**: Post‑onboarding RBAC module for the tenant to manage staff roles and permissions.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-02T17:53:09+03:00.
+
+The user's current state is as follows:
+Active Document: e:\web-projects\web-mobile-work-apps\clinic-nextjs\prisma\schema.prisma (LANGUAGE_UNSPECIFIED)
+Cursor is on line: 971
+Other open documents:
+- e:\web-projects\web-mobile-work-apps\clinic-nextjs\prisma\schema.prisma (LANGUAGE_UNSPECIFIED)
+- e:\web-projects\web-mobile-work-apps\clinic-nextjs\src\components\auth\sign-up-form.tsx (LANGUAGE_TSX)
+Running terminal commands:
+- pnpm run dev (in e:\web-projects\web-mobile-work-apps\clinic-nextjs, running for 29m21s)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.5 Flash (High) to Gemini 3.1 Pro (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

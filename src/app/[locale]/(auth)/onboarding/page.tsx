@@ -10,9 +10,20 @@ export const metadata: Metadata = {
 
 export default async function OnboardingPage() {
   const session = await getSupabaseSession();
-  
+
   if (!session) {
     redirect("/sign-in");
+  }
+
+  // Guard: Verify that a profiles record exists for the authenticated user
+  const { prisma } = await import("@/lib/prisma");
+  const profile = await prisma.profiles.findUnique({
+    where: { auth_user_id: session.user.id },
+  });
+
+  if (!profile) {
+    // If no profile exists, the sign-up profile creation step failed or was bypassed
+    redirect("/sign-up?error=profile_missing");
   }
 
   return (
@@ -23,7 +34,7 @@ export default async function OnboardingPage() {
             Welcome to Clinic Pro
           </h2>
           <p className="text-sm text-muted-foreground font-inter">
-            Let's set up your profile and clinic workspace
+            Lets set up your profile and clinic workspace
           </p>
         </div>
         <OnboardingForm

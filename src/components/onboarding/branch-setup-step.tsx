@@ -87,24 +87,35 @@ export function BranchSetupStep({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-2">
+      <div className="flex flex-col gap-3 pt-2">
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            disabled={loading}
+            className="flex-1"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button type="submit" className="flex-1" disabled={loading}>
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="mr-2 h-4 w-4" />
+            )}
+            Complete Setup
+          </Button>
+        </div>
         <Button
           type="button"
-          variant="outline"
-          onClick={onBack}
+          variant="ghost"
+          onClick={() => onSubmit({ name: "Main Branch" })}
           disabled={loading}
-          className="flex-1"
+          className="w-full text-muted-foreground"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <Button type="submit" className="flex-1" disabled={loading}>
-          {loading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCircle className="mr-2 h-4 w-4" />
-          )}
-          Complete Setup
+          Skip for now
         </Button>
       </div>
     </form>

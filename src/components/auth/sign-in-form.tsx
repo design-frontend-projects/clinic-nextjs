@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createSupabaseClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,10 @@ export function SignInForm() {
       if (error) {
         throw error;
       }
+
+      // Get current session and store it in Zustand
+      const { data: sessionData } = await supabase.auth.getSession();
+      useAuthStore.getState().setSession(sessionData.session);
 
       toast.success("Successfully signed in");
       router.push("/dashboard");

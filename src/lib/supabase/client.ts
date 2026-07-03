@@ -1,20 +1,38 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
+let supabaseClient: SupabaseClient | null = null;
 
 export function createSupabaseClient() {
-  let persistSession = true;
-  if (typeof window !== "undefined") {
-    // Default to true unless explicitly unchecked
-    persistSession = localStorage.getItem("remember_me") !== "false";
+  if (typeof window === "undefined") {
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      }
+    );
   }
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        persistSession,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    }
-  );
+
+  if (!supabaseClient) {
+    // Default to true unless explicitly unchecked
+    const persistSession = localStorage.getItem("remember_me") !== "false";
+    supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          persistSession,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      }
+    );
+  }
+
+  return supabaseClient;
 }
+

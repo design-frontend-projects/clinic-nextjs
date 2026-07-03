@@ -27,28 +27,25 @@ export async function inviteStaffMember(data: StaffInviteFormData) {
 
     const supabase = createSupabaseServerClient();
 
-    // 1. Create auth user
-    // We use the Supabase Admin API because creating a user with a specific password
-    // or sending an invite link without them logging out requires service_role key.
-    // NOTE: For true admin invites, you should use supabase.auth.admin.inviteUserByEmail
-    // But since the service role client has admin capabilities, we can do it.
-    
-    // Check if user already exists
-    // The admin API might fail if the user already exists, but that's handled in the catch block.
-    const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-      parsed.data.email,
-      {
-        data: {
-          full_name: parsed.data.full_name,
-          role: "staff"
-        }
+    // Generate a random temporary password
+    const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
+
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: parsed.data.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: parsed.data.full_name,
+        role: "staff"
       }
-    );
+    });
 
     if (authError || !authData.user) {
       console.error("Auth creation failed:", authError);
       return { error: authError?.message || "Failed to create user in auth system" };
     }
+
+    // TODO: Send an invitation email via custom mailer with the tempPassword
 
     // 2. Create profile mapped to the tenant
     try {
