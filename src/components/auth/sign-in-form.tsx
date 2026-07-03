@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,10 +62,21 @@ export function SignInForm() {
 
       // Get current session and store it in Zustand
       const { data: sessionData } = await supabase.auth.getSession();
-      useAuthStore.getState().setSession(sessionData.session);
+      const session = sessionData.session;
+      useAuthStore.getState().setSession(session);
+
+      // Determine user role and redirect accordingly
+      const roles = useAuthStore.getState().getRoles();
+      const isAppOwner = roles.includes('app_owner');
+      const isStaff = roles.includes('staff');
+      const redirectPath = isAppOwner
+        ? '/dashboard/app-owner'
+        : isStaff
+        ? '/dashboard/staff'
+        : '/dashboard/admin';
 
       toast.success("Successfully signed in");
-      router.push("/dashboard/admin");
+      router.push(redirectPath);
       router.refresh();
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
