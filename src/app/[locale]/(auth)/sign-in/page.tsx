@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { Activity } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function SignInPage() {
+  const t = useTranslations();
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f] p-4 relative overflow-hidden font-sans">
       {/* Background Spotlight Glow */}
@@ -25,29 +27,29 @@ export default function SignInPage() {
             </div>
           </Link>
           <h2 className="text-xl font-medium tracking-tight text-white mt-2">
-            ClinicPro
+            {t('brand.name')}
           </h2>
         </div>
 
         <Card className="bg-[#181818] border border-[#222222] shadow-[0_0_50px_rgba(26,38,255,0.08)] text-white rounded-xl">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-medium tracking-tight text-white">
-              Welcome back
+              {t('auth.signIn.title')}
             </CardTitle>
             <CardDescription className="text-sm text-[#a8a8a8]">
-              Sign in to your dashboard
+              {t('auth.signIn.subtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <SignInForm />
           </CardContent>
           <CardFooter className="flex justify-center text-sm text-[#a8a8a8] border-t border-[#222222]/50 pt-4">
-            Dont have an account?{" "}
+            {t('auth.signIn.noAccount')}{" "}
             <Link
               href="/sign-up"
               className="ml-1 text-[#00d4ff] hover:underline font-medium"
             >
-              Sign up
+              {t('auth.signIn.signUp')}
             </Link>
           </CardFooter>
         </Card>

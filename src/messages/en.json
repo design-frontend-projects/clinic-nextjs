@@ -1,4 +1,15 @@
 {
+  "brand": {
+    "name": "Bluewave Clinic"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your dashboard",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    }
+  },
   "appOwner": {
     "plans": {
       "title": "Subscription Plans",
@@ -28,8 +39,7 @@
   "patients": {
     "title": "Patients",
     "subtitle": "Manage patient records and medical history.",
-    "newButton": "New Patient"
-  },
+    "newButton": "New Patient",
     "dashboard": {
       "overviewTitle": "Platform Overview",
       "overviewSubtitle": "Global metrics and system status.",
@@ -45,3 +55,4 @@
       "settings": "Global Settings"
     }
   }
+}

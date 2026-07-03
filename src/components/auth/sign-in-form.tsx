@@ -1,4 +1,5 @@
 "use client";
+import { motion } from "framer-motion";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -36,12 +37,12 @@ export function SignInForm() {
       rememberMe: true,
       email: "",
       password: "",
-    }
+    },
   });
 
   const onSubmit = async (data: SignInValues) => {
     setIsLoading(true);
-    
+
     // Save Remember Me preference
     if (typeof window !== "undefined") {
       localStorage.setItem("remember_me", data.rememberMe ? "true" : "false");
@@ -64,7 +65,7 @@ export function SignInForm() {
       useAuthStore.getState().setSession(sessionData.session);
 
       toast.success("Successfully signed in");
-      router.push("/dashboard");
+      router.push("/dashboard/admin");
       router.refresh();
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
@@ -74,14 +75,22 @@ export function SignInForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
+    <motion.form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-4 font-sans"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-white">Email address</Label>
+        <Label htmlFor="email" className="text-white">
+          Email address
+        </Label>
         <Input
           id="email"
           type="email"
           placeholder="doctor@clinic.com"
-          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
+          className="bg-background border-primary text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:ring-primary/30"
           {...register("email")}
         />
         {errors.email && (
@@ -91,7 +100,9 @@ export function SignInForm() {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-white">Password</Label>
+          <Label htmlFor="password" className="text-white">
+            Password
+          </Label>
           <Link
             href="/forgot-password"
             className="text-xs text-[#a8a8a8] hover:text-white hover:underline transition-colors"
@@ -103,7 +114,7 @@ export function SignInForm() {
           id="password"
           type="password"
           placeholder="••••••••"
-          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
+          className="bg-background border-primary text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:ring-primary/30"
           {...register("password")}
         />
         {errors.password && (
@@ -126,14 +137,20 @@ export function SignInForm() {
         </Label>
       </div>
 
-      <Button
-        type="submit"
-        className="w-full bg-[#0007cd] text-white hover:bg-[#0005a3] border-none text-sm font-medium mt-2"
-        disabled={isLoading}
+      <motion.div
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        className="w-full"
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Sign in
-      </Button>
-    </form>
+        <Button
+          type="submit"
+          className="w-full bg-primary text-white hover:bg-primary/90 border-none text-sm font-medium mt-2"
+          disabled={isLoading}
+        >
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Sign in
+        </Button>
+      </motion.div>
+    </motion.form>
   );
 }

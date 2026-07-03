@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createSupabaseClient } from "@/lib/supabase/client";
+import { signUpAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,6 @@ type SignUpValues = z.infer<typeof signUpSchema>;
 export function SignUpForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const supabase = createSupabaseClient();
 
   const {
     register,
@@ -41,24 +40,23 @@ export function SignUpForm() {
   const onSubmit = async (data: SignUpValues) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.fullName,
-          },
-          emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding`,
-        },
+      const result = await signUpAction({
+        ...data,
+        origin: window.location.origin,
       });
 
-      if (error) {
-        throw error;
+      if (result.error) {
+        toast.error(result.error);
+        return;
       }
 
-      toast.success("Account created! Redirecting to onboarding...");
-      router.push("/onboarding");
-      router.refresh();
+      if (result.requiresEmailConfirmation) {
+        toast.success("Account created! Please check your email to confirm.");
+      } else {
+        toast.success("Account created! Redirecting to onboarding...");
+        router.push("/onboarding");
+        router.refresh();
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
     } finally {

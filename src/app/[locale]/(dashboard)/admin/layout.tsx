@@ -6,12 +6,13 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const tenant = await getTenantInfo();
-
+  console.log("tenant data here: ", tenant);
   if (!tenant) {
+    console.log("i am here, to sign in");
     redirect("/sign-in");
   }
 
-  if (tenant.role !== "owner") {
+  if (tenant.role !== "admin") {
     redirect("/");
   }
 

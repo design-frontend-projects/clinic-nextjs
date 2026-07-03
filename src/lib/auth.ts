@@ -64,6 +64,7 @@ export async function getTenantInfo() {
       tenant_id: true,
     },
   });
+  console.log("profile data here: ", profile);
   if (!profile) return null;
 
   const tenantId = profile.tenant_id;
