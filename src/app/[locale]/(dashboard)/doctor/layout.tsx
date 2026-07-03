@@ -1,5 +1,6 @@
+import { getLocale } from "next-intl/server";
 import { requireTenantInfo } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/routing";
 
 export default async function DoctorLayout({
   children,
@@ -9,7 +10,7 @@ export default async function DoctorLayout({
   const tenant = await requireTenantInfo();
 
   if (tenant.role !== "doctor" && tenant.role !== "admin") {
-    redirect("/");
+    return redirect({ href: "/", locale: await getLocale() });
   }
 
   return <>{children}</>;

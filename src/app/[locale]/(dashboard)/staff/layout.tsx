@@ -1,5 +1,6 @@
+import { getLocale } from "next-intl/server";
 import { requireTenantInfo } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/routing";
 
 export default async function StaffLayout({
   children,
@@ -13,10 +14,10 @@ export default async function StaffLayout({
       tenant.role !== "receptionist" &&
       tenant.role !== "staff"
     ) {
-      redirect(`/${tenant.role || ""}`);
+      return redirect({ href: `/${tenant.role || ""}`, locale: await getLocale() });
     }
   } catch {
-    redirect("/sign-in");
+    return redirect({ href: "/sign-in", locale: await getLocale() });
   }
 
   return <>{children}</>;

@@ -7,7 +7,7 @@ import { getProfilesAction, getRolesAction, assignUserRolesAction } from "@/feat
 import { UserRoleTable } from "@/features/rbac/components/UserRoleTable";
 import { UserCog, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
 import { toast } from "sonner";
 
 export default function UserRolesSettingsPage() {

@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";

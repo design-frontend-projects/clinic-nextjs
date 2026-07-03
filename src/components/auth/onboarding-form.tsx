@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
 import { toast } from "sonner";
 import { SubscriptionSetupStep } from "@/components/onboarding/subscription-setup-step";
 import { ClinicSetupStep } from "@/components/onboarding/clinic-setup-step";

@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { useQuery } from "@tanstack/react-query";
 import { getProfilesAction } from "@/features/rbac/actions";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";

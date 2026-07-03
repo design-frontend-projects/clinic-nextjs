@@ -2,7 +2,6 @@
 import { motion } from "framer-motion";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
+import { useRouter } from "@/i18n/routing";
 
 const signInSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -67,16 +67,19 @@ export function SignInForm() {
 
       // Determine user role and redirect accordingly
       const roles = useAuthStore.getState().getRoles();
-      const isAppOwner = roles.includes('app_owner');
-      const isStaff = roles.includes('staff');
+      const isAppOwner = roles.includes("app_owner");
+      const isStaff = roles.includes("staff");
       const redirectPath = isAppOwner
-        ? '/dashboard/app-owner'
+        ? "/dashboard/app-owner"
         : isStaff
-        ? '/dashboard/staff'
-        : '/dashboard/admin';
+          ? "/dashboard/staff"
+          : "/dashboard/admin";
 
       toast.success("Successfully signed in");
+      console.log("i will redirect to: ", redirectPath);
+
       router.push(redirectPath);
+      console.log("redirect done success");
       router.refresh();
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");

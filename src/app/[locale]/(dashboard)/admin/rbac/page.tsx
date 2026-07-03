@@ -1,3 +1,4 @@
+import { getLocale } from "next-intl/server";
 import {
   Card,
   CardContent,
@@ -14,14 +15,14 @@ import {
 import RoleManagementTable from "./role-management-table";
 import StaffManagementTable from "./staff-management-table";
 import { requireTenantInfo } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/routing";
 
 export const dynamic = "force-dynamic";
 
 export default async function RBACPage() {
   const tenant = await requireTenantInfo();
   if (tenant.role !== "admin") {
-    redirect("/dashboard");
+    return redirect({ href: "/dashboard", locale: await getLocale() });
   }
 
   const roles = await getClinicRoles();

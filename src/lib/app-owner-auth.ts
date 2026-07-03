@@ -1,4 +1,5 @@
-import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
+import { redirect } from "@/i18n/routing";
 import { getSupabaseSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -9,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 export async function requireAppOwner() {
   const session = await getSupabaseSession();
   if (!session?.user?.id) {
-    redirect("/sign-in");
+    return redirect({ href: "/sign-in", locale: await getLocale() });
   }
 
   const profile = await prisma.profiles.findUnique({
@@ -24,7 +25,7 @@ export async function requireAppOwner() {
 
   if (!profile || profile.role !== "app_owner") {
     // If they have a profile but they are not an app_owner, redirect to standard dashboard or home
-    redirect("/");
+    return redirect({ href: "/", locale: await getLocale() });
   }
 
   return profile;

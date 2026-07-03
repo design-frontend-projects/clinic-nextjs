@@ -2,7 +2,7 @@
 "use client";
 
 import React, { use, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getRoleDetailsAction, getProfilesAction, deleteRoleAction } from "@/features/rbac/actions";
 import { Button } from "@/components/ui/button";

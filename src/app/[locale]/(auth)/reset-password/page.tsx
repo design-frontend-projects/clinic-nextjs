@@ -1,6 +1,6 @@
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { Activity } from "lucide-react";
 
 export default function ResetPasswordPage() {

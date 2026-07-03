@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit2 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { getTranslations } from 'next-intl/server';
 
 export default async function PlansPage() {

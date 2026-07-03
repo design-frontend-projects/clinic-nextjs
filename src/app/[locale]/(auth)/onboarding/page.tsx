@@ -1,5 +1,6 @@
+import { getLocale } from "next-intl/server";
 import { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/routing";
 import { getSupabaseSession } from "@/lib/auth";
 import { OnboardingForm } from "@/components/auth/onboarding-form";
 
@@ -12,7 +13,7 @@ export default async function OnboardingPage() {
   const session = await getSupabaseSession();
 
   if (!session) {
-    redirect("/sign-in");
+    return redirect({ href: "/sign-in", locale: await getLocale() });
   }
 
   // Guard: Verify that a profiles record exists for the authenticated user
@@ -23,7 +24,7 @@ export default async function OnboardingPage() {
 
   if (!profile) {
     // If no profile exists, the sign-up profile creation step failed or was bypassed
-    redirect("/sign-up?error=profile_missing");
+    return redirect({ href: "/sign-up?error=profile_missing", locale: await getLocale() });
   }
 
   return (

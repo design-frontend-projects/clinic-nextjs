@@ -1,5 +1,6 @@
+import { getLocale } from "next-intl/server";
 import { requireTenantInfo } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/routing";
 
 export default async function PharmacyLayout({
   children,
@@ -9,10 +10,10 @@ export default async function PharmacyLayout({
   try {
     const tenant = await requireTenantInfo();
     if (tenant.role !== "admin" && tenant.role !== "pharmacist") {
-      redirect(`/${tenant.role || ""}`);
+      return redirect({ href: `/${tenant.role || ""}`, locale: await getLocale() });
     }
   } catch {
-    redirect("/sign-in");
+    return redirect({ href: "/sign-in", locale: await getLocale() });
   }
 
   return <>{children}</>;

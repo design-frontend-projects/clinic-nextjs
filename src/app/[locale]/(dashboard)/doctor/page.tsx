@@ -16,7 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 
 export default async function DoctorDashboard() {
