@@ -42,80 +42,102 @@
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 8px);
   --radius-xl: calc(var(--radius) + 16px);
-  --radius-2xl: calc(var(--radius) + 20px);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-blue-soft: var(--accent-blue-soft);
+  --color-accent-red: var(--accent-red);
+  --color-accent-red-soft: var(--accent-red-soft);
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-soft: var(--accent-green-soft);
+  --color-accent-yellow: var(--accent-yellow);
+  --color-accent-yellow-soft: var(--accent-yellow-soft);
+  --color-hero-stripe-start: var(--hero-stripe-start);
+  --color-hero-stripe-end: var(--hero-stripe-end);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-card: var(--surface-card);
+  --color-hairline: var(--hairline);
 }
 
 :root {
   --radius: 0.5rem;
   --font-inter: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   
-  --background: #0f0f0f;
+  --background: #07080a;
   --foreground: #ffffff;
-  --card: #181818;
+  --card: #121212;
   --card-foreground: #ffffff;
-  --popover: #181818;
+  --popover: #0d0d0d;
   --popover-foreground: #ffffff;
-  --primary: #0007cd;
-  --primary-foreground: #ffffff;
-  --secondary: #222222;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #101111;
   --secondary-foreground: #ffffff;
-  --muted: #222222;
-  --muted-foreground: #888888;
-  --accent: #222222;
+  --muted: #101111;
+  --muted-foreground: #9c9c9d;
+  --accent: #121212;
   --accent-foreground: #ffffff;
-  --destructive: #ff4d4d;
+  --destructive: #ff6161;
   --destructive-foreground: #ffffff;
-  --border: #222222;
-  --input: #222222;
-  --ring: #0007cd;
-  --chart-1: #00d4ff;
-  --chart-2: #7b3aed;
-  --chart-3: #33d17a;
-  --chart-4: #1a26ff;
-  --chart-5: #ff4d4d;
-  --sidebar: #0f0f0f;
+  --border: #242728;
+  --input: #101111;
+  --ring: #ffffff;
+  
+  --accent-blue: #57c1ff;
+  --accent-blue-soft: rgba(87,193,255,0.15);
+  --accent-red: #ff6161;
+  --accent-red-soft: rgba(255,97,97,0.15);
+  --accent-green: #59d499;
+  --accent-green-soft: rgba(89,212,153,0.15);
+  --accent-yellow: #ffc533;
+  --accent-yellow-soft: rgba(255,197,51,0.15);
+  --hero-stripe-start: #ff5757;
+  --hero-stripe-end: #a1131a;
+  --canvas: #07080a;
+  --surface: #0d0d0d;
+  --surface-elevated: #101111;
+  --surface-card: #121212;
+  --hairline: #242728;
+
+  --sidebar: #07080a;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #0007cd;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #222222;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #121212;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #222222;
-  --sidebar-ring: #0007cd;
+  --sidebar-border: #242728;
+  --sidebar-ring: #ffffff;
 }
 
 .dark {
-  --background: #0f0f0f;
+  --background: #07080a;
   --foreground: #ffffff;
-  --card: #181818;
+  --card: #121212;
   --card-foreground: #ffffff;
-  --popover: #181818;
+  --popover: #0d0d0d;
   --popover-foreground: #ffffff;
-  --primary: #0007cd;
-  --primary-foreground: #ffffff;
-  --secondary: #222222;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #101111;
   --secondary-foreground: #ffffff;
-  --muted: #222222;
-  --muted-foreground: #888888;
-  --accent: #222222;
+  --muted: #101111;
+  --muted-foreground: #9c9c9d;
+  --accent: #121212;
   --accent-foreground: #ffffff;
-  --destructive: #ff4d4d;
+  --destructive: #ff6161;
   --destructive-foreground: #ffffff;
-  --border: #222222;
-  --input: #222222;
-  --ring: #0007cd;
-  --chart-1: #00d4ff;
-  --chart-2: #7b3aed;
-  --chart-3: #33d17a;
-  --chart-4: #1a26ff;
-  --chart-5: #ff4d4d;
-  --sidebar: #0f0f0f;
+  --border: #242728;
+  --input: #101111;
+  --ring: #ffffff;
+
+  --sidebar: #07080a;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #0007cd;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #222222;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #121212;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #222222;
-  --sidebar-ring: #0007cd;
+  --sidebar-border: #242728;
+  --sidebar-ring: #ffffff;
 }
 
 @layer base {
@@ -135,5 +157,6 @@
     font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "calt" 1, "kern" 1, "liga" 1, "ss03" 1;
   }
 }
