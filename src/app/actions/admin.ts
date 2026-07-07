@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createAppointmentWithPatientSchema, type CreateAppointmentWithPatientData } from "@/types/appointment.types";
 
 export async function getDashboardStats() {
   const tenant = await requireTenantInfo();
@@ -246,4 +248,127 @@ export async function getInvoices() {
     orderBy: { created_at: "desc" },
     take: 100,
   });
+}
+
+export async function searchPatients(query: string) {
+  const tenant = await requireTenantInfo();
+  
+  if (!query || query.length < 2) return [];
+
+  return prisma.patients.findMany({
+    where: {
+      clinic_id: tenant.clinicId,
+      OR: [
+        { first_name: { contains: query, mode: "insensitive" } },
+        { last_name: { contains: query, mode: "insensitive" } },
+        { phone: { contains: query, mode: "insensitive" } },
+        { email: { contains: query, mode: "insensitive" } },
+      ],
+    },
+    select: {
+      id: true,
+      first_name: true,
+      last_name: true,
+      email: true,
+      phone: true,
+    },
+    take: 10,
+  });
+}
+
+export async function registerPatientAndCreateAppointment(data: CreateAppointmentWithPatientData) {
+  try {
+    const tenant = await requireTenantInfo();
+    const parsed = createAppointmentWithPatientSchema.safeParse(data);
+    
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message || "Invalid data" };
+    }
+
+    const patientData = parsed.data.patient;
+    const appointmentData = parsed.data.appointment;
+
+    const supabaseAdmin = createSupabaseServerClient();
+    
+    // Generate a random temporary password
+    const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
+
+    // Create user via Supabase Admin API
+    const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.createUser({
+      email: patientData.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
+        role: "patient",
+        tenant_id: tenant.clinicId,
+      }
+    });
+
+    if (inviteError || !authData.user) {
+      console.error("[Supabase Creation] Failed to create user:", inviteError);
+      return { error: inviteError?.message || "Failed to create patient account" };
+    }
+
+    // Insert new profile, patient, and appointment in a transaction
+    try {
+      await prisma.$transaction(async (tx) => {
+        // 1. Create Profile
+        const profile = await tx.profiles.create({
+          data: {
+            auth_user_id: authData.user.id,
+            tenant_id: tenant.clinicId,
+            full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
+            email: patientData.email,
+            phone: patientData.phone ?? null,
+            role: "patient",
+            status: "active",
+            is_profile_completed: false,
+          },
+        });
+
+        // 2. Create Patient Record
+        const patient = await tx.patients.create({
+          data: {
+            clinic_id: tenant.clinicId,
+            branch_id: tenant.branchId,
+            profile_id: profile.id,
+            first_name: patientData.first_name,
+            last_name: patientData.last_name,
+            email: patientData.email,
+            phone: patientData.phone ?? null,
+            gender: patientData.gender as "male" | "female" | "other" | undefined,
+            date_of_birth: patientData.date_of_birth ? new Date(patientData.date_of_birth) : null,
+            address: patientData.address ?? null,
+          },
+        });
+
+        // 3. Create Appointment
+        await tx.appointments.create({
+          data: {
+            clinic_id: tenant.clinicId,
+            branch_id: tenant.branchId,
+            patient_id: patient.id,
+            doctor_id: appointmentData.doctor_id,
+            appointment_date: new Date(appointmentData.appointment_date),
+            notes: appointmentData.notes ?? null,
+            status: appointmentData.status as any,
+          },
+        });
+      });
+    } catch (dbError) {
+      // Rollback auth user if DB operations fail
+      console.error("Database operations failed, rolling back auth user:", dbError);
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      return { error: "Failed to save patient records. Process rolled back." };
+    }
+
+    revalidatePath("/admin/appointments");
+    revalidatePath("/admin/patients");
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Unexpected error in registerPatientAndCreateAppointment:", error);
+    return { error: error.message || "An unexpected error occurred" };
+  }
 }

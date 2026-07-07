@@ -139,6 +139,8 @@ export default async function LandingPage() {
         dashboardPath = "/dashboard/staff";
       } else if (role === "doctor") {
         dashboardPath = "/dashboard/doctor";
+      } else if (role === "admin") {
+        dashboardPath = "/admin";
       }
     } else {
       const roles = session.user.app_metadata?.roles as string[] | undefined;

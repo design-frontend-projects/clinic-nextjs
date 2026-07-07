@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
+import { NewAppointmentDialog } from "@/components/appointments/new-appointment-dialog";
 
 type Appointment = {
   id: string;
@@ -45,6 +46,7 @@ type Appointment = {
 
 export default function AppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: appointments = [] } = useQuery({
@@ -176,11 +178,16 @@ export default function AppointmentsPage() {
             Manage all clinic appointments
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsNewAppointmentOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           New Appointment
         </Button>
       </div>
+
+      <NewAppointmentDialog
+        open={isNewAppointmentOpen}
+        onOpenChange={setIsNewAppointmentOpen}
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-4">
