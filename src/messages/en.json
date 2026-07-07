@@ -7,14 +7,71 @@
       "title": "Welcome back",
       "subtitle": "Sign in to your dashboard",
       "noAccount": "Don't have an account?",
-      "signUp": "Sign up"
+      "signUp": "Sign up",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "doctor@clinic.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "forgotPassword": "Forgot password?",
+      "rememberMe": "Remember me",
+      "signInButton": "Sign in",
+      "invalidEmail": "Please enter a valid email address",
+      "invalidPassword": "Password must be at least 6 characters"
+    },
+    "signUp": {
+      "title": "Create an account",
+      "subtitle": "Enter your details below to get started",
+      "alreadyHaveAccount": "Already have an account?",
+      "signUpButton": "Sign in",
+      "fullNameLabel": "Full Name",
+      "fullNamePlaceholder": "Dr. John Doe",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "doctor@clinic.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "createAccountButton": "Create account",
+      "fullNameRequired": "Full name must be at least 2 characters",
+      "invalidEmail": "Please enter a valid email address",
+      "invalidPassword": "Password must be at least 6 characters",
+      "accountCreated": "Account created! Please check your email to confirm.",
+      "accountCreatedRedirect": "Account created! Redirecting to onboarding..."
+    },
+    "onboarding": {
+      "title": "Welcome to Clinic Pro",
+      "subtitle": "Let's set up your profile and clinic workspace",
+      "step1": "Step 1 of 3: Plan",
+      "step2": "Step 2 of 3: Clinic",
+      "step3": "Step 3 of 3: Branch",
+      "plan": "Plan",
+      "clinic": "Clinic",
+      "branch": "Branch",
+      "continueToSetup": "Continue to Setup",
+      "initializeClinic": "Initialize Clinic",
+      "completeSetup": "Complete Setup",
+      "back": "Back",
+      "skipForNow": "Skip for now",
+      "failedToLoad": "Failed to load onboarding progress",
+      "anErrorOccurred": "An error occurred",
+      "failedToSaveClinic": "Failed to save clinic",
+      "somethingWentWrong": "Something went wrong. Please try again.",
+      "missingClinicId": "Clinic ID is missing. Please try again.",
+      "setupCompleted": "Clinic initialized successfully!"
     }
   },
   "appOwner": {
     "plans": {
       "title": "Subscription Plans",
       "subtitle": "Manage plans, pricing, and feature access.",
-      "newButton": "New Plan"
+      "newButton": "New Plan",
+      "planName": "Plan Name",
+      "price": "Price",
+      "billingPeriod": "Billing Period",
+      "status": "Status",
+      "activeSubs": "Active Subs",
+      "actions": "Actions",
+      "noPlansFound": "No subscription plans found. Create one to get started.",
+      "active": "active",
+      "inactive": "inactive"
     },
     "settings": {
       "title": "Global Settings",
@@ -27,7 +84,11 @@
       "totalTenants": "Total Tenants",
       "totalUsers": "Total Users",
       "activeSubscriptions": "Active Subscriptions",
-      "activePlans": "Active Plans"
+      "activePlans": "Active Plans",
+      "dashboard": "Dashboard",
+      "tenants": "Tenants",
+      "plans": "Subscription Plans",
+      "settings": "Global Settings"
     },
     "sidebar": {
       "dashboard": "Dashboard",
@@ -54,5 +115,243 @@
       "plans": "Subscription Plans",
       "settings": "Global Settings"
     }
+  },
+  "header": {
+    "welcomeBack": "Welcome back",
+    "manageClinic": "Manage your clinic operations",
+    "notifications": "Notifications",
+    "userMenu": "User Menu",
+    "logout": "Log out",
+    "language": "Language",
+    "english": "English",
+    "arabic": "Arabic"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "doctors": "Doctors",
+    "staff": "Staff",
+    "patients": "Patients",
+    "appointments": "Appointments",
+    "billing": "Billing",
+    "pharmacy": "Pharmacy",
+    "labOrders": "Lab Orders",
+    "inventory": "Inventory",
+    "reports": "Reports",
+    "clinicDefinition": "Clinic Definition",
+    "settings": "Settings",
+    "myAppointments": "My Appointments",
+    "myPatients": "My Patients",
+    "prescriptions": "Prescriptions",
+    "profile": "Profile",
+    "checkinQueue": "Check-in Queue",
+    "tenants": "Tenants"
+  },
+  "pages": {
+    "admin": {
+      "title": "Dashboard",
+      "subtitle": "Overview of your clinic operations",
+      "totalPatients": "Total Patients",
+      "activeDoctors": "Active Doctors",
+      "todaysAppointments": "Today's Appointments",
+      "pendingPayments": "Pending Payments",
+      "recentAppointments": "Recent Appointments",
+      "noAppointments": "No appointments yet. Create your first appointment to get started.",
+      "doctor": "Dr.",
+      "unknownPatient": "Unknown Patient",
+      "viewAll": "View All"
+    },
+    "doctor": {
+      "title": "Doctor Dashboard",
+      "subtitle": "Welcome to your daily overview",
+      "todaysAppointments": "Today's Appointments",
+      "pendingLabs": "Pending Labs",
+      "patientsSeen": "Patients Seen",
+      "todaysSchedule": "Today's Schedule",
+      "appointmentsForToday": "Appointments for the current day",
+      "recentPatients": "Recently Consulted",
+      "quickAccess": "Quick access to recent patient files",
+      "noAppointments": "No appointments scheduled for today.",
+      "noRecentPatients": "No recent patients found.",
+      "lastVisit": "Last visit",
+      "unknown": "Unknown",
+      "file": "File"
+    },
+    "staff": {
+      "title": "Staff Operations",
+      "subtitle": "View today's activity, queue, and collections.",
+      "todaysAppointments": "Today's Appointments",
+      "completed": "completed",
+      "remaining": "remaining",
+      "checkedInQueue": "Checked-In Queue",
+      "waitingForDoctors": "Waiting for doctors",
+      "newPatients": "New Patients",
+      "registeredToday": "Registered today",
+      "paymentsCollected": "Payments Collected",
+      "acrossTransactions": "Across 14 transactions",
+      "currentQueue": "Current Queue",
+      "patientsWaiting": "Patients waiting to be seen by doctors",
+      "sarahJenkins": "Sarah Jenkins",
+      "drSmith": "Dr. Smith",
+      "generalCheckup": "General Checkup",
+      "waiting": "Waiting",
+      "michaelChang": "Michael Chang",
+      "drAdams": "Dr. Adams",
+      "cardiology": "Cardiology",
+      "emmaWilson": "Emma Wilson",
+      "followUp": "Follow-up",
+      "quickInsights": "Quick Insights",
+      "dailyThroughput": "Daily throughput chart"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Manage your clinic profile and preferences",
+      "clinicProfile": "Clinic Profile",
+      "updateInfo": "Update your clinic's information",
+      "clinicName": "Clinic Name",
+      "registrationNumber": "Registration Number (optional)",
+      "regNumberPlaceholder": "REG-001",
+      "email": "Email",
+      "emailPlaceholder": "clinic@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "+1 234 567 890",
+      "saveChanges": "Save Changes",
+      "subscriptionPlan": "Subscription Plan",
+      "yourCurrentPlan": "Your current plan and billing",
+      "trialPlan": "Trial Plan",
+      "freeFor14Days": "Free for 14 days",
+      "upgrade": "Upgrade",
+      "featuresIncluded": "Features included:",
+      "unlimitedPatients": "Unlimited patients",
+      "appointmentManagement": "Appointment management",
+      "basicBilling": "Basic billing",
+      "fiveStaffMembers": "5 staff members"
+    }
+  },
+  "landing": {
+    "hero": {
+      "aiDriven": "AI-Driven Medical Infrastructure",
+      "title": "Modern Clinic",
+      "subtitle": "Management System",
+      "description": "An API-first SaaS platform for appointments, electronic health records, billing, and automated patient workflows — powered by intelligent agent integrations.",
+      "getStartedFree": "Get Started Free",
+      "goToDashboard": "Go to Dashboard",
+      "watchDemo": "Watch Developer Demo"
+    },
+    "features": {
+      "title": "Built for modern medical teams",
+      "subtitle": "Powerful developer-first modules designed to run clinic operations with zero friction.",
+      "appointmentManagement": "Appointment Management",
+      "appointmentDesc": "Smart scheduling with conflict detection, status workflow, and calendar views.",
+      "patientRecords": "Patient Records",
+      "patientDesc": "Complete patient profiles with medical history, documents, and visit tracking.",
+      "staffManagement": "Staff Management",
+      "staffDesc": "Role-based access for doctors, nurses, and receptionists with schedule management.",
+      "billing": "Billing & Invoicing",
+      "billingDesc": "Create invoices, track payments, manage insurance claims, and generate reports.",
+      "analytics": "Analytics & Reports",
+      "analyticsDesc": "Real-time KPIs, revenue tracking, doctor performance, and patient growth metrics.",
+      "pharmacy": "Pharmacy & Inventory",
+      "pharmacyDesc": "Medication management, batch tracking, purchase orders, and stock alerts."
+    },
+    "pricing": {
+      "title": "Simple developer pricing",
+      "subtitle": "Start free, scale as your practices expand.",
+      "starter": "Starter",
+      "starterPrice": "Free",
+      "starterDesc": "Perfect for small clinics",
+      "starterFeatures": [
+        "Up to 100 patients",
+        "2 staff members",
+        "Basic appointments",
+        "Email support"
+      ],
+      "professional": "Professional",
+      "professionalPrice": "$49",
+      "professionalPeriod": "/month",
+      "professionalDesc": "For growing practices",
+      "professionalFeatures": [
+        "Unlimited patients",
+        "10 staff members",
+        "Advanced scheduling",
+        "Billing & invoicing",
+        "Lab management",
+        "Priority support"
+      ],
+      "enterprise": "Enterprise",
+      "enterprisePrice": "$149",
+      "enterprisePeriod": "/month",
+      "enterpriseDesc": "For multi-branch clinics",
+      "enterpriseFeatures": [
+        "Everything in Pro",
+        "Unlimited staff",
+        "Multi-branch",
+        "Custom integrations",
+        "Dedicated support",
+        "SLA guarantee"
+      ],
+      "mostPopular": "Most Popular",
+      "getStarted": "Get Started"
+    },
+    "footer": {
+      "copyright": "© 2026 ClinicPro. All rights reserved. Built with the Composio Inspired Design System.",
+      "apiDocs": "API Docs",
+      "github": "GitHub",
+      "status": "Status"
+    }
+  },
+  "notifications": {
+    "newAppointment": "New appointment request",
+    "newAppointmentTime": "2 minutes ago",
+    "labResults": "Lab results ready",
+    "labResultsTime": "1 hour ago",
+    "paymentReceived": "Payment received",
+    "paymentTime": "3 hours ago"
+  },
+  "plans": {
+    "basic": "Basic",
+    "basicPrice": "$29/mo",
+    "basicFeatures": [
+      "1 Branch",
+      "Up to 3 Staff Users",
+      "Basic Reporting"
+    ],
+    "pro": "Pro",
+    "proPrice": "$99/mo",
+    "proFeatures": [
+      "Multiple Branches",
+      "Unlimited Staff Users",
+      "Advanced Reporting",
+      "API Access"
+    ]
+  },
+  "subscriptionPlans": {
+    "free": "Free — Basic Features",
+    "starter": "Starter — Small Clinic",
+    "professional": "Professional — Growing Practice",
+    "enterprise": "Enterprise — Multi-Branch"
+  },
+  "onboardingPlans": {
+    "free": "Free",
+    "starter": "Starter",
+    "professional": "Professional",
+    "enterprise": "Enterprise"
+  },
+  "branch": {
+    "name": "Branch Name",
+    "namePlaceholder": "e.g. Main Branch",
+    "address": "Address (optional)",
+    "addressPlaceholder": "e.g. 123 Health Ave, NY",
+    "phone": "Branch Phone (optional)",
+    "phonePlaceholder": "+1 (555) 000-0000"
+  },
+  "clinic": {
+    "name": "Clinic Name",
+    "namePlaceholder": "e.g. Acme Health Center",
+    "registrationNumber": "Registration Number (optional)",
+    "regNumberPlaceholder": "e.g. MED-2024-001",
+    "email": "Email",
+    "emailPlaceholder": "info@clinic.com",
+    "phone": "Phone",
+    "phonePlaceholder": "+1 (555) 000-0000"
   }
 }

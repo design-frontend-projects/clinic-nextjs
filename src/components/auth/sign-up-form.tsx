@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const signUpSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  fullName: z.string().min(2, ""),
+  email: z.string().email(""),
+  password: z.string().min(6, ""),
 });
 
 type SignUpValues = z.infer<typeof signUpSchema>;
@@ -23,6 +24,7 @@ type SignUpValues = z.infer<typeof signUpSchema>;
 export function SignUpForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const t = useTranslations("auth.signUp");
 
   const {
     register,
@@ -51,14 +53,14 @@ export function SignUpForm() {
       }
 
       if (result.requiresEmailConfirmation) {
-        toast.success("Account created! Please check your email to confirm.");
+        toast.success(t("accountCreated"));
       } else {
-        toast.success("Account created! Redirecting to onboarding...");
+        toast.success(t("accountCreatedRedirect"));
         router.push("/onboarding");
         router.refresh();
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to create account");
+      toast.error(error.message || t("createAccountButton"));
     } finally {
       setIsLoading(false);
     }
@@ -68,12 +70,12 @@ export function SignUpForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
       <div className="space-y-2">
         <Label htmlFor="fullName" className="text-white">
-          Full Name
+          {t("fullNameLabel")}
         </Label>
         <Input
           id="fullName"
           type="text"
-          placeholder="Dr. John Doe"
+          placeholder={t("fullNamePlaceholder")}
           className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("fullName")}
         />
@@ -84,12 +86,12 @@ export function SignUpForm() {
 
       <div className="space-y-2">
         <Label htmlFor="email" className="text-white">
-          Email address
+          {t("emailLabel")}
         </Label>
         <Input
           id="email"
           type="email"
-          placeholder="doctor@clinic.com"
+          placeholder={t("emailPlaceholder")}
           className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("email")}
         />
@@ -100,12 +102,12 @@ export function SignUpForm() {
 
       <div className="space-y-2">
         <Label htmlFor="password" className="text-white">
-          Password
+          {t("passwordLabel")}
         </Label>
         <Input
           id="password"
           type="password"
-          placeholder="••••••••"
+          placeholder={t("passwordPlaceholder")}
           className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("password")}
         />
@@ -120,7 +122,7 @@ export function SignUpForm() {
         disabled={isLoading}
       >
         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Create account
+        {t("createAccountButton")}
       </Button>
     </form>
   );

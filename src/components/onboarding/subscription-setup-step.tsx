@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { subscriptionSchema, type SubscriptionFormData } from "@/types/onboarding.types";
+import { useTranslations } from "next-intl";
 
 type SubscriptionSetupStepProps = {
   defaultValues?: Partial<SubscriptionFormData>;
@@ -14,27 +15,12 @@ type SubscriptionSetupStepProps = {
   loading?: boolean;
 };
 
-// Mock plans for now. Eventually fetch from DB.
-const plans = [
-  {
-    id: "basic",
-    name: "Basic",
-    price: "$29/mo",
-    features: ["1 Branch", "Up to 3 Staff Users", "Basic Reporting"],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$99/mo",
-    features: ["Multiple Branches", "Unlimited Staff Users", "Advanced Reporting", "API Access"],
-  },
-];
-
 export function SubscriptionSetupStep({
   defaultValues,
   onSubmit,
   loading,
 }: SubscriptionSetupStepProps) {
+  const t = useTranslations("plans");
   const {
     register,
     handleSubmit,
@@ -49,6 +35,21 @@ export function SubscriptionSetupStep({
   });
 
   const selectedPlanId = watch("plan_id");
+
+  const plans = [
+    {
+      id: "basic",
+      name: t("basic"),
+      price: t("basicPrice"),
+      features: ["1 Branch", "Up to 3 Staff Users", "Basic Reporting"],
+    },
+    {
+      id: "pro",
+      name: t("pro"),
+      price: t("proPrice"),
+      features: ["Multiple Branches", "Unlimited Staff Users", "Advanced Reporting", "API Access"],
+    },
+  ];
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -95,7 +96,7 @@ export function SubscriptionSetupStep({
           ) : (
             <ArrowRight className="mr-2 h-4 w-4" />
           )}
-          Continue to Setup
+          {t("continueToSetup")}
         </Button>
       </div>
     </form>

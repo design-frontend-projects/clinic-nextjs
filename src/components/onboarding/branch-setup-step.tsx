@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { branchSchema, type BranchFormData } from "@/types/onboarding.types";
+import { useTranslations } from "next-intl";
 
 type BranchSetupStepProps = {
   defaultValues?: Partial<BranchFormData>;
@@ -28,6 +29,9 @@ export function BranchSetupStep({
   onBack,
   loading,
 }: BranchSetupStepProps) {
+  const t = useTranslations("branch");
+  const tOnboarding = useTranslations("auth.onboarding");
+
   const {
     register,
     handleSubmit,
@@ -43,15 +47,14 @@ export function BranchSetupStep({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Branch Name */}
       <div className="space-y-2">
         <Label htmlFor="branch_name" className="flex items-center gap-2">
           <Building className="h-4 w-4 text-muted-foreground" />
-          Branch Name *
+          {t("name")} *
         </Label>
         <Input
           id="branch_name"
-          placeholder="e.g. Main Branch"
+          placeholder={t("namePlaceholder")}
           {...register("name")}
           autoFocus
         />
@@ -60,33 +63,30 @@ export function BranchSetupStep({
         )}
       </div>
 
-      {/* Address */}
       <div className="space-y-2">
         <Label htmlFor="address" className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-muted-foreground" />
-          Address (optional)
+          {t("address")}
         </Label>
         <Input
           id="address"
-          placeholder="e.g. 123 Health Ave, NY"
+          placeholder={t("addressPlaceholder")}
           {...register("address")}
         />
       </div>
 
-      {/* Phone */}
       <div className="space-y-2">
         <Label htmlFor="branch_phone" className="flex items-center gap-2">
           <Phone className="h-4 w-4 text-muted-foreground" />
-          Branch Phone (optional)
+          {t("phone")}
         </Label>
         <Input
           id="branch_phone"
-          placeholder="+1 (555) 000-0000"
+          placeholder={t("phonePlaceholder")}
           {...register("phone")}
         />
       </div>
 
-      {/* Actions */}
       <div className="flex flex-col gap-3 pt-2">
         <div className="flex gap-3">
           <Button
@@ -97,7 +97,7 @@ export function BranchSetupStep({
             className="flex-1"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            {tOnboarding("back")}
           </Button>
           <Button type="submit" className="flex-1" disabled={loading}>
             {loading ? (
@@ -105,7 +105,7 @@ export function BranchSetupStep({
             ) : (
               <CheckCircle className="mr-2 h-4 w-4" />
             )}
-            Complete Setup
+            {tOnboarding("completeSetup")}
           </Button>
         </div>
         <Button
@@ -115,7 +115,7 @@ export function BranchSetupStep({
           disabled={loading}
           className="w-full text-muted-foreground"
         >
-          Skip for now
+          {tOnboarding("skipForNow")}
         </Button>
       </div>
     </form>

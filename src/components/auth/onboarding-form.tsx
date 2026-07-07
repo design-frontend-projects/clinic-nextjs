@@ -10,6 +10,7 @@ import { useOnboardingStore } from "@/stores/onboarding-store";
 import { saveClinicStep, saveBranchStep, getOnboardingProgress } from "@/app/actions/onboarding";
 import type { ClinicFormData, BranchFormData, SubscriptionFormData } from "@/types/onboarding.types";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type OnboardingFormProps = {
   defaultEmail?: string;
@@ -23,6 +24,7 @@ export function OnboardingForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const t = useTranslations("auth.onboarding");
 
   const {
     subscriptionData,
@@ -43,7 +45,7 @@ export function OnboardingForm({
       try {
         const res = await getOnboardingProgress();
         if ("error" in res) {
-          toast.error("Failed to load onboarding progress");
+          toast.error(t("failedToLoad"));
           return;
         }
 
@@ -75,16 +77,13 @@ export function OnboardingForm({
     setSubscriptionData(data);
     
     try {
-      // In a real app, this might redirect to Stripe or call a server action
-      // For now, we simulate success and move to clinic setup
-      // TODO: Implement server action for subscription saving
       setTimeout(() => {
         setStep("clinic");
         setLoading(false);
       }, 500);
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred");
+      toast.error(t("anErrorOccurred"));
       setLoading(false);
     }
   };
@@ -96,14 +95,14 @@ export function OnboardingForm({
     try {
       const res = await saveClinicStep(data, subscriptionData as SubscriptionFormData);
       if (res.error || !res.clinicId) {
-        toast.error(res.error || "Failed to save clinic");
+        toast.error(res.error || t("failedToSaveClinic"));
         return;
       }
       setClinicId(res.clinicId);
       setStep("branch");
     } catch (error) {
       console.error("Onboarding error:", error);
-      toast.error("Something went wrong. Please try again.");
+      toast.error(t("somethingWentWrong"));
     } finally {
       setLoading(false);
     }
@@ -111,7 +110,7 @@ export function OnboardingForm({
 
   const handleBranchSubmit = async (data: BranchFormData) => {
     if (!clinicId) {
-      toast.error("Clinic ID is missing. Please try again.");
+      toast.error(t("missingClinicId"));
       return;
     }
 
@@ -126,11 +125,11 @@ export function OnboardingForm({
       }
 
       clearOnboarding();
-      toast.success("🎉 Clinic initialized successfully!");
+      toast.success(t("setupCompleted"));
       router.push("/admin");
     } catch (error) {
       console.error("Onboarding error:", error);
-      toast.error("Something went wrong. Please try again.");
+      toast.error(t("somethingWentWrong"));
     } finally {
       setLoading(false);
     }
@@ -154,12 +153,11 @@ export function OnboardingForm({
 
   return (
     <div className="space-y-4">
-      {/* Simple step indicator */}
       <div className="flex items-center justify-between border-b border-border pb-3">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {currentStep === "subscription" && "Step 1 of 3: Plan"}
-          {currentStep === "clinic" && "Step 2 of 3: Clinic"}
-          {currentStep === "branch" && "Step 3 of 3: Branch"}
+          {currentStep === "subscription" && t("step1")}
+          {currentStep === "clinic" && t("step2")}
+          {currentStep === "branch" && t("step3")}
         </span>
         <div className="flex gap-1">
           <div

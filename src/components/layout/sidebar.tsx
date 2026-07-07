@@ -4,6 +4,7 @@ import { Link } from "@/i18n/routing";
 import { usePathname } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/stores/sidebar-store";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Users,
@@ -26,46 +27,43 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 const navConfig = {
-  admin: [
-    { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
-    { title: "Doctors", href: "/admin/doctors", icon: Stethoscope },
-    { title: "Staff", href: "/admin/staff", icon: UserCog },
-    { title: "Patients", href: "/admin/patients", icon: Users },
-    { title: "Appointments", href: "/admin/appointments", icon: CalendarDays },
-    { title: "Billing", href: "/admin/billing", icon: Receipt },
-    { title: "Pharmacy", href: "/admin/pharmacy", icon: Pill },
-    { title: "Lab Orders", href: "/admin/lab-orders", icon: FlaskConical },
-    { title: "Inventory", href: "/admin/inventory", icon: Package },
-    { title: "Reports", href: "/admin/reports", icon: ClipboardList },
-    { title: "Clinic Definition", href: "/admin/clinics", icon: Building },
-    { title: "Settings", href: "/admin/settings", icon: Settings },
+  admin: (t: any) => [
+    { title: t("sidebar.dashboard"), href: "/admin", icon: LayoutDashboard },
+    { title: t("sidebar.doctors"), href: "/admin/doctors", icon: Stethoscope },
+    { title: t("sidebar.staff"), href: "/admin/staff", icon: UserCog },
+    { title: t("sidebar.patients"), href: "/admin/patients", icon: Users },
+    { title: t("sidebar.appointments"), href: "/admin/appointments", icon: CalendarDays },
+    { title: t("sidebar.billing"), href: "/admin/billing", icon: Receipt },
+    { title: t("sidebar.pharmacy"), href: "/admin/pharmacy", icon: Pill },
+    { title: t("sidebar.labOrders"), href: "/admin/lab-orders", icon: FlaskConical },
+    { title: t("sidebar.inventory"), href: "/admin/inventory", icon: Package },
+    { title: t("sidebar.reports"), href: "/admin/reports", icon: ClipboardList },
+    { title: t("sidebar.clinicDefinition"), href: "/admin/clinics", icon: Building },
+    { title: t("sidebar.settings"), href: "/admin/settings", icon: Settings },
   ],
-  doctor: [
-    { title: "Dashboard", href: "/doctor", icon: LayoutDashboard },
-    {
-      title: "My Appointments",
-      href: "/doctor/appointments",
-      icon: CalendarDays,
-    },
-    { title: "My Patients", href: "/doctor/patients", icon: Users },
-    { title: "Prescriptions", href: "/doctor/prescriptions", icon: Pill },
-    { title: "Lab Orders", href: "/doctor/lab-orders", icon: FlaskConical },
-    { title: "Profile", href: "/doctor/profile", icon: User },
+  doctor: (t: any) => [
+    { title: t("sidebar.dashboard"), href: "/doctor", icon: LayoutDashboard },
+    { title: t("pages.doctor.myAppointments"), href: "/doctor/appointments", icon: CalendarDays },
+    { title: t("pages.doctor.myPatients"), href: "/doctor/patients", icon: Users },
+    { title: t("pages.doctor.prescriptions"), href: "/doctor/prescriptions", icon: Pill },
+    { title: t("pages.doctor.labOrders"), href: "/doctor/lab-orders", icon: FlaskConical },
+    { title: t("pages.doctor.profile"), href: "/doctor/profile", icon: User },
   ],
-  staff: [
-    { title: "Dashboard", href: "/staff", icon: LayoutDashboard },
-    { title: "Appointments", href: "/staff/appointments", icon: CalendarDays },
-    { title: "Patients", href: "/staff/patients", icon: Users },
-    { title: "Check-in Queue", href: "/staff/checkin", icon: ClipboardList },
-    { title: "Billing", href: "/staff/billing", icon: Receipt },
+  staff: (t: any) => [
+    { title: t("sidebar.dashboard"), href: "/staff", icon: LayoutDashboard },
+    { title: t("pages.staff.appointments"), href: "/staff/appointments", icon: CalendarDays },
+    { title: t("pages.staff.patients"), href: "/staff/patients", icon: Users },
+    { title: t("sidebar.checkinQueue"), href: "/staff/checkin", icon: ClipboardList },
+    { title: t("pages.staff.billing"), href: "/staff/billing", icon: Receipt },
   ],
 };
 
 export function Sidebar({ role = "admin" }: { role?: string }) {
   const pathname = usePathname();
   const { isOpen, toggle } = useSidebarStore();
+  const t = useTranslations();
 
-  const navItems = navConfig[role as keyof typeof navConfig] || navConfig.admin;
+  const navItems = (role === "admin" ? navConfig.admin : role === "doctor" ? navConfig.doctor : navConfig.staff)(t);
   const baseUrl = `/${role}`;
 
   return (
@@ -82,7 +80,9 @@ export function Sidebar({ role = "admin" }: { role?: string }) {
             <Activity className="h-5 w-5 text-primary-foreground" />
           </div>
           {isOpen && (
-            <span className="text-lg font-semibold tracking-tight text-foreground font-inter">ClinicPro</span>
+            <span className="text-lg font-semibold tracking-tight text-foreground font-inter">
+              {t("brand.name")}
+            </span>
           )}
         </Link>
         <Button
@@ -132,7 +132,7 @@ export function Sidebar({ role = "admin" }: { role?: string }) {
       <div className="p-4">
         {isOpen && (
           <p className="text-xs text-muted-foreground text-center font-inter">
-            © 2026 ClinicPro
+            © 2026 {t("brand.name")}
           </p>
         )}
       </div>

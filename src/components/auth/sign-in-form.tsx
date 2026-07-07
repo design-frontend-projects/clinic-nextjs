@@ -14,10 +14,11 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 
 const signInSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email(""),
+  password: z.string().min(6, ""),
   rememberMe: z.boolean().optional(),
 });
 
@@ -26,6 +27,7 @@ type SignInValues = z.infer<typeof signInSchema>;
 export function SignInForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const t = useTranslations("auth.signIn");
 
   const {
     register,
@@ -43,12 +45,10 @@ export function SignInForm() {
   const onSubmit = async (data: SignInValues) => {
     setIsLoading(true);
 
-    // Save Remember Me preference
     if (typeof window !== "undefined") {
       localStorage.setItem("remember_me", data.rememberMe ? "true" : "false");
     }
 
-    // Initialize Supabase Client with current persistence choice
     const supabase = createSupabaseClient();
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -60,12 +60,10 @@ export function SignInForm() {
         throw error;
       }
 
-      // Get current session and store it in Zustand
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
       useAuthStore.getState().setSession(session);
 
-      // Determine user role and redirect accordingly
       const roles = useAuthStore.getState().getRoles();
       const isAppOwner = roles.includes("app_owner");
       const isStaff = roles.includes("staff");
@@ -75,14 +73,14 @@ export function SignInForm() {
           ? "/dashboard/staff"
           : "/dashboard/admin";
 
-      toast.success("Successfully signed in");
+      toast.success(t("signInButton"));
       console.log("i will redirect to: ", redirectPath);
 
       router.refresh();
       router.push(redirectPath);
       console.log("redirect done success");
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in");
+      toast.error(error.message || t("signInButton"));
     } finally {
       setIsLoading(false);
     }
@@ -98,12 +96,12 @@ export function SignInForm() {
     >
       <div className="space-y-2">
         <Label htmlFor="email" className="text-white">
-          Email address
+          {t("emailLabel")}
         </Label>
         <Input
           id="email"
           type="email"
-          placeholder="doctor@clinic.com"
+          placeholder={t("emailPlaceholder")}
           className="bg-background border-primary text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:ring-primary/30"
           {...register("email")}
         />
@@ -115,19 +113,19 @@ export function SignInForm() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password" className="text-white">
-            Password
+            {t("passwordLabel")}
           </Label>
           <Link
             href="/forgot-password"
             className="text-xs text-[#a8a8a8] hover:text-white hover:underline transition-colors"
           >
-            Forgot password?
+            {t("forgotPassword")}
           </Link>
         </div>
         <Input
           id="password"
           type="password"
-          placeholder="••••••••"
+          placeholder={t("passwordPlaceholder")}
           className="bg-background border-primary text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:ring-primary/30"
           {...register("password")}
         />
@@ -147,7 +145,7 @@ export function SignInForm() {
           htmlFor="rememberMe"
           className="text-xs font-normal text-[#a8a8a8] cursor-pointer hover:text-white transition-colors"
         >
-          Remember me
+          {t("rememberMe")}
         </Label>
       </div>
 
@@ -162,7 +160,7 @@ export function SignInForm() {
           disabled={isLoading}
         >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Sign in
+          {t("signInButton")}
         </Button>
       </motion.div>
     </motion.form>

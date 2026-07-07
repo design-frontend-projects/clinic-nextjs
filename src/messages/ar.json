@@ -1,14 +1,106 @@
 {
+  "brand": {
+    "name": "كليينك برو"
+  },
+  "auth": {
+    "signIn": {
+      "title": "مرحباً مرة أخرى",
+      "subtitle": "قم بتسجيل الدخول إلى لوحة التحكم الخاصة بك",
+      "noAccount": "هل لا تمتلك حسابًا؟",
+      "signUp": "إنشاء حساب",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "doctor@clinic.com",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "••••••••",
+      "forgotPassword": "نسيت كلمة المرور؟",
+      "rememberMe": "تذكرني",
+      "signInButton": "تسجيل الدخول",
+      "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح",
+      "invalidPassword": "يجب أن تكون كلمة المرور 6 أحرف على الأقل"
+    },
+    "signUp": {
+      "title": "إنشاء حساب",
+      "subtitle": "أدخل تفاصيلك أدناه للبدء",
+      "alreadyHaveAccount": "هل لديك حساب بالفعل؟",
+      "signUpButton": "تسجيل الدخول",
+      "fullNameLabel": "الاسم الكامل",
+      "fullNamePlaceholder": "د. جون دو",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "doctor@clinic.com",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "••••••••",
+      "createAccountButton": "إنشاء حساب",
+      "fullNameRequired": "يجب أن يكون الاسم الكامل 2 أحرف على الأقل",
+      "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح",
+      "invalidPassword": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+      "accountCreated": "تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني.",
+      "accountCreatedRedirect": "تم إنشاء الحساب! جاري التحويل إلى عملية التوجيه..."
+    },
+    "onboarding": {
+      "title": "مرحباً بك في كليينك برو",
+      "subtitle": "لنقم بإعداد ملفك الشخصي ومساحة عمل العيادة",
+      "step1": "الخطوة 1 من 3: الخطة",
+      "step2": "الخطوة 2 من 3: العيادة",
+      "step3": "الخطوة 3 من 3: الفرع",
+      "plan": "الخطة",
+      "clinic": "العيادة",
+      "branch": "الفرع",
+      "continueToSetup": "المتابعة إلى الإعداد",
+      "initializeClinic": "تهيئة العيادة",
+      "completeSetup": "إكمال الإعداد",
+      "back": "العودة",
+      "skipForNow": "تخطي الآن",
+      "failedToLoad": "فشل تحميل تقدم عملية التوجيه",
+      "anErrorOccurred": "حدث خطأ",
+      "failedToSaveClinic": "فشل حفظ العيادة",
+      "somethingWentWrong": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+      "missingClinicId": "معرف العيادة مفقود. يرجى المحاولة مرة أخرى.",
+      "setupCompleted": "تم تهيئة العيادة بنجاح!"
+    }
+  },
   "appOwner": {
     "plans": {
       "title": "خطط الاشتراك",
       "subtitle": "إدارة الخطط والأسعار وإمكانية الوصول إلى الميزات.",
-      "newButton": "خطة جديدة"
+      "newButton": "خطة جديدة",
+      "planName": "اسم الخطة",
+      "price": "السعر",
+      "billingPeriod": "فترة الفاتورة",
+      "status": "الحالة",
+      "activeSubs": "الاشتراكات النشطة",
+      "actions": "الإجراءات",
+      "noPlansFound": "لم يتم العثور على خطط اشتراك. قم بإنشاء خطة واحدة للبدء.",
+      "active": "نشط",
+      "inactive": "غير نشط"
     },
     "settings": {
       "title": "الإعدادات العامة",
-      "subtitle": "تكوين إعدادات المنصة العامة والحدود."
+      "subtitle": "تكوين إعدادات المنصة العامة والحدود.",
+      "empty": "لم يتم تكوين الإعدادات العامة بعد."
     },
+    "dashboard": {
+      "overviewTitle": "نظرة عامة على المنصة",
+      "overviewSubtitle": "المقاييس العالمية وحالة النظام.",
+      "totalTenants": "إجمالي المستأجرين",
+      "totalUsers": "إجمالي المستخدمين",
+      "activeSubscriptions": "الاشتراكات النشطة",
+      "activePlans": "الخطط النشطة",
+      "dashboard": "لوحة القيادة",
+      "tenants": "المستأجرون",
+      "plans": "خطط الاشتراك",
+      "settings": "الإعدادات العامة"
+    },
+    "sidebar": {
+      "dashboard": "لوحة القيادة",
+      "tenants": "المستأجرون",
+      "plans": "خطط الاشتراك",
+      "settings": "الإعدادات العامة"
+    }
+  },
+  "patients": {
+    "title": "المرضى",
+    "subtitle": "إدارة سجلات المرضى وتاريخهم الطبي.",
+    "newButton": "مرضى جدد",
     "dashboard": {
       "overviewTitle": "نظرة عامة على المنصة",
       "overviewSubtitle": "المقاييس العالمية وحالة النظام.",
@@ -23,5 +115,243 @@
       "plans": "خطط الاشتراك",
       "settings": "الإعدادات العامة"
     }
+  },
+  "header": {
+    "welcomeBack": "مرحباً مرة أخرى",
+    "manageClinic": "إدارة عمليات عيادتك",
+    "notifications": "الإشعارات",
+    "userMenu": "قائمة المستخدم",
+    "logout": "تسجيل الخروج",
+    "language": "اللغة",
+    "english": "الإنجليزية",
+    "arabic": "العربية"
+  },
+  "sidebar": {
+    "dashboard": "لوحة القيادة",
+    "doctors": "الأطباء",
+    "staff": "الموظفون",
+    "patients": "المرضى",
+    "appointments": "المواعيد",
+    "billing": "الفوترة",
+    "pharmacy": "الصيدلية",
+    "labOrders": "طلبات المختبر",
+    "inventory": "المخازن",
+    "reports": "التقارير",
+    "clinicDefinition": "تعريف العيادة",
+    "settings": "الإعدادات",
+    "myAppointments": "مواعيدي",
+    "myPatients": "مرضيّي",
+    "prescriptions": "الموصفات",
+    "profile": "الملف الشخصي",
+    "checkinQueue": "طابور التسجيل",
+    "tenants": "المستأجرون"
+  },
+  "pages": {
+    "admin": {
+      "title": "لوحة القيادة",
+      "subtitle": "نظرة على عمليات عيادتك",
+      "totalPatients": "إجمالي المرضى",
+      "activeDoctors": "الأطباء النشطين",
+      "todaysAppointments": "مواعيد اليوم",
+      "pendingPayments": "المدفوعات المعلقة",
+      "recentAppointments": "المواعيد الأخيرة",
+      "noAppointments": "لا توجد مواعيد بعد. قم بإنشاء أول موعد للبدء.",
+      "doctor": "د. ",
+      "unknownPatient": "مرضى غير معروف",
+      "viewAll": "عرض الكل"
+    },
+    "doctor": {
+      "title": "لوحة تحكم الطبيب",
+      "subtitle": "مرحباً بك في لمحة يومية",
+      "todaysAppointments": "مواعيد اليوم",
+      "pendingLabs": "المختبرات المعلقة",
+      "patientsSeen": "المرضى الذين رُأوا",
+      "todaysSchedule": "جدول اليوم",
+      "appointmentsForToday": "مواعيد اليوم الحالي",
+      "recentPatients": "المرضى الذين زُاروا مؤخراً",
+      "quickAccess": "وصول سريع إلى ملفات المرضى الأخيرة",
+      "noAppointments": "لا توجد مواعيد مُجدولة لليوم.",
+      "noRecentPatients": "لم يتم العثور على مرضى أخيرون.",
+      "lastVisit": "آخر زيارة",
+      "unknown": "غير معروف",
+      "file": "ملف"
+    },
+    "staff": {
+      "title": "عمليات الموظفين",
+      "subtitle": "عرض النشاط اليومي، والطابور، والتحصيلات.",
+      "todaysAppointments": "مواعيد اليوم",
+      "completed": "مكتملة",
+      "remaining": "متبقية",
+      "checkedInQueue": "طابور التسجيل",
+      "waitingForDoctors": "في انتظار الأطباء",
+      "newPatients": "مرضى جدد",
+      "registeredToday": "مسجل اليوم",
+      "paymentsCollected": "المدفوعات المحصلة",
+      "acrossTransactions": "عبر 14 معاملة",
+      "currentQueue": "الطابور الحالي",
+      "patientsWaiting": "المرضى ينتظرون مرافقتهم من الأطباء",
+      "sarahJenkins": "شيرز جينكينز",
+      "drSmith": "د. سميث",
+      "generalCheckup": "فحص عام",
+      "waiting": "ينتظر",
+      "michaelChang": "مايكل تشانج",
+      "drAdams": "د. أدامز",
+      "cardiology": "قلب",
+      "emmaWilson": "إيما ويلسون",
+      "followUp": "متابعة",
+      "quickInsights": "رؤى سريعة",
+      "dailyThroughput": "مخططالعبد اليوم"
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "subtitle": "إدارة ملف عيادتك وتفضيلاتها",
+      "clinicProfile": "ملف العيادة",
+      "updateInfo": "تحديث معلومات عيادتك",
+      "clinicName": "اسم العيادة",
+      "registrationNumber": "رقم التسجيل (اختياري)",
+      "regNumberPlaceholder": "MED-2024-001",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "clinic@example.com",
+      "phone": "الهاتف",
+      "phonePlaceholder": "+1 234 567 890",
+      "saveChanges": "حفظ التغييرات",
+      "subscriptionPlan": "خطة الاشتراك",
+      "yourCurrentPlan": "خطتك الحالية والفاتورة",
+      "trialPlan": "خطة التجربة",
+      "freeFor14Days": "مجاناً لـ 14 يوم",
+      "upgrade": "ترقية",
+      "featuresIncluded": "الميزات المضمنة:",
+      "unlimitedPatients": "مرضى غير محدود",
+      "appointmentManagement": "إدارة المواعيد",
+      "basicBilling": "الفوترة الأساسية",
+      "fiveStaffMembers": "5 موظفين"
+    }
+  },
+  "landing": {
+    "hero": {
+      "aiDriven": "البنية التحتية الطبية المستندة إلى الذكاء الاصطناعي",
+      "title": "نظام إدارة عيادة حديث",
+      "subtitle": "نظام الإدارة",
+      "description": "منصة سعـة أولية مبنية على واجهات برمجة التطبيقات لإدارة المواعيد والسجلات الطبية الإلكترونية والفوترة والسير العملية التلقائية للمرضى — مدعومة بتكاملات وكلاء ذكيين.",
+      "getStartedFree": "بدء مجاناً",
+      "goToDashboard": "الانتقال إلى لوحة التحكم",
+      "watchDemo": "مشاهدة تمثيل توضيحي للمطور"
+    },
+    "features": {
+      "title": "مُبني لفرق طبية حديثة",
+      "subtitle": "وحدات مطورة أولاً قوية مصممة لتشغيل عمليات العيادة بأيّ قدر من الانزلاق.",
+      "appointmentManagement": "إدارة المواعيد",
+      "appointmentDesc": "جدولة ذكية مع اكتشاف التعارضات، وسير العمل، وعرض التقويم.",
+      "patientRecords": "سجلات المرضى",
+      "patientDesc": "ملفات مرضى كاملة مع التاريخ الطبي، والوثائق، وتتبع الزيارات.",
+      "staffManagement": "إدارة الموظفين",
+      "staffDesc": "وصول مُعتمد على الأدوار للأطباء، والممرضين، والمستقبلين مع إدارة الجداول.",
+      "billing": "الفوترة والفاتورة",
+      "billingDesc": "إنشاء الفاتورات، تتبع المدفوعات، إدارة مطالبات التأمين، وإنشاء التقارير.",
+      "analytics": "التحليلات والتقارير",
+      "analyticsDesc": "مؤشرات الأداء الرئيسية في الوقت الحقيقي، وتتبع الإيرادات، وأداء الطبيب، ومقاييس نمو المرضى.",
+      "pharmacy": "الصيدلية والمخازن",
+      "pharmacyDesc": "إدارة الأدوية، تتبع الدفعات، طلبات الشراء، وتنبيهات المخازن."
+    },
+    "pricing": {
+      "title": "التسعير المطور البسيط",
+      "subtitle": "ابدأ مجاناً، واملأ كما تتوسع ممارساتك.",
+      "starter": "البدء",
+      "starterPrice": "مجاناً",
+      "starterDesc": "مثالي للعيادات الصغيرة",
+      "starterFeatures": [
+        "حتى 100 مريض",
+        "2 موظف",
+        "مواعيد أساسية",
+        "دعم البريد الإلكتروني"
+      ],
+      "professional": "محترف",
+      "professionalPrice": "$49",
+      "professionalPeriod": "/شهر",
+      "professionalDesc": "لممارسات ناموسة",
+      "professionalFeatures": [
+        "مرضى غير محدود",
+        "10 موظفين",
+        "جدولة متقدمة",
+        "الفوترة والفاتورة",
+        "إدارة المختبر",
+        "دعم أولوية"
+      ],
+      "enterprise": "المؤسسة",
+      "enterprisePrice": "$149",
+      "enterprisePeriod": "/شهر",
+      "enterpriseDesc": "للعيادات متعددة الفروع",
+      "enterpriseFeatures": [
+        "كل ما في Pro",
+        "موظف غير محدود",
+        "فروع متعددة",
+        "تكاملات مخصصة",
+        "دعم مخصص",
+        "ضمان SLA"
+      ],
+      "mostPopular": "أكثر شيوعاً",
+      "getStarted": "بدء الاستخدام"
+    },
+    "footer": {
+      "copyright": "© 2026 كليينك برو. جميع الحقوق محفوظة. مُبني باستخدام نظام التصميم المستوحى من الكمبيوز.",
+      "apiDocs": "وثائق API",
+      "github": "GitHub",
+      "status": "الحالة"
+    }
+  },
+  "notifications": {
+    "newAppointment": "طلب موعد جديد",
+    "newAppointmentTime": "قبل دقيقتين",
+    "labResults": "نتائج المختبر جاهزة",
+    "labResultsTime": "قبل ساعة",
+    "paymentReceived": "تم استلام الدفعة",
+    "paymentTime": "قبل 3 ساعات"
+  },
+  "plans": {
+    "basic": "أساسي",
+    "basicPrice": "$29/شهر",
+    "basicFeatures": [
+      "1 فرع",
+      "حتى 3 موظفين",
+      "تقارير أساسية"
+    ],
+    "pro": "برو",
+    "proPrice": "$99/شهر",
+    "proFeatures": [
+      "فروع متعددة",
+      "موظف غير محدود",
+      "تقارير متقدمة",
+      "وصول API"
+    ]
+  },
+  "subscriptionPlans": {
+    "free": "مجاني — ميزات أساسية",
+    "starter": "بدء — عيادة صغيرة",
+    "professional": "محترف — ممارسة ناموسة",
+    "enterprise": "مؤسسة — عيادة متعددة الفروع"
+  },
+  "onboardingPlans": {
+    "free": "مجاني",
+    "starter": "بدء",
+    "professional": "محترف",
+    "enterprise": "مؤسسة"
+  },
+  "branch": {
+    "name": "اسم الفرع",
+    "namePlaceholder": "مثال: الفرع الرئيسي",
+    "address": "العنوان (اختياري)",
+    "addressPlaceholder": "مثال: 123 طريق الصحة، نيويورك",
+    "phone": "هاتف الفرع (اختياري)",
+    "phonePlaceholder": "+1 (555) 000-0000"
+  },
+  "clinic": {
+    "name": "اسم العيادة",
+    "namePlaceholder": "مثال: مركز صحة أكم",
+    "registrationNumber": "رقم التسجيل (اختياري)",
+    "regNumberPlaceholder": "مثال: MED-2024-001",
+    "email": "البريد الإلكتروني",
+    "emailPlaceholder": "info@clinic.com",
+    "phone": "الهاتف",
+    "phonePlaceholder": "+1 (555) 000-0000"
   }
 }

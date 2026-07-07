@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { redirect } from "@/i18n/routing";
 import { getSupabaseSession } from "@/lib/auth";
 import { OnboardingForm } from "@/components/auth/onboarding-form";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "Onboarding - Clinic Pro",
@@ -11,19 +12,18 @@ export const metadata: Metadata = {
 
 export default async function OnboardingPage() {
   const session = await getSupabaseSession();
+  const t = await getTranslations('auth.onboarding');
 
   if (!session) {
     return redirect({ href: "/sign-in", locale: await getLocale() });
   }
 
-  // Guard: Verify that a profiles record exists for the authenticated user
   const { prisma } = await import("@/lib/prisma");
   const profile = await prisma.profiles.findUnique({
     where: { auth_user_id: session.user.id },
   });
 
   if (!profile) {
-    // If no profile exists, the sign-up profile creation step failed or was bypassed
     return redirect({ href: "/sign-up?error=profile_missing", locale: await getLocale() });
   }
 
@@ -32,10 +32,11 @@ export default async function OnboardingPage() {
       <div className="w-full max-w-md space-y-6 rounded-lg bg-card border border-border p-8">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold tracking-tight text-foreground font-inter">
-            Welcome to Clinic Pro
+            {session.user.user_metadata?.full_name ? `${session.user.user_metadata?.full_name}, ` : ''}
+            {t('title')}
           </h2>
           <p className="text-sm text-muted-foreground font-inter">
-            Lets set up your profile and clinic workspace
+            {t('subtitle')}
           </p>
         </div>
         <OnboardingForm

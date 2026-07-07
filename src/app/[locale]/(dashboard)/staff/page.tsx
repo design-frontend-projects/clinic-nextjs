@@ -9,97 +9,95 @@ import {
 } from "@/components/ui/card";
 import { Users, CalendarDays, ClipboardList, Wallet } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 
 export default function StaffDashboard() {
+  const t = useTranslations("pages.staff");
   return (
     <div className="space-y-8">
-      {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Staff Operations</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">
-          View today&apos;s activity, queue, and collections.
+          {t("subtitle")}
         </p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Today's Appointments"
+          title={t("todaysAppointments")}
           value={42}
           icon={CalendarDays}
-          description="18 completed, 24 remaining"
+          description={`${t("completed")}, 24 ${t("remaining")}`}
         />
         <StatCard
-          title="Checked-In Queue"
+          title={t("checkedInQueue")}
           value={8}
           icon={ClipboardList}
-          description="Waiting for doctors"
+          description={t("waitingForDoctors")}
         />
         <StatCard
-          title="New Patients"
+          title={t("newPatients")}
           value={12}
           icon={Users}
-          description="Registered today"
+          description={t("registeredToday")}
         />
         <StatCard
-          title="Payments Collected"
+          title={t("paymentsCollected")}
           value="$2,450"
           icon={Wallet}
-          description="Across 14 transactions"
+          description={`${t("acrossTransactions")}`}
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Waiting Queue */}
         <Card className="col-span-2">
           <CardHeader>
-            <CardTitle>Current Queue</CardTitle>
+            <CardTitle>{t("currentQueue")}</CardTitle>
             <CardDescription>
-              Patients waiting to be seen by doctors
+              {t("patientsWaiting")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Dummy Queue Items */}
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <p className="font-medium">Sarah Jenkins</p>
+                  <p className="font-medium">{t("sarahJenkins")}</p>
                   <p className="text-sm text-muted-foreground">
-                    Dr. Smith • General Checkup
+                    {t("drSmith")} • {t("generalCheckup")}
                   </p>
                 </div>
                 <div className="text-right">
                   <StatusBadge status="active" />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Waiting: 14 mins
+                    {t("waiting")}: 14 mins
                   </p>
                 </div>
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <p className="font-medium">Michael Chang</p>
+                  <p className="font-medium">{t("michaelChang")}</p>
                   <p className="text-sm text-muted-foreground">
-                    Dr. Adams • Cardiology
+                    {t("drAdams")} • {t("cardiology")}
                   </p>
                 </div>
                 <div className="text-right">
                   <StatusBadge status="active" />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Waiting: 8 mins
+                    {t("waiting")}: 8 mins
                   </p>
                 </div>
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <p className="font-medium">Emma Wilson</p>
+                  <p className="font-medium">{t("emmaWilson")}</p>
                   <p className="text-sm text-muted-foreground">
-                    Dr. Smith • Follow-up
+                    {t("drSmith")} • {t("followUp")}
                   </p>
                 </div>
                 <div className="text-right">
                   <StatusBadge status="active" />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Waiting: 2 mins
+                    {t("waiting")}: 2 mins
                   </p>
                 </div>
               </div>
@@ -107,10 +105,9 @@ export default function StaffDashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Insights */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Insights</CardTitle>
+            <CardTitle>{t("quickInsights")}</CardTitle>
             <CardDescription>
               {format(new Date(), "MMMM d, yyyy")}
             </CardDescription>

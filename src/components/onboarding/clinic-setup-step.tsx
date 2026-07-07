@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { clinicSchema, type ClinicFormData } from "@/types/onboarding.types";
+import { useTranslations } from "next-intl";
 
 type ClinicSetupStepProps = {
   defaultValues?: Partial<ClinicFormData>;
@@ -31,19 +32,14 @@ type ClinicSetupStepProps = {
   loading?: boolean;
 };
 
-const subscriptionPlans = [
-  { value: "free", label: "Free — Basic Features" },
-  { value: "starter", label: "Starter — Small Clinic" },
-  { value: "professional", label: "Professional — Growing Practice" },
-  { value: "enterprise", label: "Enterprise — Multi-Branch" },
-];
-
 export function ClinicSetupStep({
   defaultValues,
   onSubmit,
   onBack,
   loading,
 }: ClinicSetupStepProps) {
+  const t = useTranslations("clinic");
+  const tOnboarding = useTranslations("auth.onboarding");
   const {
     register,
     handleSubmit,
@@ -64,17 +60,23 @@ export function ClinicSetupStep({
 
   const selectedPlan = watch("subscription_plan");
 
+  const subscriptionPlans = [
+    { value: "free", label: t("free") },
+    { value: "starter", label: t("starter") },
+    { value: "professional", label: t("professional") },
+    { value: "enterprise", label: t("enterprise") },
+  ];
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Clinic Name */}
       <div className="space-y-2">
         <Label htmlFor="clinic_name" className="flex items-center gap-2">
           <Building2 className="h-4 w-4 text-muted-foreground" />
-          Clinic Name *
+          {t("name")} *
         </Label>
         <Input
           id="clinic_name"
-          placeholder="e.g. Acme Health Center"
+          placeholder={t("namePlaceholder")}
           {...register("name")}
           autoFocus
         />
@@ -83,33 +85,31 @@ export function ClinicSetupStep({
         )}
       </div>
 
-      {/* Registration Number */}
       <div className="space-y-2">
         <Label
           htmlFor="registration_number"
           className="flex items-center gap-2"
         >
           <FileText className="h-4 w-4 text-muted-foreground" />
-          Registration Number (optional)
+          {t("registrationNumber")}
         </Label>
         <Input
           id="registration_number"
-          placeholder="e.g. MED-2024-001"
+          placeholder={t("regNumberPlaceholder")}
           {...register("registration_number")}
         />
       </div>
 
-      {/* Email & Phone Row */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="clinic_email" className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-muted-foreground" />
-            Email
+            {t("email")}
           </Label>
           <Input
             id="clinic_email"
             type="email"
-            placeholder="info@clinic.com"
+            placeholder={t("emailPlaceholder")}
             {...register("email")}
           />
           {errors.email && (
@@ -119,21 +119,20 @@ export function ClinicSetupStep({
         <div className="space-y-2">
           <Label htmlFor="clinic_phone" className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            Phone
+            {t("phone")}
           </Label>
           <Input
             id="clinic_phone"
-            placeholder="+1 (555) 000-0000"
+            placeholder={t("phonePlaceholder")}
             {...register("phone")}
           />
         </div>
       </div>
 
-      {/* Subscription Plan */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-muted-foreground" />
-          Subscription Plan
+          {t("subscriptionPlan")}
         </Label>
         <Select
           value={selectedPlan || "free"}
@@ -152,7 +151,6 @@ export function ClinicSetupStep({
         </Select>
       </div>
 
-      {/* Actions */}
       <div className="flex gap-3 pt-2">
         <Button
           type="button"
@@ -162,7 +160,7 @@ export function ClinicSetupStep({
           className="flex-1"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          {tOnboarding("back")}
         </Button>
         <Button type="submit" className="flex-1" disabled={loading}>
           {loading ? (
@@ -170,7 +168,7 @@ export function ClinicSetupStep({
           ) : (
             <CheckCircle className="mr-2 h-4 w-4" />
           )}
-          Initialize Clinic
+          {tOnboarding("initializeClinic")}
         </Button>
       </div>
     </form>

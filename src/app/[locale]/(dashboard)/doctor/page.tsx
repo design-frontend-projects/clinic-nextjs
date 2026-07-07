@@ -18,6 +18,7 @@ import {
 import { format } from "date-fns";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export default async function DoctorDashboard() {
   let stats;
@@ -34,13 +35,11 @@ export default async function DoctorDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Doctor Dashboard</h1>
         <p className="text-muted-foreground">Welcome to your daily overview</p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Today's Appointments"
@@ -63,7 +62,6 @@ export default async function DoctorDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Today's Appointments */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -90,7 +88,6 @@ export default async function DoctorDashboard() {
               </p>
             ) : (
               <div className="space-y-4">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {stats.todayAppointments.map((apt: any) => (
                   <div
                     key={apt.id}
@@ -128,7 +125,6 @@ export default async function DoctorDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Patients */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

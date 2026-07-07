@@ -19,6 +19,7 @@ import {
   Clock,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 
 const defaultStats = {
   totalPatients: 0,
@@ -35,6 +36,7 @@ const defaultStats = {
 };
 
 export default function AdminDashboard() {
+  const t = useTranslations("pages.admin");
   const { data: stats = defaultStats } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: () => getDashboardStats(),
@@ -42,37 +44,35 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">
-          Overview of your clinic operations
+          {t("subtitle")}
         </p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Patients"
+          title={t("totalPatients")}
           value={stats.totalPatients}
           icon={Users}
           trend={{ value: 12, positive: true }}
           description="Registered patients"
         />
         <StatCard
-          title="Active Doctors"
+          title={t("activeDoctors")}
           value={stats.totalDoctors}
           icon={Stethoscope}
           description="On staff"
         />
         <StatCard
-          title="Today's Appointments"
+          title={t("todaysAppointments")}
           value={stats.todayAppointments}
           icon={CalendarDays}
           description={format(new Date(), "EEEE, MMM d")}
         />
         <StatCard
-          title="Pending Payments"
+          title={t("pendingPayments")}
           value={stats.pendingPayments}
           icon={CreditCard}
           trend={{ value: 3, positive: false }}
@@ -80,23 +80,21 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Recent Appointments */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Recent Appointments
+            {t("recentAppointments")}
           </CardTitle>
-          <CardDescription>Latest appointment activity</CardDescription>
+          <CardDescription>{t("noAppointments")}</CardDescription>
         </CardHeader>
         <CardContent>
           {stats.recentAppointments.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
-              No appointments yet. Create your first appointment to get started.
+              {t("noAppointments")}
             </p>
           ) : (
             <div className="space-y-4">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {(stats.recentAppointments || []).map((apt: any) => (
                 <div
                   key={apt.id}
@@ -108,10 +106,10 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <p className="font-medium">
-                        {apt.patientName || "Unknown"}
+                        {apt.patientName || t("unknownPatient")}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Dr. {apt.doctorName}
+                        {t("doctor")}{apt.doctorName}
                       </p>
                     </div>
                   </div>

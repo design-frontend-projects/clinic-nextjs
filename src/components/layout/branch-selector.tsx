@@ -55,7 +55,7 @@ export function BranchSelector({
     },
   });
 
-  const currentBranch = branches?.find((b) => b.id === currentBranchId);
+  const currentBranch = branches?.find((b: any) => b.id === currentBranchId);
 
   if (isLoading) {
     return <Skeleton className="h-9 w-[200px]" />;
@@ -83,7 +83,7 @@ export function BranchSelector({
           Switch Branch
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {branches?.map((branch) => (
+        {branches?.map((branch: any) => (
           <DropdownMenuItem
             key={branch.id}
             onClick={() => updateBranchMutation.mutate(branch.id!)}

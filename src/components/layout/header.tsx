@@ -2,7 +2,7 @@
 
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { cn } from "@/lib/utils";
-import { Menu, Bell, Moon, Sun, LogOut, User } from "lucide-react";
+import { Menu, Bell, Moon, Sun, LogOut, User, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import {
@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
+import { useTranslations, useLocale } from "next-intl";
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
@@ -25,6 +26,8 @@ export function Header() {
   const { isOpen, toggle } = useSidebarStore();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations();
 
   const { data: tenant } = useQuery({
     queryKey: ["tenant-info"],
@@ -35,6 +38,11 @@ export function Header() {
     const supabase = createSupabaseClient();
     await supabase.auth.signOut();
     router.push("/sign-in");
+  };
+
+  const toggleLanguage = () => {
+    const nextLocale = locale === "en" ? "ar" : "en";
+    router.push("/", { locale: nextLocale });
   };
 
   return (
@@ -64,14 +72,27 @@ export function Header() {
         )}
 
         <div>
-          <h2 className="text-lg font-semibold text-foreground font-inter">Welcome back</h2>
+          <h2 className="text-lg font-semibold text-foreground font-inter">
+            {t("header.welcomeBack")}
+          </h2>
           <p className="text-sm text-muted-foreground font-inter">
-            Manage your clinic operations
+            {t("header.manageClinic")}
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Language Toggle */}
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={toggleLanguage}
+          className="h-9 w-9"
+          title={locale === "en" ? "Arabic" : "English"}
+        >
+          <Globe className="h-4 w-4" />
+        </Button>
+
         {/* Theme Toggle */}
         <Button
           variant="secondary"
@@ -99,20 +120,32 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-80 bg-card border-border">
             <DropdownMenuItem>
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium text-foreground font-inter">New appointment request</p>
-                <p className="text-xs text-muted-foreground font-inter">2 minutes ago</p>
+                <p className="text-sm font-medium text-foreground font-inter">
+                  {t("notifications.newAppointment")}
+                </p>
+                <p className="text-xs text-muted-foreground font-inter">
+                  {t("notifications.newAppointmentTime")}
+                </p>
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium text-foreground font-inter">Lab results ready</p>
-                <p className="text-xs text-muted-foreground font-inter">1 hour ago</p>
+                <p className="text-sm font-medium text-foreground font-inter">
+                  {t("notifications.labResults")}
+                </p>
+                <p className="text-xs text-muted-foreground font-inter">
+                  {t("notifications.labResultsTime")}
+                </p>
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium text-foreground font-inter">Payment received</p>
-                <p className="text-xs text-muted-foreground font-inter">3 hours ago</p>
+                <p className="text-sm font-medium text-foreground font-inter">
+                  {t("notifications.paymentReceived")}
+                </p>
+                <p className="text-xs text-muted-foreground font-inter">
+                  {t("notifications.paymentTime")}
+                </p>
               </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -145,7 +178,7 @@ export function Header() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-red-500 cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>{t("header.logout")}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
