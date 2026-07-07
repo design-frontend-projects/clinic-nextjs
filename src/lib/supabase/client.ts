@@ -1,35 +1,19 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-let supabaseClient: SupabaseClient | null = null;
+let supabaseClient: ReturnType<typeof createBrowserClient> | null = null;
 
 export function createSupabaseClient() {
   if (typeof window === "undefined") {
-    return createClient(
+    return createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
-      }
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
   }
 
   if (!supabaseClient) {
-    // Default to true unless explicitly unchecked
-    const persistSession = localStorage.getItem("remember_me") !== "false";
-    supabaseClient = createClient(
+    supabaseClient = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          persistSession,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-        },
-      }
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
   }
 

@@ -78,9 +78,9 @@ export function SignInForm() {
       toast.success("Successfully signed in");
       console.log("i will redirect to: ", redirectPath);
 
+      router.refresh();
       router.push(redirectPath);
       console.log("redirect done success");
-      router.refresh();
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
