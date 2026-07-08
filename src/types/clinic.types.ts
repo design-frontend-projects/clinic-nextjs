@@ -31,9 +31,16 @@ export const profileSchema = z.object({
   email: z.email("Invalid email address").optional().nullable(),
   phone: z.string().optional().nullable(),
   role: z.string(),
+  // RBAC role (from the tenant's `roles` table) to assign on creation.
+  role_id: z.string().uuid().optional().nullable(),
   specialty: z.string().optional().nullable(),
   status: profileStatusEnum,
 });
+
+/** Result of a create-and-invite action that surfaces a temp password. */
+export type CreateAccountResult =
+  | { success: true; tempPassword: string; fullName?: string | null }
+  | { error: string };
 
 export type Clinic = z.infer<typeof clinicSchema>;
 export type Branch = z.infer<typeof branchSchema>;

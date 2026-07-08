@@ -6,7 +6,12 @@ import {
   upsertPersonnel,
   deletePersonnel,
 } from "@/app/actions/personnel";
+import { getClinicRoles } from "@/app/actions/rbac";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import {
+  TempPasswordDialog,
+  type TempPasswordInfo,
+} from "@/components/admin/temp-password-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -64,6 +69,8 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   const [personnelToDelete, setPersonnelToDelete] = useState<string | null>(
     null,
   );
+  const [tempPasswordInfo, setTempPasswordInfo] =
+    useState<TempPasswordInfo | null>(null);
 
   const { data: tenant } = useQuery({
     queryKey: ["tenant-info"],
@@ -78,17 +85,28 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     enabled: !!authUserId,
   });
 
+  const { data: roles } = useQuery({
+    queryKey: ["clinic-roles"],
+    queryFn: () => getClinicRoles(),
+  });
+
   const upsertMutation = useMutation({
     mutationFn: (data: Profile) => upsertPersonnel(data),
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["personnel", authUserId],
       });
-      toast.success(
-        editingPersonnel ? `${title} updated` : `${title} invited & created`,
-      );
       setIsOpen(false);
       setEditingPersonnel(null);
+      if (result && "tempPassword" in result) {
+        setTempPasswordInfo({
+          tempPassword: result.tempPassword,
+          fullName: result.fullName ?? variables.full_name,
+          email: variables.email,
+        });
+      } else {
+        toast.success(`${title} updated`);
+      }
     },
     onError: (error) => {
       toast.error(error.message || "Operation failed");
@@ -128,6 +146,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     setEditingPersonnel(null);
     reset({
       role,
+      role_id: "",
       status: "active",
       full_name: "",
       email: "",
@@ -238,7 +257,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
             <DialogDescription>
               {editingPersonnel
                 ? `Update the details for this ${role}.`
-                : `Enter details to invite a new ${role}. They will receive an invitation email.`}
+                : `Enter details to create a new ${role}. You'll get a temporary password to share with them.`}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -277,7 +296,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                 )}
                 {!editingPersonnel && (
                   <p className="text-xs text-muted-foreground">
-                    An invitation will be sent to this email.
+                    Used as the sign-in email for the new account.
                   </p>
                 )}
               </div>
@@ -313,31 +332,29 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   </SelectContent>
                 </Select>
               </div>
-              {/* add roles list 
-              ['admin', 'doctor', 'staff','patient']
-              */}
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={watch("role")}
-                  onValueChange={(val) =>
-                    setValue(
-                      "role",
-                      val as "admin" | "doctor" | "staff" | "patient",
-                    )
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="patient">Patient</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!editingPersonnel && (
+                <div className="space-y-2">
+                  <Label htmlFor="role_id">Role</Label>
+                  <Select
+                    value={watch("role_id") ?? ""}
+                    onValueChange={(val) => setValue("role_id", val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles?.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Determines the permissions this {role} will have.
+                  </p>
+                </div>
+              )}
             </div>
             <Button
               type="submit"
@@ -380,6 +397,11 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TempPasswordDialog
+        info={tempPasswordInfo}
+        onClose={() => setTempPasswordInfo(null)}
+      />
     </div>
   );
 }

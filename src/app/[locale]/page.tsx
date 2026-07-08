@@ -247,7 +247,7 @@ export default async function LandingPage() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/dashboard">
+              <Link href={'/admin'}>
                 <Button
                   size="lg"
                   className="bg-[#ffffff] text-[#000000] hover:bg-[#e8e8e8] border-none text-sm px-6 h-11 rounded-full font-medium shadow-sm transition-all"

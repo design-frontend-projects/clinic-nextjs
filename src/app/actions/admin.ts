@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { requirePermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
-import { inviteUser, deleteAuthUser } from "@/lib/invitations";
+import { createUserAccount, rollbackAuthUser } from "@/lib/invitations";
+import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
 import { createAppointmentWithPatientSchema, type CreateAppointmentWithPatientData } from "@/types/appointment.types";
 
 export async function getDashboardStats() {
@@ -100,6 +101,16 @@ export async function createPatient(data: {
 }) {
   const tenant = await requireTenantInfo();
   await requirePermission("patient.manage");
+
+  // Block duplicate patient records within the clinic (by email or phone).
+  const duplicate = await findClinicDuplicate({
+    clinicId: tenant.clinicId,
+    email: data.email,
+    phone: data.phone,
+  });
+  if (duplicate) {
+    throw new Error(duplicateMessage(duplicate));
+  }
 
   const patient = await prisma.patients.create({
     data: {
@@ -294,10 +305,20 @@ export async function registerPatientAndCreateAppointment(data: CreateAppointmen
     const patientData = parsed.data.patient;
     const appointmentData = parsed.data.appointment;
 
-    // Create the patient's auth user and email them a set-password invite
-    let authUser;
+    // Block duplicates within the clinic (by email or phone).
+    const duplicate = await findClinicDuplicate({
+      clinicId: tenant.clinicId,
+      email: patientData.email,
+      phone: patientData.phone,
+    });
+    if (duplicate) {
+      return { error: duplicateMessage(duplicate) };
+    }
+
+    // Create the patient's confirmed auth user with a temp password
+    let account;
     try {
-      authUser = await inviteUser({
+      account = await createUserAccount({
         email: patientData.email,
         metadata: {
           full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
@@ -316,16 +337,28 @@ export async function registerPatientAndCreateAppointment(data: CreateAppointmen
     // Insert new profile, patient, and appointment in a transaction
     try {
       await prisma.$transaction(async (tx) => {
-        // 1. Create Profile
-        const profile = await tx.profiles.create({
-          data: {
-            auth_user_id: authUser.id,
+        // 1. Upsert Profile (trigger pre-creates the row on auth-user insert)
+        const profile = await tx.profiles.upsert({
+          where: { auth_user_id: account.user.id },
+          update: {
             tenant_id: tenant.clinicId,
             full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
             email: patientData.email,
             phone: patientData.phone ?? null,
             role: "patient",
             status: "active",
+            is_owner: false,
+            is_profile_completed: false,
+          },
+          create: {
+            auth_user_id: account.user.id,
+            tenant_id: tenant.clinicId,
+            full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
+            email: patientData.email,
+            phone: patientData.phone ?? null,
+            role: "patient",
+            status: "active",
+            is_owner: false,
             is_profile_completed: false,
           },
         });
@@ -362,14 +395,14 @@ export async function registerPatientAndCreateAppointment(data: CreateAppointmen
     } catch (dbError) {
       // Rollback auth user if DB operations fail
       console.error("Database operations failed, rolling back auth user:", dbError);
-      await deleteAuthUser(authUser.id);
+      await rollbackAuthUser(account.user.id);
       return { error: "Failed to save patient records. Process rolled back." };
     }
 
     revalidatePath("/admin/appointments");
     revalidatePath("/admin/patients");
-    
-    return { success: true };
+
+    return { success: true, tempPassword: account.tempPassword };
   } catch (error: any) {
     console.error("Unexpected error in registerPatientAndCreateAppointment:", error);
     return { error: error.message || "An unexpected error occurred" };

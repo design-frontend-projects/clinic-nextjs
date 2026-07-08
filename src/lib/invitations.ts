@@ -1,17 +1,24 @@
 import { createClient, type User } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { generateTempPassword } from "@/lib/user-creation";
 import { routing } from "@/i18n/routing";
 
 /**
- * Credential-delivery helpers built on Supabase's own email system.
+ * Account-creation + credential-delivery helpers built on Supabase Auth admin.
  *
- * New users are created + emailed a set-password invite in a single call via
- * `auth.admin.inviteUserByEmail`. Existing users are (re-)sent a recovery link
- * via `auth.resetPasswordForEmail`. Both rely on the Supabase project having
- * SMTP configured (dashboard setting) for delivery to actually happen.
+ * New users are created directly via `auth.admin.createUser` with their email
+ * pre-confirmed and a generated **temporary password** that the caller surfaces
+ * to the inviting admin (no dependency on Supabase SMTP). Existing users can be
+ * (re-)sent a recovery link via `auth.resetPasswordForEmail`.
+ *
+ * IMPORTANT: the DB has an active `on_auth_user_created` trigger that inserts a
+ * `profiles` row (role `owner`, `tenant_id` NULL) on every new auth user. There
+ * is no FK cascade from `profiles.auth_user_id` to `auth.users`, so callers must
+ * (a) UPSERT the profile keyed on `auth_user_id` (update the trigger-created row)
+ * and (b) roll back via `rollbackAuthUser` (which also deletes the orphan profile).
  */
 
-export interface InviteMetadata {
+export interface AccountMetadata {
   full_name?: string | null;
   role?: string | null;
   tenant_id?: string | null;
@@ -26,9 +33,9 @@ function getSiteUrl(): string {
 }
 
 /**
- * Absolute URL the invite/recovery email should return the user to. Routes the
- * Supabase auth code through the existing `/auth/callback` handler, which then
- * forwards to the localized set-password screen (`(auth)/reset-password`).
+ * Absolute URL the recovery email should return the user to. Routes the Supabase
+ * auth code through the existing `/auth/callback` handler, which then forwards to
+ * the localized set-password screen (`(auth)/reset-password`).
  */
 function buildRedirectTo(locale: string = routing.defaultLocale): string {
   const next = `/${locale}/reset-password`;
@@ -45,43 +52,54 @@ function createAnonClient() {
 }
 
 /**
- * Create a Supabase auth user and email them an invitation to set their
- * password. Returns the created auth user. Throws on failure so callers can run
- * their existing profile/patient rollback (delete the auth user) in a catch.
+ * Create a confirmed Supabase auth user with a generated temporary password.
+ * Returns the created user plus the plaintext temp password so the caller can
+ * display it to the inviting admin. Throws on failure (also surfaces Supabase's
+ * own "email already registered" as a fallback duplicate guard) so callers can
+ * run their `rollbackAuthUser` cleanup.
  */
-export async function inviteUser({
+export async function createUserAccount({
   email,
   metadata,
-  locale,
 }: {
   email: string;
-  metadata: InviteMetadata;
-  locale?: string;
-}): Promise<User> {
+  metadata: AccountMetadata;
+}): Promise<{ user: User; tempPassword: string }> {
   const supabaseAdmin = createSupabaseServerClient();
+  const tempPassword = generateTempPassword();
 
-  const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
-    {
-      data: metadata,
-      redirectTo: buildRedirectTo(locale),
-    },
-  );
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: { ...metadata },
+  });
 
   if (error || !data.user) {
-    throw new Error(error?.message || "Failed to send invitation");
+    throw new Error(error?.message || "Failed to create user account");
   }
 
-  return data.user;
+  return { user: data.user, tempPassword };
 }
 
-/**
- * Roll back an invited auth user (used by callers when the subsequent DB writes
- * fail, to avoid orphaned auth accounts).
- */
+/** Low-level rollback: delete the auth user only. */
 export async function deleteAuthUser(userId: string): Promise<void> {
   const supabaseAdmin = createSupabaseServerClient();
   await supabaseAdmin.auth.admin.deleteUser(userId);
+}
+
+/**
+ * Full rollback for a failed creation: removes the (trigger-created) profile row
+ * — there is no FK cascade — and then the auth user, avoiding orphaned records.
+ */
+export async function rollbackAuthUser(userId: string): Promise<void> {
+  const { prisma } = await import("@/lib/prisma");
+  try {
+    await prisma.profiles.deleteMany({ where: { auth_user_id: userId } });
+  } catch (error) {
+    console.error("Failed to clean up orphaned profile during rollback:", error);
+  }
+  await deleteAuthUser(userId);
 }
 
 /**

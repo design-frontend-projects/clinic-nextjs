@@ -2,9 +2,17 @@
 
 import { getSupabaseSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { inviteUser, deleteAuthUser } from "@/lib/invitations";
+import { createUserAccount, rollbackAuthUser } from "@/lib/invitations";
+import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
 import { staffInviteSchema, type StaffInviteFormData } from "@/types/staff.types";
 import { revalidatePath } from "next/cache";
+
+/**
+ * NOTE: Legacy standalone staff-invite action; the live staff path is
+ * `upsertPersonnel` in `personnel.ts`. Kept in sync with the new
+ * create-user + duplicate-check flow but intentionally minimal (no RBAC role
+ * picker) since no UI currently calls it.
+ */
 
 export async function inviteStaffMember(data: StaffInviteFormData) {
   try {
@@ -25,10 +33,19 @@ export async function inviteStaffMember(data: StaffInviteFormData) {
       return { error: "You must complete onboarding and have a clinic first." };
     }
 
-    // Create the auth user and email them a set-password invite (Supabase built-in)
-    let authUser;
+    // Block duplicates within the clinic (by email).
+    const duplicate = await findClinicDuplicate({
+      clinicId: tenantId,
+      email: parsed.data.email,
+    });
+    if (duplicate) {
+      return { error: duplicateMessage(duplicate) };
+    }
+
+    // Create the confirmed auth user with a temp password (Supabase admin).
+    let account;
     try {
-      authUser = await inviteUser({
+      account = await createUserAccount({
         email: parsed.data.email,
         metadata: {
           full_name: parsed.data.full_name,
@@ -38,35 +55,45 @@ export async function inviteStaffMember(data: StaffInviteFormData) {
       });
     } catch (inviteError) {
       const message =
-        inviteError instanceof Error ? inviteError.message : "Failed to invite user";
+        inviteError instanceof Error ? inviteError.message : "Failed to create user";
       return { error: message };
     }
 
-    // 2. Create profile mapped to the tenant
+    // 2. Upsert profile mapped to the tenant (trigger pre-creates the row)
     try {
-      await prisma.$transaction(async (tx) => {
-        await tx.profiles.create({
-          data: {
-            auth_user_id: authUser.id,
-            tenant_id: tenantId,
-            full_name: parsed.data.full_name,
-            email: parsed.data.email,
-            role: "staff",
-            specialty: parsed.data.specialty || null,
-            status: "active",
-            is_profile_completed: false,
-          },
-        });
+      await prisma.profiles.upsert({
+        where: { auth_user_id: account.user.id },
+        update: {
+          tenant_id: tenantId,
+          full_name: parsed.data.full_name,
+          email: parsed.data.email,
+          role: "staff",
+          specialty: parsed.data.specialty || null,
+          status: "active",
+          is_owner: false,
+          is_profile_completed: false,
+        },
+        create: {
+          auth_user_id: account.user.id,
+          tenant_id: tenantId,
+          full_name: parsed.data.full_name,
+          email: parsed.data.email,
+          role: "staff",
+          specialty: parsed.data.specialty || null,
+          status: "active",
+          is_owner: false,
+          is_profile_completed: false,
+        },
       });
     } catch (profileError) {
       // Orphan prevention: delete the auth user if profile creation fails
       console.error("Profile creation failed, rolling back auth user:", profileError);
-      await deleteAuthUser(authUser.id);
+      await rollbackAuthUser(account.user.id);
       return { error: "Failed to create staff profile. Rolled back." };
     }
 
     revalidatePath("/admin/staff");
-    return { success: true };
+    return { success: true, tempPassword: account.tempPassword };
   } catch (error) {
     console.error("Error inviting staff:", error);
     return { error: "An unexpected error occurred" };

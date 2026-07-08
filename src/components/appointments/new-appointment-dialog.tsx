@@ -54,6 +54,10 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  TempPasswordDialog,
+  type TempPasswordInfo,
+} from "@/components/admin/temp-password-dialog";
 
 import {
   createAppointment,
@@ -81,6 +85,8 @@ export function NewAppointmentDialog({
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
   const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [tempPasswordInfo, setTempPasswordInfo] =
+    useState<TempPasswordInfo | null>(null);
   const queryClient = useQueryClient();
 
   // Queries
@@ -143,7 +149,7 @@ export function NewAppointmentDialog({
   const registerPatientMutation = useMutation({
     mutationFn: (data: CreateAppointmentWithPatientData) => 
       registerPatientAndCreateAppointment(data),
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (result.error) {
         newPatientForm.setError("root", { message: result.error });
         return;
@@ -152,6 +158,13 @@ export function NewAppointmentDialog({
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       onOpenChange(false);
       newPatientForm.reset();
+      if (result.tempPassword) {
+        setTempPasswordInfo({
+          tempPassword: result.tempPassword,
+          fullName: `${variables.patient.first_name} ${variables.patient.last_name}`.trim(),
+          email: variables.patient.email,
+        });
+      }
     },
   });
 
@@ -706,6 +719,11 @@ export function NewAppointmentDialog({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      <TempPasswordDialog
+        info={tempPasswordInfo}
+        onClose={() => setTempPasswordInfo(null)}
+      />
     </Dialog>
   );
 }

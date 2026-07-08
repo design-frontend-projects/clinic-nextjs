@@ -3,7 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo, getTenantInfo } from "@/lib/auth";
 import { requirePermission } from "@/lib/permissions";
-import { inviteUser, deleteAuthUser } from "@/lib/invitations";
+import { createUserAccount, rollbackAuthUser } from "@/lib/invitations";
+import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
 import {
   patientProfileUpdateSchema,
   type PatientProfileUpdateData,
@@ -129,11 +130,23 @@ export async function invitePatientToPortal(patientId: string) {
       return { error: "This patient has no email address to invite." };
     }
 
+    // Block duplicates within the clinic (another profile/patient with this
+    // email or phone), excluding this patient's own record.
+    const duplicate = await findClinicDuplicate({
+      clinicId: tenant.clinicId,
+      email: patient.email,
+      phone: patient.phone,
+      excludePatientId: patient.id,
+    });
+    if (duplicate) {
+      return { error: duplicateMessage(duplicate) };
+    }
+
     const fullName = `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim();
 
-    let authUser;
+    let account;
     try {
-      authUser = await inviteUser({
+      account = await createUserAccount({
         email: patient.email,
         metadata: { full_name: fullName, role: "patient", tenant_id: tenant.clinicId },
       });
@@ -142,21 +155,33 @@ export async function invitePatientToPortal(patientId: string) {
         error:
           inviteError instanceof Error
             ? inviteError.message
-            : "Failed to send invitation",
+            : "Failed to create patient account",
       };
     }
 
     try {
       await prisma.$transaction(async (tx) => {
-        const profile = await tx.profiles.create({
-          data: {
-            auth_user_id: authUser.id,
+        const profile = await tx.profiles.upsert({
+          where: { auth_user_id: account.user.id },
+          update: {
             tenant_id: tenant.clinicId,
             full_name: fullName || null,
             email: patient.email,
             phone: patient.phone ?? null,
             role: "patient",
             status: "active",
+            is_owner: false,
+            is_profile_completed: false,
+          },
+          create: {
+            auth_user_id: account.user.id,
+            tenant_id: tenant.clinicId,
+            full_name: fullName || null,
+            email: patient.email,
+            phone: patient.phone ?? null,
+            role: "patient",
+            status: "active",
+            is_owner: false,
             is_profile_completed: false,
           },
         });
@@ -168,12 +193,12 @@ export async function invitePatientToPortal(patientId: string) {
       });
     } catch (dbError) {
       console.error("Portal invite failed, rolling back auth user:", dbError);
-      await deleteAuthUser(authUser.id);
+      await rollbackAuthUser(account.user.id);
       return { error: "Failed to link portal account. Rolled back." };
     }
 
     revalidatePath("/admin/patients");
-    return { success: true };
+    return { success: true, tempPassword: account.tempPassword };
   } catch (error) {
     return {
       error:
