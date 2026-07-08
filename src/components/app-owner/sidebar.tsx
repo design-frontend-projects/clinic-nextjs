@@ -2,11 +2,12 @@
 
 import { Link } from "@/i18n/routing";
 import { usePathname } from "@/i18n/routing";
-import { 
-  Building2, 
-  CreditCard, 
-  Settings, 
+import {
+  Building2,
+  CreditCard,
+  Settings,
   LayoutDashboard,
+  Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,11 @@ const navItems = [
     title: "Subscription Plans",
     href: "/app-owner/plans",
     icon: CreditCard,
+  },
+  {
+    title: "Specialties",
+    href: "/app-owner/specialties",
+    icon: Stethoscope,
   },
   {
     title: "Global Settings",

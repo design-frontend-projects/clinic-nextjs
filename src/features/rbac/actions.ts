@@ -282,11 +282,11 @@ export async function getProfilesAction() {
     
     // Fetch all profiles belonging to the same clinic
     const profiles = await prisma.profiles.findMany({
-      where: {
-        user_roles: {
-          some: { tenant_id: actor.clinicId }
-        }
-      },
+      // where: {
+      //   user_roles: {
+      //     some: { tenant_id: actor.clinicId }
+      //   }
+      // },
       include: {
         user_roles: {
           include: { roles: true }

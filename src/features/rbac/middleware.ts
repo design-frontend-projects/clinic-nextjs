@@ -52,8 +52,8 @@ export async function requireAuthenticated() {
 export async function requirePermission(permission: string) {
   const tenant = await requireTenant();
 
-  // Super Admin role bypasses all checks
-  if (tenant.role === "Super Admin") return tenant;
+  // admin role bypasses all checks
+  if (tenant.role === "admin") return tenant;
 
   const allowed = await cacheService.dedupedPermissionCheck(
     async (tId, pId, perm) => {
@@ -75,7 +75,7 @@ export async function requirePermission(permission: string) {
 export async function requireAnyPermission(permissions: string[]) {
   const tenant = await requireTenant();
 
-  if (tenant.role === "Super Admin") return tenant;
+  if (tenant.role === "admin") return tenant;
 
   for (const permission of permissions) {
     const allowed = await cacheService.dedupedPermissionCheck(
@@ -96,7 +96,7 @@ export async function requireAnyPermission(permissions: string[]) {
 export async function requireAllPermissions(permissions: string[]) {
   const tenant = await requireTenant();
 
-  if (tenant.role === "Super Admin") return tenant;
+  if (tenant.role === "admin") return tenant;
 
   for (const permission of permissions) {
     const allowed = await cacheService.dedupedPermissionCheck(
@@ -119,7 +119,7 @@ export async function requireAllPermissions(permissions: string[]) {
 export async function requireRole(roleName: string) {
   const tenant = await requireTenant();
 
-  if (tenant.role === "Super Admin") return tenant;
+  if (tenant.role === "admin") return tenant;
 
   const userRoles = await rbacService.getUserRoles(tenant.clinicId, tenant.profileId);
   const hasRole = userRoles.some(
@@ -135,7 +135,7 @@ export async function requireRole(roleName: string) {
 
 export async function requireOwner() {
   const tenant = await requireTenant();
-  if (tenant.role === "Tenant Owner" || tenant.role === "Super Admin") {
+  if (tenant.role === "Tenant Owner" || tenant.role === "admin") {
     return tenant;
   }
   throw new ForbiddenError("Only the tenant owner can perform this action");
@@ -143,8 +143,8 @@ export async function requireOwner() {
 
 export async function requireSuperAdmin() {
   const tenant = await requireTenant();
-  if (tenant.role === "Super Admin") {
+  if (tenant.role === "admin") {
     return tenant;
   }
-  throw new ForbiddenError("Only a Super Admin can perform this action");
+  throw new ForbiddenError("Only a admin can perform this action");
 }

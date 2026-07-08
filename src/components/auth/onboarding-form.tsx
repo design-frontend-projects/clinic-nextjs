@@ -5,12 +5,31 @@ import { useRouter } from "@/i18n/routing";
 import { toast } from "sonner";
 import { SubscriptionSetupStep } from "@/components/onboarding/subscription-setup-step";
 import { ClinicSetupStep } from "@/components/onboarding/clinic-setup-step";
+import { SpecialtySetupStep } from "@/components/onboarding/specialty-setup-step";
 import { BranchSetupStep } from "@/components/onboarding/branch-setup-step";
 import { useOnboardingStore } from "@/stores/onboarding-store";
-import { saveClinicStep, saveBranchStep, getOnboardingProgress } from "@/app/actions/onboarding";
-import type { ClinicFormData, BranchFormData, SubscriptionFormData } from "@/types/onboarding.types";
+import {
+  saveClinicStep,
+  saveBranchStep,
+  saveSpecialtiesStep,
+  getOnboardingProgress,
+} from "@/app/actions/onboarding";
+import type {
+  ClinicFormData,
+  BranchFormData,
+  SubscriptionFormData,
+  OnboardingStep,
+} from "@/types/onboarding.types";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+
+type OnboardingProgressData = {
+  subscriptionData?: Partial<SubscriptionFormData>;
+  clinicData?: Partial<ClinicFormData>;
+  branchData?: Partial<BranchFormData>;
+  specialtyIds?: string[];
+  clinicId?: string;
+};
 
 type OnboardingFormProps = {
   defaultEmail?: string;
@@ -30,11 +49,13 @@ export function OnboardingForm({
     subscriptionData,
     clinicData,
     branchData,
+    specialtyIds,
     currentStep,
     clinicId,
     setSubscriptionData,
     setClinicData,
     setBranchData,
+    setSpecialtyIds,
     setStep,
     setClinicId,
     clearOnboarding,
@@ -55,14 +76,15 @@ export function OnboardingForm({
         }
 
         if ("data" in res && res.data) {
-          const data = res.data as any;
+          const data = res.data as OnboardingProgressData;
           if (data.subscriptionData) setSubscriptionData(data.subscriptionData);
           if (data.clinicData) setClinicData(data.clinicData);
           if (data.branchData) setBranchData(data.branchData);
+          if (data.specialtyIds) setSpecialtyIds(data.specialtyIds);
           if (data.clinicId) setClinicId(data.clinicId);
         }
-        
-        setStep(res.step as any);
+
+        setStep(res.step as OnboardingStep);
       } catch (err) {
         console.error(err);
       } finally {
@@ -70,7 +92,7 @@ export function OnboardingForm({
       }
     }
     loadProgress();
-  }, [setSubscriptionData, setClinicData, setBranchData, setStep, setClinicId, router]);
+  }, [setSubscriptionData, setClinicData, setBranchData, setSpecialtyIds, setStep, setClinicId, router]);
 
   const handleSubscriptionSubmit = async (data: SubscriptionFormData) => {
     setLoading(true);
@@ -99,6 +121,25 @@ export function OnboardingForm({
         return;
       }
       setClinicId(res.clinicId);
+      setStep("specialties");
+    } catch (error) {
+      console.error("Onboarding error:", error);
+      toast.error(t("somethingWentWrong"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSpecialtiesSubmit = async (ids: string[]) => {
+    setLoading(true);
+    setSpecialtyIds(ids);
+
+    try {
+      const res = await saveSpecialtiesStep(ids);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
       setStep("branch");
     } catch (error) {
       console.error("Onboarding error:", error);
@@ -143,6 +184,15 @@ export function OnboardingForm({
     setStep("clinic");
   };
 
+  const handleBackToSpecialties = () => {
+    setStep("specialties");
+  };
+
+  const STEP_ORDER = ["subscription", "clinic", "specialties", "branch"] as const;
+  const activeIndex = STEP_ORDER.indexOf(
+    currentStep as (typeof STEP_ORDER)[number],
+  );
+
   if (initializing) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -157,24 +207,22 @@ export function OnboardingForm({
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {currentStep === "subscription" && t("step1")}
           {currentStep === "clinic" && t("step2")}
-          {currentStep === "branch" && t("step3")}
+          {currentStep === "specialties" && t("step3")}
+          {currentStep === "branch" && t("step4")}
         </span>
         <div className="flex gap-1">
-          <div
-            className={`h-1.5 w-4 rounded-full ${
-              currentStep === "subscription" ? "bg-primary" : "bg-primary/30"
-            }`}
-          />
-          <div
-            className={`h-1.5 w-4 rounded-full ${
-              currentStep === "clinic" ? "bg-primary" : currentStep === "branch" ? "bg-primary/30" : "bg-muted"
-            }`}
-          />
-          <div
-            className={`h-1.5 w-4 rounded-full ${
-              currentStep === "branch" ? "bg-primary" : "bg-muted"
-            }`}
-          />
+          {STEP_ORDER.map((step, i) => (
+            <div
+              key={step}
+              className={`h-1.5 w-4 rounded-full ${
+                i === activeIndex
+                  ? "bg-primary"
+                  : i < activeIndex
+                    ? "bg-primary/30"
+                    : "bg-muted"
+              }`}
+            />
+          ))}
         </div>
       </div>
 
@@ -195,11 +243,20 @@ export function OnboardingForm({
         />
       )}
 
+      {currentStep === "specialties" && (
+        <SpecialtySetupStep
+          defaultValues={specialtyIds}
+          onSubmit={handleSpecialtiesSubmit}
+          onBack={handleBackToClinic}
+          loading={loading}
+        />
+      )}
+
       {currentStep === "branch" && (
         <BranchSetupStep
           defaultValues={branchData}
           onSubmit={handleBranchSubmit}
-          onBack={handleBackToClinic}
+          onBack={handleBackToSpecialties}
           loading={loading}
         />
       )}

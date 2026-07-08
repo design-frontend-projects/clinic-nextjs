@@ -40,13 +40,19 @@ export const subscriptionSchema = z.object({
 export type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
 
 // ─── Onboarding Cache (sessionStorage/localStorage) ──────────────────────────
-export type OnboardingStep = "subscription" | "profile" | "clinic" | "branch";
+export type OnboardingStep =
+  | "subscription"
+  | "profile"
+  | "clinic"
+  | "specialties"
+  | "branch";
 
 export type OnboardingCache = {
   profileData: Partial<ProfileFormData>;
   clinicData: Partial<ClinicFormData>;
   branchData: Partial<BranchFormData>;
   subscriptionData: Partial<SubscriptionFormData>;
+  specialtyIds: string[];
   currentStep: OnboardingStep;
   clinicId: string | null;
 };

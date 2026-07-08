@@ -39,12 +39,17 @@
     "onboarding": {
       "title": "Welcome to Clinic Pro",
       "subtitle": "Let's set up your profile and clinic workspace",
-      "step1": "Step 1 of 3: Plan",
-      "step2": "Step 2 of 3: Clinic",
-      "step3": "Step 3 of 3: Branch",
+      "step1": "Step 1 of 4: Plan",
+      "step2": "Step 2 of 4: Clinic",
+      "step3": "Step 3 of 4: Specialties",
+      "step4": "Step 4 of 4: Branch",
       "plan": "Plan",
       "clinic": "Clinic",
       "branch": "Branch",
+      "specialtiesTitle": "Your specialties",
+      "specialtiesSubtitle": "Select one or more specialties you practice. You can change these later.",
+      "specialtiesEmpty": "No specialties are available yet. You can skip this step.",
+      "continue": "Continue",
       "continueToSetup": "Continue to Setup",
       "initializeClinic": "Initialize Clinic",
       "completeSetup": "Complete Setup",
@@ -73,6 +78,20 @@
       "active": "active",
       "inactive": "inactive"
     },
+    "specialties": {
+      "title": "Specialties",
+      "subtitle": "Define the medical specialties clinics can choose from.",
+      "newButton": "New Specialty",
+      "name": "Name",
+      "nameAr": "Name (Arabic)",
+      "order": "Order",
+      "status": "Status",
+      "doctors": "Doctors",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "empty": "No specialties found. Create one to get started."
+    },
     "settings": {
       "title": "Global Settings",
       "subtitle": "Configure platform-wide settings and limits.",
@@ -94,6 +113,7 @@
       "dashboard": "Dashboard",
       "tenants": "Tenants",
       "plans": "Subscription Plans",
+      "specialties": "Specialties",
       "settings": "Global Settings"
     }
   },

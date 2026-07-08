@@ -4,6 +4,7 @@ import { getSupabaseSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { ProfileFormData, ClinicFormData, BranchFormData, SubscriptionFormData } from "@/types/onboarding.types";
 import { profileSchema, clinicSchema, branchSchema, subscriptionSchema } from "@/types/onboarding.types";
+import { syncDoctorSpecialties } from "@/lib/doctor-specialties";
 import { cookies } from "next/headers";
 
 export async function getOnboardingProgress() {
@@ -47,8 +48,15 @@ export async function getOnboardingProgress() {
     return { step: "completed" as const, clinicId: clinic.id };
   }
 
+  const specialtyLinks = await prisma.doctor_specialties.findMany({
+    where: { profile_id: profile.id },
+    select: { specialty_id: true },
+  });
+
+  // Clinic exists but onboarding is incomplete — resume at the specialties step
+  // (subscription → clinic → specialties → branch).
   return {
-    step: "branch" as const,
+    step: "specialties" as const,
     data: {
       profileData: {
         full_name: profile.full_name || "",
@@ -72,6 +80,7 @@ export async function getOnboardingProgress() {
             phone: branch.phone || "",
           }
         : {},
+      specialtyIds: specialtyLinks.map((s) => s.specialty_id),
       clinicId: clinic.id,
     },
   };
@@ -218,6 +227,33 @@ export async function saveClinicStep(data: ClinicFormData, subscriptionData: Sub
   } catch (error) {
     console.error("Error saving clinic:", error);
     return { error: "Failed to save clinic" };
+  }
+}
+
+export async function saveSpecialtiesStep(specialtyIds: string[]) {
+  try {
+    const session = await getSupabaseSession();
+    if (!session?.user?.id) return { error: "Unauthorized" };
+
+    const profile = await prisma.profiles.findUnique({
+      where: { auth_user_id: session.user.id },
+      select: { id: true },
+    });
+    if (!profile) return { error: "Profile not found" };
+
+    // Validate the ids reference real, active specialties before persisting.
+    const valid = await prisma.specialties.findMany({
+      where: { id: { in: specialtyIds }, is_active: true },
+      select: { id: true },
+    });
+    const validIds = valid.map((s) => s.id);
+
+    await syncDoctorSpecialties(prisma, profile.id, validIds);
+
+    return { success: true, specialtyIds: validIds };
+  } catch (error) {
+    console.error("Error saving specialties:", error);
+    return { error: "Failed to save specialties" };
   }
 }
 

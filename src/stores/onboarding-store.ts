@@ -13,6 +13,7 @@ type OnboardingState = {
   clinicData: Partial<ClinicFormData>;
   branchData: Partial<BranchFormData>;
   subscriptionData: Partial<SubscriptionFormData>;
+  specialtyIds: string[];
   currentStep: OnboardingStep;
   clinicId: string | null;
   isComplete: boolean;
@@ -23,6 +24,7 @@ type OnboardingActions = {
   setClinicData: (data: Partial<ClinicFormData>) => void;
   setBranchData: (data: Partial<BranchFormData>) => void;
   setSubscriptionData: (data: Partial<SubscriptionFormData>) => void;
+  setSpecialtyIds: (ids: string[]) => void;
   setStep: (step: OnboardingStep) => void;
   setClinicId: (id: string) => void;
   markComplete: () => void;
@@ -34,6 +36,7 @@ const initialState: OnboardingState = {
   clinicData: {},
   branchData: {},
   subscriptionData: {},
+  specialtyIds: [],
   currentStep: "subscription",
   clinicId: null,
   isComplete: false,
@@ -63,6 +66,8 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
         set((state) => ({
           subscriptionData: { ...state.subscriptionData, ...data },
         })),
+
+      setSpecialtyIds: (ids) => set({ specialtyIds: ids }),
 
       setStep: (step) => set({ currentStep: step }),
 

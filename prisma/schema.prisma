@@ -20,6 +20,7 @@ model profiles {
   tenant_id                                              String?                  @db.Uuid
   role                                                   ProfileRole?
   is_owner                                               Boolean                  @default(false)
+  clinic_id                                              String?                  @db.Uuid
   appointments                                           appointments[]
   encounters                                             encounters[]
   lab_orders                                             lab_orders[]
@@ -28,14 +29,14 @@ model profiles {
   patients                                               patients[]
   pharmacy_sales                                         pharmacy_sales[]
   prescription_dispenses                                 prescription_dispenses[]
+  clinics                                                clinics?                 @relation(fields: [clinic_id], references: [id])
   clinics_tenant                                         clinics?                 @relation("profile_tenant", fields: [tenant_id], references: [id])
   stock_movements                                        stock_movements[]
   stock_transfers_stock_transfers_approved_byToprofiles  stock_transfers[]        @relation("stock_transfers_approved_byToprofiles")
   stock_transfers_stock_transfers_initiated_byToprofiles stock_transfers[]        @relation("stock_transfers_initiated_byToprofiles")
   user_permissions                                       user_permissions[]
   user_roles                                             user_roles[]
-  clinic_id                                              String?                  @db.Uuid
-  clinics                                                clinics?                 @relation(fields: [clinic_id], references: [id])
+  doctor_specialties                                     doctor_specialties[]
 
   @@index([auth_user_id])
   @@index([tenant_id])
@@ -464,7 +465,8 @@ model clinics {
   is_primary              Boolean?                 @default(false)
   auth_user_id            String?
   onboarding_completed_at DateTime?
-  tenant_subscription     tenant_subscriptions?
+  have_pharmacy           Boolean?                 @default(false)
+  have_lab                Boolean?                 @default(false)
   appointments            appointments[]
   audit_logs              audit_logs[]
   branches                branches[]
@@ -480,6 +482,7 @@ model clinics {
   pharmacy_inventory      pharmacy_inventory[]
   pharmacy_sales          pharmacy_sales[]
   prescription_dispenses  prescription_dispenses[]
+  profiles                profiles[]
   staff_profiles          profiles[]               @relation("profile_tenant")
   purchase_orders         purchase_orders[]
   role_group_roles        role_group_roles[]
@@ -491,9 +494,9 @@ model clinics {
   suppliers               suppliers[]
   tenant_permissions      tenant_permissions[]
   tenant_roles            tenant_roles[]
+  tenant_subscription     tenant_subscriptions?
   user_permissions        user_permissions[]
   user_roles              user_roles[]
-  profiles                profiles[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -806,6 +809,107 @@ model suppliers {
   clinics            clinics              @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
 }
 
+model subscription_plans {
+  id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  description          String?
+  billing_period       BillingPeriod
+  trial_days           Int                     @default(14)
+  price                Decimal                 @db.Decimal(10, 2)
+  currency             String                  @default("USD")
+  max_users            Int?
+  max_storage_mb       Int?
+  max_branches         Int?
+  max_doctors          Int?
+  max_appointments     Int?
+  max_patients         Int?
+  api_limits           Int?
+  status               PlanStatus              @default(active)
+  display_order        Int                     @default(0)
+  public_notes         String?
+  internal_notes       String?
+  created_at           DateTime                @default(now())
+  updated_at           DateTime                @default(now()) @updatedAt
+  deleted_at           DateTime?
+  created_by           String?                 @db.Uuid
+  updated_by           String?                 @db.Uuid
+  features             subscription_features[]
+  tenant_subscriptions tenant_subscriptions[]
+}
+
+model subscription_features {
+  id            String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plan_id       String             @db.Uuid
+  feature_name  String
+  is_enabled    Boolean            @default(true)
+  configuration Json?
+  plan          subscription_plans @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+
+  @@unique([plan_id, feature_name])
+}
+
+model tenant_subscriptions {
+  id                String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id         String                        @unique @db.Uuid
+  plan_id           String                        @db.Uuid
+  start_date        DateTime
+  end_date          DateTime?
+  renewal_date      DateTime?
+  status            SubscriptionStatus            @default(active)
+  billing_cycle     BillingPeriod
+  price             Decimal                       @db.Decimal(10, 2)
+  discount          Decimal?                      @db.Decimal(10, 2)
+  currency          String                        @default("USD")
+  payment_status    PaymentStatus                 @default(pending)
+  payment_reference String?
+  notes             String?
+  created_at        DateTime                      @default(now())
+  updated_at        DateTime                      @default(now()) @updatedAt
+  created_by        String?                       @db.Uuid
+  updated_by        String?                       @db.Uuid
+  payments          payment_records[]
+  history           tenant_subscription_history[]
+  plan              subscription_plans            @relation(fields: [plan_id], references: [id])
+  tenant            clinics                       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+}
+
+model tenant_subscription_history {
+  id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_subscription_id String               @db.Uuid
+  action                 String
+  previous_data          Json?
+  new_data               Json?
+  changed_by             String               @db.Uuid
+  changed_at             DateTime             @default(now())
+  subscription           tenant_subscriptions @relation(fields: [tenant_subscription_id], references: [id], onDelete: Cascade)
+}
+
+model global_settings {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category    String
+  key         String   @unique
+  value       Json
+  is_public   Boolean  @default(false)
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+  updated_by  String?  @db.Uuid
+
+  @@index([category])
+}
+
+model payment_records {
+  id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_subscription_id String               @db.Uuid
+  amount                 Decimal              @db.Decimal(10, 2)
+  currency               String               @default("USD")
+  status                 PaymentStatus        @default(pending)
+  payment_date           DateTime             @default(now())
+  reference              String?
+  notes                  String?
+  subscription           tenant_subscriptions @relation(fields: [tenant_subscription_id], references: [id], onDelete: Cascade)
+}
+
 enum AppointmentStatus {
   scheduled
   checked_in
@@ -893,6 +997,7 @@ enum ProfileRole {
   doctor
   admin
   patient
+  super_admin
   app_owner
 }
 
@@ -923,108 +1028,34 @@ enum SubscriptionStatus {
   cancelled
 }
 
-model subscription_plans {
-  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name             String
-  description      String?
-  billing_period   BillingPeriod
-  trial_days       Int           @default(14)
-  price            Decimal       @db.Decimal(10, 2)
-  currency         String        @default("USD")
-  max_users        Int?
-  max_storage_mb   Int?
-  max_branches     Int?
-  max_doctors      Int?
-  max_appointments Int?
-  max_patients     Int?
-  api_limits       Int?
-  status           PlanStatus    @default(active)
-  display_order    Int           @default(0)
-  public_notes     String?
-  internal_notes   String?
-  created_at       DateTime      @default(now())
-  updated_at       DateTime      @default(now()) @updatedAt
-  deleted_at       DateTime?
-  created_by       String?       @db.Uuid
-  updated_by       String?       @db.Uuid
+/// Global catalog of medical specialties, curated by the app owner and shared by
+/// every clinic. Not tenant-scoped (mirrors subscription_plans).
+model specialties {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String               @unique
+  name_ar            String?
+  description        String?
+  is_active          Boolean              @default(true)
+  display_order      Int                  @default(0)
+  created_at         DateTime             @default(now())
+  updated_at         DateTime             @default(now()) @updatedAt
+  created_by         String?              @db.Uuid
+  updated_by         String?              @db.Uuid
+  doctor_specialties doctor_specialties[]
 
-  features             subscription_features[]
-  tenant_subscriptions tenant_subscriptions[]
+  @@index([is_active])
 }
 
-model subscription_features {
-  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  plan_id       String  @db.Uuid
-  feature_name  String
-  is_enabled    Boolean @default(true)
-  configuration Json?
+/// Junction linking a doctor profile to one or more catalog specialties.
+model doctor_specialties {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id   String      @db.Uuid
+  specialty_id String      @db.Uuid
+  created_at   DateTime    @default(now())
+  profiles     profiles    @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  specialties  specialties @relation(fields: [specialty_id], references: [id], onDelete: Cascade)
 
-  plan subscription_plans @relation(fields: [plan_id], references: [id], onDelete: Cascade)
-
-  @@unique([plan_id, feature_name])
-}
-
-model tenant_subscriptions {
-  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id         String             @unique @db.Uuid
-  plan_id           String             @db.Uuid
-  start_date        DateTime
-  end_date          DateTime?
-  renewal_date      DateTime?
-  status            SubscriptionStatus @default(active)
-  billing_cycle     BillingPeriod
-  price             Decimal            @db.Decimal(10, 2)
-  discount          Decimal?           @db.Decimal(10, 2)
-  currency          String             @default("USD")
-  payment_status    PaymentStatus      @default(pending)
-  payment_reference String?
-  notes             String?
-  created_at        DateTime           @default(now())
-  updated_at        DateTime           @default(now()) @updatedAt
-  created_by        String?            @db.Uuid
-  updated_by        String?            @db.Uuid
-
-  tenant   clinics                       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  plan     subscription_plans            @relation(fields: [plan_id], references: [id])
-  history  tenant_subscription_history[]
-  payments payment_records[]
-}
-
-model tenant_subscription_history {
-  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_subscription_id String   @db.Uuid
-  action                 String
-  previous_data          Json?
-  new_data               Json?
-  changed_by             String   @db.Uuid
-  changed_at             DateTime @default(now())
-
-  subscription tenant_subscriptions @relation(fields: [tenant_subscription_id], references: [id], onDelete: Cascade)
-}
-
-model global_settings {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  category    String
-  key         String   @unique
-  value       Json
-  is_public   Boolean  @default(false)
-  description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now()) @updatedAt
-  updated_by  String?  @db.Uuid
-
-  @@index([category])
-}
-
-model payment_records {
-  id                     String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_subscription_id String        @db.Uuid
-  amount                 Decimal       @db.Decimal(10, 2)
-  currency               String        @default("USD")
-  status                 PaymentStatus @default(pending)
-  payment_date           DateTime      @default(now())
-  reference              String?
-  notes                  String?
-
-  subscription tenant_subscriptions @relation(fields: [tenant_subscription_id], references: [id], onDelete: Cascade)
+  @@unique([profile_id, specialty_id])
+  @@index([profile_id])
+  @@index([specialty_id])
 }

@@ -19,6 +19,7 @@ export default function UserRolesSettingsPage() {
     queryKey: ["rbacProfiles"],
     queryFn: async () => {
       const res = await getProfilesAction();
+      console.log("getProfilesAction response:", res);
       if (res.error) throw new Error(res.error);
       return res.data || [];
     }

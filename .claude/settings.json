@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx *)",
-      "PowerShell(npx *)"
+      "PowerShell(npx *)",
+      "Bash(pnpm build *)"
     ]
   }
 }

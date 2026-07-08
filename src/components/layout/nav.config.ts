@@ -27,10 +27,10 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.settings", href: "/admin/settings", iconKey: "settings", roles: ["admin", "owner"] },
 
   // Settings group (RBAC) — gated by settings permissions
-  { titleKey: "sidebar.roles", href: "/settings/roles", iconKey: "roles", roles: ["admin", "owner"], requiredPermission: "settings.roles.manage" },
-  { titleKey: "sidebar.users", href: "/settings/user-roles", iconKey: "users", roles: ["admin", "owner"], requiredPermission: "settings.roles.manage" },
-  { titleKey: "sidebar.permissions", href: "/settings/permissions", iconKey: "permissions", roles: ["admin", "owner"], requiredPermission: "settings.roles.manage" },
-  { titleKey: "sidebar.audit", href: "/settings/audit", iconKey: "audit", roles: ["admin", "owner"], requiredPermission: "settings.audit.read" },
+  { titleKey: "sidebar.roles", href: "/settings/roles", iconKey: "roles", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
+  { titleKey: "sidebar.users", href: "/settings/user-roles", iconKey: "users", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
+  { titleKey: "sidebar.permissions", href: "/settings/permissions", iconKey: "permissions", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
+  { titleKey: "sidebar.audit", href: "/settings/audit", iconKey: "audit", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.audit.read" },
 
   // Doctor
   { titleKey: "sidebar.dashboard", href: "/doctor", iconKey: "dashboard", roles: ["doctor"] },
