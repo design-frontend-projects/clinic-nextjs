@@ -3,6 +3,10 @@
 import { prisma } from "@/lib/prisma";
 import { requireAppOwner } from "@/lib/app-owner-auth";
 import { revalidatePath } from "next/cache";
+import {
+  subscriptionPlanSchema,
+  type SubscriptionPlanFormData,
+} from "@/types/subscription.types";
 
 /**
  * Fetch all subscription plans
@@ -36,10 +40,15 @@ export async function getSubscriptionPlan(id: string) {
 /**
  * Create or update a subscription plan
  */
-export async function upsertSubscriptionPlan(data: any) {
+export async function upsertSubscriptionPlan(data: SubscriptionPlanFormData) {
   const admin = await requireAppOwner();
 
-  const { id, features, ...planData } = data;
+  const parsed = subscriptionPlanSchema.safeParse(data);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid plan data" };
+  }
+
+  const { id, features, ...planData } = parsed.data;
 
   if (id) {
     // Update existing plan
@@ -56,19 +65,18 @@ export async function upsertSubscriptionPlan(data: any) {
       where: { plan_id: id },
     });
 
-    if (features && features.length > 0) {
+    if (features.length > 0) {
       await prisma.subscription_features.createMany({
-        data: features.map((f: any) => ({
+        data: features.map((f) => ({
           plan_id: id,
           feature_name: f.feature_name,
-          is_enabled: f.is_enabled ?? true,
-          configuration: f.configuration ?? {},
+          is_enabled: f.is_enabled,
         })),
       });
     }
 
     revalidatePath("/app-owner/plans");
-    return updated;
+    return { success: true, plan: updated };
   } else {
     // Create new plan
     const created = await prisma.subscription_plans.create({
@@ -76,17 +84,16 @@ export async function upsertSubscriptionPlan(data: any) {
         ...planData,
         created_by: admin.id,
         features: {
-          create: features?.map((f: any) => ({
+          create: features.map((f) => ({
             feature_name: f.feature_name,
-            is_enabled: f.is_enabled ?? true,
-            configuration: f.configuration ?? {},
-          })) || [],
+            is_enabled: f.is_enabled,
+          })),
         },
       },
     });
 
     revalidatePath("/app-owner/plans");
-    return created;
+    return { success: true, plan: created };
   }
 }
 

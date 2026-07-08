@@ -3,6 +3,10 @@
 import { prisma } from "@/lib/prisma";
 import { requireAppOwner } from "@/lib/app-owner-auth";
 import { revalidatePath } from "next/cache";
+import {
+  tenantSubscriptionUpsertSchema,
+  type TenantSubscriptionUpsertData,
+} from "@/types/subscription.types";
 
 /**
  * Fetch all tenant subscriptions
@@ -22,9 +26,26 @@ export async function getTenantSubscriptions() {
 /**
  * Assign or update a subscription for a tenant
  */
-export async function upsertTenantSubscription(data: any) {
+export async function upsertTenantSubscription(data: TenantSubscriptionUpsertData) {
   const admin = await requireAppOwner();
-  const { tenant_id, plan_id, status, start_date, end_date, price, discount, billing_cycle, payment_status, payment_reference, notes } = data;
+
+  const parsed = tenantSubscriptionUpsertSchema.safeParse(data);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid subscription data" };
+  }
+  const {
+    tenant_id,
+    plan_id,
+    status,
+    start_date,
+    end_date,
+    price,
+    discount,
+    billing_cycle,
+    payment_status,
+    payment_reference,
+    notes,
+  } = parsed.data;
 
   // Verify tenant owner
   const owner = await prisma.profiles.findFirst({

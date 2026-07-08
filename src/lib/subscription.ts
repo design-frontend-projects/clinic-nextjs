@@ -1,4 +1,5 @@
 import { requireTenantInfo } from "./auth";
+import { isBypassRole } from "./rbac";
 
 type SubscriptionPlan = "free" | "pro" | "enterprise";
 
@@ -15,8 +16,8 @@ const PLAN_HIERARCHY: Record<SubscriptionPlan, number> = {
 export async function requireSubscription(requiredPlan: SubscriptionPlan) {
   const tenant = await requireTenantInfo();
   
-  // Admins bypass subscription checks
-  if (tenant.role === "admin") {
+  // Admins/owners bypass subscription checks
+  if (isBypassRole(tenant.role)) {
     return true;
   }
 

@@ -15,55 +15,51 @@ import {
   Settings,
   Pill,
   ClipboardList,
-  Package,
   FlaskConical,
   ChevronLeft,
   Activity,
   User,
   Building,
+  Shield,
+  KeyRound,
+  ScrollText,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import type { ResolvedNavItem } from "@/components/layout/nav.config";
 
-const navConfig = {
-  admin: (t: any) => [
-    { title: t("sidebar.dashboard"), href: "/admin", icon: LayoutDashboard },
-    { title: t("sidebar.doctors"), href: "/admin/doctors", icon: Stethoscope },
-    { title: t("sidebar.staff"), href: "/admin/staff", icon: UserCog },
-    { title: t("sidebar.patients"), href: "/admin/patients", icon: Users },
-    { title: t("sidebar.appointments"), href: "/admin/appointments", icon: CalendarDays },
-    { title: t("sidebar.billing"), href: "/admin/billing", icon: Receipt },
-    { title: t("sidebar.pharmacy"), href: "/admin/pharmacy", icon: Pill },
-    { title: t("sidebar.labOrders"), href: "/admin/lab-orders", icon: FlaskConical },
-    { title: t("sidebar.inventory"), href: "/admin/inventory", icon: Package },
-    { title: t("sidebar.reports"), href: "/admin/reports", icon: ClipboardList },
-    { title: t("sidebar.clinicDefinition"), href: "/admin/clinics", icon: Building },
-    { title: t("sidebar.settings"), href: "/admin/settings", icon: Settings },
-  ],
-  doctor: (t: any) => [
-    { title: t("sidebar.dashboard"), href: "/doctor", icon: LayoutDashboard },
-    { title: t("pages.doctor.myAppointments"), href: "/doctor/appointments", icon: CalendarDays },
-    { title: t("pages.doctor.myPatients"), href: "/doctor/patients", icon: Users },
-    { title: t("pages.doctor.prescriptions"), href: "/doctor/prescriptions", icon: Pill },
-    { title: t("pages.doctor.labOrders"), href: "/doctor/lab-orders", icon: FlaskConical },
-    { title: t("pages.doctor.profile"), href: "/doctor/profile", icon: User },
-  ],
-  staff: (t: any) => [
-    { title: t("sidebar.dashboard"), href: "/staff", icon: LayoutDashboard },
-    { title: t("pages.staff.appointments"), href: "/staff/appointments", icon: CalendarDays },
-    { title: t("pages.staff.patients"), href: "/staff/patients", icon: Users },
-    { title: t("sidebar.checkinQueue"), href: "/staff/checkin", icon: ClipboardList },
-    { title: t("pages.staff.billing"), href: "/staff/billing", icon: Receipt },
-  ],
+const ICONS: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  doctors: Stethoscope,
+  staff: UserCog,
+  patients: Users,
+  appointments: CalendarDays,
+  billing: Receipt,
+  clinic: Building,
+  settings: Settings,
+  prescriptions: Pill,
+  labOrders: FlaskConical,
+  checkin: ClipboardList,
+  profile: User,
+  roles: Shield,
+  users: Users,
+  permissions: KeyRound,
+  audit: ScrollText,
 };
 
-export function Sidebar({ role = "admin" }: { role?: string }) {
+export function Sidebar({
+  role = "admin",
+  items = [],
+}: {
+  role?: string;
+  items?: ResolvedNavItem[];
+}) {
   const pathname = usePathname();
   const { isOpen, toggle } = useSidebarStore();
   const t = useTranslations();
 
-  const navItems = (role === "admin" ? navConfig.admin : role === "doctor" ? navConfig.doctor : navConfig.staff)(t);
   const baseUrl = `/${role}`;
 
   return (
@@ -103,7 +99,8 @@ export function Sidebar({ role = "admin" }: { role?: string }) {
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
         <nav className="flex flex-col gap-1 px-2">
-          {navItems.map((item) => {
+          {items.map((item) => {
+            const Icon = ICONS[item.iconKey] ?? Activity;
             const isActive =
               pathname === item.href ||
               (item.href !== baseUrl && pathname.startsWith(item.href));
@@ -119,8 +116,8 @@ export function Sidebar({ role = "admin" }: { role?: string }) {
                   !isOpen && "justify-center px-2",
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {isOpen && <span>{item.title}</span>}
+                <Icon className="h-5 w-5 shrink-0" />
+                {isOpen && <span>{t(item.titleKey)}</span>}
               </Link>
             );
           })}

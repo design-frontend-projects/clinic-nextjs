@@ -3,6 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { requireAppOwner } from "@/lib/app-owner-auth";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
+import {
+  globalSettingsUpdateSchema,
+  type GlobalSettingUpdate,
+} from "@/types/subscription.types";
 
 /**
  * Fetch all global settings
@@ -27,20 +32,26 @@ export async function getGlobalSettings() {
 /**
  * Update multiple global settings
  */
-export async function updateGlobalSettings(settingsToUpdate: Array<{ key: string; value: any; category: string; is_public?: boolean }>) {
+export async function updateGlobalSettings(settingsToUpdate: GlobalSettingUpdate[]) {
   const admin = await requireAppOwner();
 
-  for (const setting of settingsToUpdate) {
+  const parsed = globalSettingsUpdateSchema.safeParse(settingsToUpdate);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid settings data" };
+  }
+
+  for (const setting of parsed.data) {
+    const value = setting.value as Prisma.InputJsonValue;
     await prisma.global_settings.upsert({
       where: { key: setting.key },
       update: {
-        value: setting.value,
+        value,
         updated_by: admin.id,
       },
       create: {
         key: setting.key,
         category: setting.category,
-        value: setting.value,
+        value,
         is_public: setting.is_public ?? false,
       },
     });

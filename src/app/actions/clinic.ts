@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
+import { requirePermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { clinicSchema, branchSchema } from "@/types/clinic.types";
 import { z } from "zod";
@@ -21,12 +22,8 @@ export async function getClinics() {
 }
 
 export async function createClinic(data: z.infer<typeof clinicSchema>) {
-  const tenant = await requireTenantInfo();
-
-  // Rule: Only Org Owner can create a clinic (Assumption: user role check)
-  if (tenant.role !== "admin") {
-    throw new Error("Only admins can create clinics");
-  }
+  await requireTenantInfo();
+  await requirePermission("clinic.manage");
 
   const validatedData = clinicSchema.parse(data);
 
@@ -65,6 +62,7 @@ export async function updateClinic(
   data: Partial<z.infer<typeof clinicSchema>>,
 ) {
   await requireTenantInfo();
+  await requirePermission("clinic.manage");
 
   const clinic = await prisma.clinics.update({
     where: { id },
@@ -88,6 +86,7 @@ export async function getBranches(clinicId: string) {
 
 export async function upsertBranch(data: z.infer<typeof branchSchema>) {
   await requireTenantInfo();
+  await requirePermission("clinic.manage");
   const validatedData = branchSchema.parse(data);
 
   const branch = await prisma.branches.upsert({
@@ -114,6 +113,7 @@ export async function upsertBranch(data: z.infer<typeof branchSchema>) {
 
 export async function deleteBranch(id: string) {
   await requireTenantInfo();
+  await requirePermission("clinic.manage");
 
   // Rule: Branch cannot be deleted if future appointments exist
   const appointmentCount = await prisma.appointments.count({

@@ -62,10 +62,13 @@ export async function getTenantInfo() {
       email: true,
       is_profile_completed: true,
       tenant_id: true,
+      status: true,
     },
   });
-  console.log("profile data here: ", profile);
   if (!profile) return null;
+
+  // Blocked users cannot resolve a tenant context (denies app access).
+  if (profile.status === "blocked") return null;
 
   const tenantId = profile.tenant_id;
 

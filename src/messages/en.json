@@ -144,7 +144,13 @@
     "prescriptions": "Prescriptions",
     "profile": "Profile",
     "checkinQueue": "Check-in Queue",
-    "tenants": "Tenants"
+    "tenants": "Tenants",
+    "myProfile": "My Profile",
+    "visitHistory": "Appointments & Visits",
+    "roles": "Roles",
+    "users": "Users",
+    "permissions": "Permissions",
+    "audit": "Audit Log"
   },
   "pages": {
     "admin": {

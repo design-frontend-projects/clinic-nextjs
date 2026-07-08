@@ -2,9 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
+import { requirePermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { profileSchema, type Profile } from "@/types/clinic.types";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { inviteUser, deleteAuthUser } from "@/lib/invitations";
 import { ProfileRole } from "@prisma/client";
 
 export async function getPersonnel(userId: string) {
@@ -20,6 +21,7 @@ export async function getPersonnel(userId: string) {
 
 export async function upsertPersonnel(data: Profile) {
   const tenant = await requireTenantInfo();
+  await requirePermission("settings.users.manage");
   const validatedData = profileSchema.parse(data);
 
   const isNewRecord = !validatedData.id;
@@ -29,36 +31,22 @@ export async function upsertPersonnel(data: Profile) {
       throw new Error("Email is required to invite a new user");
     }
 
-    const supabaseAdmin = createSupabaseServerClient();
-    
-    // Generate a random temporary password
-    const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
-
-    // Create user via Supabase Admin API
-    const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.createUser({
+    // Create the auth user and email them a set-password invite (Supabase built-in)
+    const authUser = await inviteUser({
       email: validatedData.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
+      metadata: {
         full_name: validatedData.full_name,
         role: validatedData.role || "doctor",
         tenant_id: tenant.clinicId,
-      }
+      },
     });
 
-    if (inviteError || !authData.user) {
-      console.error("[Supabase Creation] Failed to create user:", inviteError);
-      throw new Error("Failed to create user");
-    }
-
-    // TODO: Send an invitation email via custom mailer with the tempPassword
-
-    // Insert new profile into Supabase
+    // Insert new profile into the database
     let personnel;
     try {
       personnel = await prisma.profiles.create({
         data: {
-          auth_user_id: authData.user.id,
+          auth_user_id: authUser.id,
           tenant_id: tenant.clinicId,
           full_name: validatedData.full_name,
           email: validatedData.email,
@@ -73,7 +61,7 @@ export async function upsertPersonnel(data: Profile) {
       });
     } catch (profileError) {
       console.error("Profile creation failed, rolling back auth user:", profileError);
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      await deleteAuthUser(authUser.id);
       throw new Error("Failed to create staff profile. Rolled back.");
     }
 
@@ -102,6 +90,7 @@ export async function upsertPersonnel(data: Profile) {
 
 export async function deletePersonnel(id: string) {
   await requireTenantInfo();
+  await requirePermission("settings.users.manage");
 
   await prisma.profiles.delete({
     where: { id },

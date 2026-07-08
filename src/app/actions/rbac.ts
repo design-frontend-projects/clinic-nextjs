@@ -3,6 +3,7 @@
 
 import { rbacService } from "@/features/rbac/services/rbac.service";
 import { requireTenantInfo } from "@/lib/auth";
+import { requirePermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 
 export async function getClinicRoles() {
@@ -31,6 +32,7 @@ export async function getAllPermissions() {
 
 export async function createRole(name: string, permissionIds: string[]) {
   const tenant = await requireTenantInfo();
+  await requirePermission("settings.roles.manage");
   try {
     const role = await rbacService.createRole(
       tenant.clinicId,
@@ -46,6 +48,7 @@ export async function createRole(name: string, permissionIds: string[]) {
 
 export async function updateRole(roleId: string, name: string, permissionIds: string[]) {
   const tenant = await requireTenantInfo();
+  await requirePermission("settings.roles.manage");
   try {
     await rbacService.updateRole(
       tenant.clinicId,
@@ -62,6 +65,7 @@ export async function updateRole(roleId: string, name: string, permissionIds: st
 
 export async function deleteRole(roleId: string) {
   const tenant = await requireTenantInfo();
+  await requirePermission("settings.roles.manage");
   try {
     await rbacService.deleteRole(
       tenant.clinicId,
@@ -104,6 +108,7 @@ export async function getClinicStaff() {
 
 export async function assignStaffRoles(profileId: string, roleIds: string[]) {
   const tenant = await requireTenantInfo();
+  await requirePermission("settings.roles.manage");
   try {
     await rbacService.assignUserRoles(
       tenant.clinicId,

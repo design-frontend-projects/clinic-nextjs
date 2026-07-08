@@ -2,6 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getPatients, createPatient } from "@/app/actions/admin";
+import { invitePatientToPortal } from "@/app/actions/patient";
+import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ColumnDef } from "@tanstack/react-table";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Mail, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +54,49 @@ type Patient = {
   gender: string | null;
   date_of_birth: Date | null;
   created_at: Date;
+  profile_id: string | null;
 };
+
+function InviteToPortalCell({ patient }: { patient: Patient }) {
+  const [isPending, startTransition] = useTransition();
+
+  if (patient.profile_id) {
+    return (
+      <span className="text-xs text-muted-foreground">Portal active</span>
+    );
+  }
+
+  const handleInvite = () => {
+    if (!patient.email) {
+      toast.error("This patient has no email address to invite.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await invitePatientToPortal(patient.id);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Portal invitation sent.");
+    });
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleInvite}
+      disabled={isPending || !patient.email}
+    >
+      {isPending ? (
+        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Mail className="mr-2 h-3.5 w-3.5" />
+      )}
+      Invite to portal
+    </Button>
+  );
+}
 
 const columns: ColumnDef<Patient>[] = [
   {
@@ -98,6 +142,11 @@ const columns: ColumnDef<Patient>[] = [
     accessorKey: "created_at",
     header: "Registered",
     cell: ({ row }) => format(new Date(row.original.created_at), "MMM d, yyyy"),
+  },
+  {
+    id: "portal",
+    header: "Portal",
+    cell: ({ row }) => <InviteToPortalCell patient={row.original} />,
   },
 ];
 

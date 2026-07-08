@@ -8,8 +8,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { TenantRowActions } from "@/components/app-owner/tenant-row-actions";
 
 export default async function TenantsPage() {
   const tenants = await getTenants();
@@ -58,9 +57,23 @@ export default async function TenantsPage() {
                 <TableCell>{tenant._count.patients}</TableCell>
                 <TableCell>{new Date(tenant.created_at).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <TenantRowActions
+                    tenant={{
+                      id: tenant.id,
+                      name: tenant.name,
+                      status: tenant.status,
+                    }}
+                    owner={
+                      tenant.staff_profiles[0]
+                        ? {
+                            id: tenant.staff_profiles[0].id,
+                            full_name: tenant.staff_profiles[0].full_name,
+                            email: tenant.staff_profiles[0].email,
+                            status: tenant.staff_profiles[0].status,
+                          }
+                        : null
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ))}

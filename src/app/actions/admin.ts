@@ -2,8 +2,9 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
+import { requirePermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { inviteUser, deleteAuthUser } from "@/lib/invitations";
 import { createAppointmentWithPatientSchema, type CreateAppointmentWithPatientData } from "@/types/appointment.types";
 
 export async function getDashboardStats() {
@@ -98,6 +99,7 @@ export async function createPatient(data: {
   address?: string;
 }) {
   const tenant = await requireTenantInfo();
+  await requirePermission("patient.manage");
 
   const patient = await prisma.patients.create({
     data: {
@@ -130,6 +132,7 @@ export async function updatePatient(
   },
 ) {
   const tenant = await requireTenantInfo();
+  await requirePermission("patient.manage");
 
   const patient = await prisma.patients.update({
     where: { id, clinic_id: tenant.clinicId },
@@ -200,6 +203,7 @@ export async function createAppointment(data: {
   notes?: string;
 }) {
   const tenant = await requireTenantInfo();
+  await requirePermission("appointment.manage");
 
   const appointment = await prisma.appointments.create({
     data: {
@@ -219,6 +223,7 @@ export async function createAppointment(data: {
 
 export async function updateAppointmentStatus(id: string, status: string) {
   const tenant = await requireTenantInfo();
+  await requirePermission("appointment.manage");
 
   const appointment = await prisma.appointments.update({
     where: { id, clinic_id: tenant.clinicId },
@@ -279,6 +284,7 @@ export async function searchPatients(query: string) {
 export async function registerPatientAndCreateAppointment(data: CreateAppointmentWithPatientData) {
   try {
     const tenant = await requireTenantInfo();
+    await requirePermission("appointment.manage");
     const parsed = createAppointmentWithPatientSchema.safeParse(data);
     
     if (!parsed.success) {
@@ -288,26 +294,23 @@ export async function registerPatientAndCreateAppointment(data: CreateAppointmen
     const patientData = parsed.data.patient;
     const appointmentData = parsed.data.appointment;
 
-    const supabaseAdmin = createSupabaseServerClient();
-    
-    // Generate a random temporary password
-    const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
-
-    // Create user via Supabase Admin API
-    const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.createUser({
-      email: patientData.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
-        role: "patient",
-        tenant_id: tenant.clinicId,
-      }
-    });
-
-    if (inviteError || !authData.user) {
-      console.error("[Supabase Creation] Failed to create user:", inviteError);
-      return { error: inviteError?.message || "Failed to create patient account" };
+    // Create the patient's auth user and email them a set-password invite
+    let authUser;
+    try {
+      authUser = await inviteUser({
+        email: patientData.email,
+        metadata: {
+          full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
+          role: "patient",
+          tenant_id: tenant.clinicId,
+        },
+      });
+    } catch (inviteError) {
+      const message =
+        inviteError instanceof Error
+          ? inviteError.message
+          : "Failed to create patient account";
+      return { error: message };
     }
 
     // Insert new profile, patient, and appointment in a transaction
@@ -316,7 +319,7 @@ export async function registerPatientAndCreateAppointment(data: CreateAppointmen
         // 1. Create Profile
         const profile = await tx.profiles.create({
           data: {
-            auth_user_id: authData.user.id,
+            auth_user_id: authUser.id,
             tenant_id: tenant.clinicId,
             full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
             email: patientData.email,
@@ -359,7 +362,7 @@ export async function registerPatientAndCreateAppointment(data: CreateAppointmen
     } catch (dbError) {
       // Rollback auth user if DB operations fail
       console.error("Database operations failed, rolling back auth user:", dbError);
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      await deleteAuthUser(authUser.id);
       return { error: "Failed to save patient records. Process rolled back." };
     }
 

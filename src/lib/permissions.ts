@@ -1,53 +1,21 @@
-import { EvaluationService } from "@/features/rbac/services/evaluation.service";
-import { requireTenantInfo } from "./auth";
-
-const evaluationService = new EvaluationService();
+import { hasPermission as rbacHasPermission } from "@/lib/rbac";
 
 /**
- * Checks if the currently authenticated user has the specified permission.
- * Throws an error if they don't.
+ * Thin, throwing wrapper over the single permission entry point in `lib/rbac`.
+ * Kept for call-site compatibility; the bypass identity lives in `lib/rbac`.
  */
-export async function requirePermission(permissionName: string) {
-  const tenant = await requireTenantInfo();
-  
-  // Admins bypass permission checks
-  if (tenant.role === "admin") {
-    return true;
+export async function requirePermission(permissionName: string): Promise<true> {
+  const allowed = await rbacHasPermission(permissionName);
+  if (!allowed) {
+    throw new Error(`Forbidden: Missing required permission (${permissionName})`);
   }
-
-  const result = await evaluationService.evaluatePermission(
-    tenant.clinicId,
-    tenant.profileId,
-    permissionName
-  );
-
-  if (!result.allowed) {
-    throw new Error(`Forbidden: ${result.reason || "Missing required permission"}`);
-  }
-
   return true;
 }
 
 /**
- * Checks if the currently authenticated user has the specified permission
- * without throwing an error, returning a boolean.
+ * Non-throwing permission check. Delegates to `lib/rbac.hasPermission` so the
+ * admin-bypass rule is consistent everywhere.
  */
-export async function hasPermission(permissionName: string) {
-  try {
-    const tenant = await requireTenantInfo();
-    
-    if (tenant.role === "admin") {
-      return true;
-    }
-
-    const result = await evaluationService.evaluatePermission(
-      tenant.clinicId,
-      tenant.profileId,
-      permissionName
-    );
-
-    return result.allowed;
-  } catch (error) {
-    return false;
-  }
+export async function hasPermission(permissionName: string): Promise<boolean> {
+  return rbacHasPermission(permissionName);
 }

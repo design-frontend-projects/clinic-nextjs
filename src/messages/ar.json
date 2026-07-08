@@ -144,7 +144,13 @@
     "prescriptions": "الموصفات",
     "profile": "الملف الشخصي",
     "checkinQueue": "طابور التسجيل",
-    "tenants": "المستأجرون"
+    "tenants": "المستأجرون",
+    "myProfile": "ملفي الشخصي",
+    "visitHistory": "المواعيد والزيارات",
+    "roles": "الأدوار",
+    "users": "المستخدمون",
+    "permissions": "الصلاحيات",
+    "audit": "سجل التدقيق"
   },
   "pages": {
     "admin": {
