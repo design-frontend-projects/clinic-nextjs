@@ -379,5 +379,17 @@
     "emailPlaceholder": "info@clinic.com",
     "phone": "Phone",
     "phonePlaceholder": "+1 (555) 000-0000"
+  },
+  "dashboard": {
+    "noClinic": {
+      "title": "No clinic linked",
+      "description": "Your account isn't linked to a clinic yet. Please contact your administrator to be added to a clinic.",
+      "backToSignIn": "Back to sign in"
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "We couldn't load this page. Please try again, or contact your administrator if the problem persists.",
+      "retry": "Try again"
+    }
   }
 }

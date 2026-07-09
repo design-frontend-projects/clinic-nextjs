@@ -62,6 +62,7 @@ export async function getTenantInfo() {
       email: true,
       is_profile_completed: true,
       tenant_id: true,
+      is_owner: true,
       status: true,
     },
   });
@@ -70,7 +71,31 @@ export async function getTenantInfo() {
   // Blocked users cannot resolve a tenant context (denies app access).
   if (profile.status === "blocked") return null;
 
-  const tenantId = profile.tenant_id;
+  let tenantId = profile.tenant_id;
+
+  // Self-heal: an invited user (doctor/staff) whose profile.tenant_id was never
+  // persisted (e.g. the post-invite upsert didn't complete, so only the
+  // `on_auth_user_created` trigger's NULL-tenant row survived) can still be
+  // recovered — `user_roles.tenant_id` is stamped with the clinic at invite time.
+  // Reconstruct the link and persist it so this is a one-time repair.
+  if (!tenantId && !profile.is_owner) {
+    const userRole = await prisma.user_roles.findFirst({
+      where: { profile_id: profile.id, is_active: true, deleted_at: null },
+      select: { tenant_id: true },
+    });
+    if (userRole?.tenant_id) {
+      tenantId = userRole.tenant_id;
+      try {
+        await prisma.profiles.update({
+          where: { id: profile.id },
+          data: { tenant_id: tenantId, clinic_id: tenantId },
+        });
+      } catch {
+        // Non-fatal: the read path still succeeds with the recovered tenantId
+        // even if persisting the repair fails.
+      }
+    }
+  }
 
   let clinic = null;
   if (tenantId) {
@@ -98,6 +123,7 @@ export async function getTenantInfo() {
     fullName: profile.full_name,
     email: profile.email,
     is_profile_completed: profile.is_profile_completed ?? false,
+    is_owner: profile.is_owner ?? false,
     clinicId: clinic?.id ?? null,
     subscriptionPlan: clinic?.subscription_plan ?? "free",
     branchId,
@@ -133,4 +159,26 @@ export async function requireTenantInfo() {
     ...tenant,
     clinicId: tenant.clinicId,
   };
+}
+
+type TenantInfo = NonNullable<Awaited<ReturnType<typeof getTenantInfo>>>;
+
+/**
+ * Resolve tenant context for a dashboard layout without throwing.
+ *
+ * Returns a discriminated result so every role layout can branch consistently:
+ * - `unauthenticated`: no session/profile — redirect to sign-in.
+ * - `no-clinic`: authenticated but the profile isn't linked to any clinic —
+ *   render a friendly notice instead of crashing.
+ * - `ok`: full tenant context is available (`clinicId` is guaranteed non-null).
+ */
+export async function resolveDashboardTenant(): Promise<
+  | { status: "unauthenticated" }
+  | { status: "no-clinic" }
+  | { status: "ok"; tenant: TenantInfo & { clinicId: string } }
+> {
+  const tenant = await getTenantInfo();
+  if (!tenant) return { status: "unauthenticated" };
+  if (!tenant.clinicId) return { status: "no-clinic" };
+  return { status: "ok", tenant: { ...tenant, clinicId: tenant.clinicId } };
 }

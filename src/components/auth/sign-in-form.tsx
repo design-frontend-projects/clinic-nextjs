@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createSupabaseClient } from "@/lib/supabase/client";
+import { syncOnboardingCookie } from "@/app/actions/auth";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,14 +65,21 @@ export function SignInForm() {
       const session = sessionData.session;
       useAuthStore.getState().setSession(session);
 
+      // Invited users (doctors/staff) already belong to a clinic; make sure the
+      // middleware onboarding gate doesn't push them into the owner wizard.
+      await syncOnboardingCookie();
+
       const roles = useAuthStore.getState().getRoles();
       const isAppOwner = roles.includes("app_owner");
       const isStaff = roles.includes("staff");
+      const isDoctor = roles.includes("doctor");
       const redirectPath = isAppOwner
-        ? "/dashboard/app-owner"
+        ? "/app-owner"
         : isStaff
-          ? "/dashboard/staff"
-          : "/dashboard/admin";
+          ? "/staff"
+          : isDoctor
+            ? "/doctor"
+            : "/admin";
 
       toast.success(t("signInButton"));
       console.log("i will redirect to: ", redirectPath);
