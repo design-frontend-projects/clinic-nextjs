@@ -7,16 +7,19 @@ import { getTenantInfo } from "@/lib/auth";
 import * as z from "zod";
 
 /**
- * After a successful sign-in, mark onboarding as complete for invited users
- * (doctors/staff/etc.) who already belong to a clinic. The middleware
- * onboarding gate (src/proxy.ts) keys off the `onboarding_complete` cookie,
- * which is otherwise only set at the end of the owner's onboarding wizard — so
- * without this, an invited user on a fresh browser is wrongly pushed into the
- * owner onboarding flow. Owners are excluded so their own onboarding still runs.
+ * After a successful sign-in, mark onboarding as complete for users who
+ * already belong to a clinic. The middleware onboarding gate (src/proxy.ts)
+ * keys off the `onboarding_complete` cookie, which is otherwise only set at
+ * the end of the owner's onboarding wizard — so without this, an invited user
+ * (or an owner whose tenant was provisioned by the app-owner, or a completed
+ * owner on a fresh browser) is wrongly pushed into the onboarding flow.
+ * Owners still mid-wizard (`is_profile_completed` false) are excluded so
+ * their own onboarding resumes.
  */
 export async function syncOnboardingCookie() {
   const tenant = await getTenantInfo();
-  if (!tenant?.clinicId || tenant.is_owner) return;
+  if (!tenant?.clinicId) return;
+  if (tenant.is_owner && !tenant.is_profile_completed) return;
 
   const cookieStore = await cookies();
   cookieStore.set("onboarding_complete", "1", {

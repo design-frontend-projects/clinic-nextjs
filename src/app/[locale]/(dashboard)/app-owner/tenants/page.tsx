@@ -1,13 +1,16 @@
+import { Plus } from "lucide-react";
+import { Link } from "@/i18n/routing";
 import { getTenants } from "@/app/actions/app-owner/tenants";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { TenantRowActions } from "@/components/app-owner/tenant-row-actions";
 
 export default async function TenantsPage() {
@@ -22,6 +25,12 @@ export default async function TenantsPage() {
             Manage all clinics and their active subscriptions.
           </p>
         </div>
+        <Button asChild>
+          <Link href="/app-owner/tenants/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Tenant
+          </Link>
+        </Button>
       </div>
 
       <div className="rounded-md border bg-card">
