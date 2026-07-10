@@ -100,7 +100,7 @@ export function ClinicSetupStep({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="clinic_email" className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-muted-foreground" />
@@ -159,14 +159,14 @@ export function ClinicSetupStep({
           disabled={loading}
           className="flex-1"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           {tOnboarding("back")}
         </Button>
         <Button type="submit" className="flex-1" disabled={loading}>
           {loading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="me-2 h-4 w-4 animate-spin" />
           ) : (
-            <CheckCircle className="mr-2 h-4 w-4" />
+            <CheckCircle className="me-2 h-4 w-4" />
           )}
           {tOnboarding("initializeClinic")}
         </Button>

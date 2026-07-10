@@ -91,7 +91,7 @@ export default function PermissionsSettingsPage() {
 
   return (
     <div className="space-y-6 font-inter max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-ink flex items-center gap-2">
             <ShieldCheck className="h-8 w-8 text-primary" /> Permission Matrix

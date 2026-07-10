@@ -170,7 +170,7 @@ export default function RolesSettingsPage() {
             <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
           </Button>
 
-          <Button asChild className="h-9 text-xs text-white bg-primary hover:bg-primary-hover">
+          <Button asChild className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
             <Link href="/settings/roles/create" className="flex gap-1.5">
               <Plus className="h-4 w-4" /> Create Role
             </Link>

@@ -291,7 +291,7 @@ export function NewAppointmentDialog({
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={existingPatientForm.control}
                     name="doctor_id"
@@ -447,7 +447,7 @@ export function NewAppointmentDialog({
                   <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
                     Patient Details
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={newPatientForm.control}
                       name="patient.first_name"
@@ -475,7 +475,7 @@ export function NewAppointmentDialog({
                       )}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={newPatientForm.control}
                       name="patient.email"
@@ -503,7 +503,7 @@ export function NewAppointmentDialog({
                       )}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={newPatientForm.control}
                       name="patient.gender"
@@ -577,7 +577,7 @@ export function NewAppointmentDialog({
                   <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
                     Appointment Details
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={newPatientForm.control}
                       name="appointment.doctor_id"

@@ -120,7 +120,7 @@ export default function StaffManagementTable({
                   No custom roles have been created yet.
                 </p>
               ) : (
-                <div className="grid grid-cols-2 gap-2 mt-2 h-48 overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 h-48 overflow-y-auto pr-2">
                   {allRoles.map((role) => (
                     <div key={role.id} className="flex items-center space-x-2">
                       <Checkbox

@@ -86,7 +86,7 @@ export default function RoleDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6 font-inter max-w-5xl mx-auto">
       {/* Action Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={() => router.push("/settings/roles")} className="h-9 w-9 border-hairline">
             <ArrowLeft className="h-4 w-4" />

@@ -4,7 +4,7 @@ import { Link } from "@/i18n/routing";
 import { usePathname } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/stores/sidebar-store";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   LayoutDashboard,
   Users,
@@ -23,11 +23,13 @@ import {
   Shield,
   KeyRound,
   ScrollText,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import type { ResolvedNavItem } from "@/components/layout/nav.config";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -47,53 +49,59 @@ const ICONS: Record<string, LucideIcon> = {
   users: Users,
   permissions: KeyRound,
   audit: ScrollText,
+  reviews: Star,
 };
 
-export function Sidebar({
-  role = "admin",
-  items = [],
-}: {
-  role?: string;
-  items?: ResolvedNavItem[];
-}) {
+type SidebarNavProps = {
+  role: string;
+  items: ResolvedNavItem[];
+  expanded: boolean;
+  showCollapseButton?: boolean;
+  onNavigate?: () => void;
+};
+
+function SidebarNav({
+  role,
+  items,
+  expanded,
+  showCollapseButton = false,
+  onNavigate,
+}: SidebarNavProps) {
   const pathname = usePathname();
-  const { isOpen, toggle } = useSidebarStore();
+  const { toggle, isOpen } = useSidebarStore();
   const t = useTranslations();
 
   const baseUrl = `/${role}`;
 
   return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border bg-background transition-all duration-300",
-        isOpen ? "w-64" : "w-16",
-      )}
-    >
+    <div className="flex h-full flex-col">
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        <Link href={baseUrl} className="flex items-center gap-2">
+        <Link href={baseUrl} className="flex items-center gap-2" onClick={onNavigate}>
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
             <Activity className="h-5 w-5 text-primary-foreground" />
           </div>
-          {isOpen && (
+          {expanded && (
             <span className="text-lg font-semibold tracking-tight text-foreground font-inter">
               {t("brand.name")}
             </span>
           )}
         </Link>
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={toggle}
-          className="h-8 w-8"
-        >
-          <ChevronLeft
-            className={cn(
-              "h-4 w-4 transition-transform",
-              !isOpen && "rotate-180",
-            )}
-          />
-        </Button>
+        {showCollapseButton && (
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={toggle}
+            className="h-8 w-8"
+          >
+            <ChevronLeft
+              className={cn(
+                "h-4 w-4 transition-transform rtl:rotate-180",
+                !isOpen && "rotate-180 rtl:rotate-0",
+              )}
+            />
+          </Button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -108,16 +116,17 @@ export function Sidebar({
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors font-inter",
                   isActive
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  !isOpen && "justify-center px-2",
+                  !expanded && "justify-center px-2",
                 )}
               >
                 <Icon className="h-5 w-5 shrink-0" />
-                {isOpen && <span>{t(item.titleKey)}</span>}
+                {expanded && <span>{t(item.titleKey)}</span>}
               </Link>
             );
           })}
@@ -127,12 +136,54 @@ export function Sidebar({
       {/* Footer */}
       <Separator />
       <div className="p-4">
-        {isOpen && (
+        {expanded && (
           <p className="text-xs text-muted-foreground text-center font-inter">
             © 2026 {t("brand.name")}
           </p>
         )}
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export function Sidebar({
+  role = "admin",
+  items = [],
+}: {
+  role?: string;
+  items?: ResolvedNavItem[];
+}) {
+  const { isOpen, isMobileOpen, setMobileOpen } = useSidebarStore();
+  const locale = useLocale();
+  const t = useTranslations();
+
+  return (
+    <>
+      {/* Desktop rail */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 inset-s-0 z-40 hidden lg:flex h-screen flex-col border-e border-border bg-sidebar transition-all duration-300",
+          isOpen ? "w-64" : "w-16",
+        )}
+      >
+        <SidebarNav role={role} items={items} expanded={isOpen} showCollapseButton />
+      </aside>
+
+      {/* Mobile drawer */}
+      <Sheet open={isMobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent
+          side={locale === "ar" ? "right" : "left"}
+          className="w-72 p-0 lg:hidden"
+        >
+          <SheetTitle className="sr-only">{t("brand.name")}</SheetTitle>
+          <SidebarNav
+            role={role}
+            items={items}
+            expanded
+            onNavigate={() => setMobileOpen(false)}
+          />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

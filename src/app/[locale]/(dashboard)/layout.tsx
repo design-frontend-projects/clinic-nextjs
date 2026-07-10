@@ -1,8 +1,7 @@
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
 import { requireAuthenticatedTenant } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { resolveNavItems, type ResolvedNavItem } from "@/components/layout/nav.config";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -24,12 +23,8 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-canvas dark">
-      <Sidebar role={role} items={navItems} />
-      <Header />
-      <main className="ml-64 p-6 transition-all duration-300 data-[collapsed=true]:ml-16">
-        {children}
-      </main>
-    </div>
+    <DashboardShell role={role} items={navItems}>
+      {children}
+    </DashboardShell>
   );
 }

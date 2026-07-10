@@ -21,7 +21,7 @@ const signUpSchema = z.object({
 
 type SignUpValues = z.infer<typeof signUpSchema>;
 
-export function SignUpForm() {
+export function SignUpForm({ planId }: { planId?: string }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const t = useTranslations("auth.signUp");
@@ -45,6 +45,7 @@ export function SignUpForm() {
       const result = await signUpAction({
         ...data,
         origin: window.location.origin,
+        planId,
       });
 
       if (result.error) {
@@ -56,7 +57,7 @@ export function SignUpForm() {
         toast.success(t("accountCreated"));
       } else {
         toast.success(t("accountCreatedRedirect"));
-        router.push("/onboarding");
+        router.push(planId ? `/onboarding?plan=${planId}` : "/onboarding");
         router.refresh();
       }
     } catch (error: any) {
@@ -69,14 +70,13 @@ export function SignUpForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
       <div className="space-y-2">
-        <Label htmlFor="fullName" className="text-white">
+        <Label htmlFor="fullName">
           {t("fullNameLabel")}
         </Label>
         <Input
           id="fullName"
           type="text"
           placeholder={t("fullNamePlaceholder")}
-          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("fullName")}
         />
         {errors.fullName && (
@@ -85,14 +85,13 @@ export function SignUpForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-white">
+        <Label htmlFor="email">
           {t("emailLabel")}
         </Label>
         <Input
           id="email"
           type="email"
           placeholder={t("emailPlaceholder")}
-          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("email")}
         />
         {errors.email && (
@@ -101,14 +100,13 @@ export function SignUpForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-white">
+        <Label htmlFor="password">
           {t("passwordLabel")}
         </Label>
         <Input
           id="password"
           type="password"
           placeholder={t("passwordPlaceholder")}
-          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("password")}
         />
         {errors.password && (
@@ -118,10 +116,10 @@ export function SignUpForm() {
 
       <Button
         type="submit"
-        className="w-full bg-[#0007cd] text-white hover:bg-[#0005a3] border-none text-sm font-medium mt-2"
+        className="w-full text-sm mt-2"
         disabled={isLoading}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
         {t("createAccountButton")}
       </Button>
     </form>

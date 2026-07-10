@@ -16,7 +16,9 @@ type StatusVariant =
   | "pending"
   | "refunded"
   | "trial"
-  | "suspended";
+  | "suspended"
+  | "approved"
+  | "rejected";
 
 const statusConfig: Record<
   StatusVariant,
@@ -94,6 +96,15 @@ const statusConfig: Record<
     label: "Suspended",
     className:
       "bg-accent-yellow-soft text-accent-yellow",
+  },
+  approved: {
+    label: "Approved",
+    className:
+      "bg-accent-green-soft text-accent-green",
+  },
+  rejected: {
+    label: "Rejected",
+    className: "bg-accent-red-soft text-accent-red",
   },
 };
 

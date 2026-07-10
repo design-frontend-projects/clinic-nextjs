@@ -55,7 +55,7 @@ export function RoleDetails({ role, assignedUsers, isOpen, onClose }: RoleDetail
         <ScrollArea className="flex-1 py-4 pr-3">
           <div className="space-y-6">
             {/* Meta Info */}
-            <div className="grid grid-cols-2 gap-4 text-xs text-mute font-mono">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-mute font-mono">
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4 text-primary" />
                 <span>Created: {new Date(role.created_at).toLocaleDateString()}</span>

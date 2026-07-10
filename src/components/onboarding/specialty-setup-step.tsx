@@ -109,7 +109,7 @@ export function SpecialtySetupStep({
             disabled={loading}
             className="flex-1"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="me-2 h-4 w-4" />
             {t("back")}
           </Button>
           <Button
@@ -119,9 +119,9 @@ export function SpecialtySetupStep({
             className="flex-1"
           >
             {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
             ) : (
-              <ArrowRight className="mr-2 h-4 w-4" />
+              <ArrowRight className="me-2 h-4 w-4" />
             )}
             {t("continue")}
           </Button>

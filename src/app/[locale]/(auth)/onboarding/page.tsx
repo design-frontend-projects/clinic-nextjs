@@ -10,9 +10,17 @@ export const metadata: Metadata = {
   description: "Complete your clinic setup",
 };
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
   const session = await getSupabaseSession();
   const t = await getTranslations('auth.onboarding');
+  const { plan } = await searchParams;
+  const initialPlanId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(plan ?? "")
+    ? plan
+    : undefined;
 
   if (!session) {
     return redirect({ href: "/sign-in", locale: await getLocale() });
@@ -42,6 +50,7 @@ export default async function OnboardingPage() {
         <OnboardingForm
           defaultEmail={session.user.email ?? undefined}
           defaultFullName={session.user.user_metadata?.full_name ?? undefined}
+          initialPlanId={initialPlanId}
         />
       </div>
     </div>

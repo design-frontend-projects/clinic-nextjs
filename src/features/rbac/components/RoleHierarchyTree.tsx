@@ -103,7 +103,7 @@ export function RoleHierarchyTree({
         <Button
           onClick={handleAdd}
           disabled={!parentSelect || !childSelect || isLoading}
-          className="h-9 text-xs text-white bg-primary hover:bg-primary-hover flex gap-1.5 shrink-0"
+          className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90 flex gap-1.5 shrink-0"
         >
           <Plus className="h-4 w-4" /> Link Roles
         </Button>

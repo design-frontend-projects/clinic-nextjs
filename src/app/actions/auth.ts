@@ -32,6 +32,7 @@ const signUpSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   origin: z.string().url("Invalid origin URL"),
+  planId: z.string().uuid().optional(),
 });
 
 export type SignUpActionData = z.infer<typeof signUpSchema>;
@@ -62,6 +63,12 @@ export async function signUpAction(data: SignUpActionData) {
       },
     );
 
+    // encodeURIComponent keeps `plan` inside the `next` value; unencoded it
+    // would become a sibling query param of the callback URL and be dropped.
+    const next = parsedData.planId
+      ? `/onboarding?plan=${parsedData.planId}`
+      : "/onboarding";
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: parsedData.email,
       password: parsedData.password,
@@ -69,7 +76,7 @@ export async function signUpAction(data: SignUpActionData) {
         data: {
           full_name: parsedData.fullName,
         },
-        emailRedirectTo: `${parsedData.origin}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${parsedData.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
 

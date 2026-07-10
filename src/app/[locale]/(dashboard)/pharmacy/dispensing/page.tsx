@@ -62,7 +62,7 @@ const columns: ColumnDef<DispenseRequest>[] = [
 export default function PharmacyDispensingPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             Prescription Dispensing

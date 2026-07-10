@@ -10,24 +10,7 @@ import {
   type PatientProfileUpdateData,
 } from "@/types/patient.types";
 import { revalidatePath } from "next/cache";
-
-/**
- * Resolve the currently authenticated user's own patient record, scoped to
- * their tenant. Throws if the caller is not a patient with a linked record.
- */
-async function requireCurrentPatient() {
-  const tenant = await requireTenantInfo();
-
-  const patient = await prisma.patients.findFirst({
-    where: { profile_id: tenant.profileId, clinic_id: tenant.clinicId },
-  });
-
-  if (!patient) {
-    throw new Error("No patient record is linked to your account.");
-  }
-
-  return { tenant, patient };
-}
+import { requireCurrentPatient } from "@/lib/patient-auth";
 
 /** The patient's own profile + patient record. */
 export async function getMyPatientRecord() {

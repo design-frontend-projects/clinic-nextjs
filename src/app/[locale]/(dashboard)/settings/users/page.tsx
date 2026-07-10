@@ -22,7 +22,7 @@ export default function UsersSettingsPage() {
 
   return (
     <div className="space-y-6 font-inter max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-ink flex items-center gap-2">
             <Users className="h-8 w-8 text-primary" /> Staff Profiles
@@ -32,7 +32,7 @@ export default function UsersSettingsPage() {
           </p>
         </div>
 
-        <Button asChild className="h-9 text-xs text-white bg-primary hover:bg-primary-hover">
+        <Button asChild className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
           <Link href="/settings/user-roles" className="flex gap-1.5">
             Manage Assignments <ArrowRight className="h-4 w-4" />
           </Link>

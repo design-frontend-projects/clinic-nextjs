@@ -1,7 +1,6 @@
 "use client";
 
 import { useSidebarStore } from "@/stores/sidebar-store";
-import { cn } from "@/lib/utils";
 import { Menu, Bell, Moon, Sun, LogOut, User, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
@@ -23,7 +22,7 @@ import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { BranchSelector } from "./branch-selector";
 
 export function Header() {
-  const { isOpen, toggle } = useSidebarStore();
+  const { setMobileOpen } = useSidebarStore();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const locale = useLocale();
@@ -46,17 +45,12 @@ export function Header() {
   };
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60 transition-all duration-300",
-        isOpen ? "ml-64" : "ml-16",
-      )}
-    >
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 sm:px-6 backdrop-blur supports-backdrop-filter:bg-background/60 transition-all duration-300">
       <div className="flex items-center gap-4">
         <Button
           variant="secondary"
           size="icon"
-          onClick={toggle}
+          onClick={() => setMobileOpen(true)}
           className="lg:hidden"
         >
           <Menu className="h-5 w-5" />
@@ -71,7 +65,7 @@ export function Header() {
           </div>
         )}
 
-        <div>
+        <div className="hidden sm:block">
           <h2 className="text-lg font-semibold text-foreground font-inter">
             {t("header.welcomeBack")}
           </h2>
@@ -111,7 +105,7 @@ export function Header() {
               <Bell className="h-4 w-4" />
               <Badge
                 variant="destructive"
-                className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full p-0 text-[10px]"
+                className="absolute -inset-e-1 -top-1 h-5 w-5 items-center justify-center rounded-full p-0 text-[10px]"
               >
                 3
               </Badge>
@@ -176,8 +170,8 @@ export function Header() {
               </div>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-red-500 cursor-pointer">
-              <LogOut className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+              <LogOut className="me-2 h-4 w-4" />
               <span>{t("header.logout")}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

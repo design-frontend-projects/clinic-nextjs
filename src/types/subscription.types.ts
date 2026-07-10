@@ -90,6 +90,28 @@ export type TenantSubscriptionUpsertData = z.infer<
   typeof tenantSubscriptionUpsertSchema
 >;
 
+/** Publicly-exposed subscription plan (landing page / onboarding picker). */
+export type PublicPlanFeature = {
+  feature_name: string;
+  is_enabled: boolean;
+};
+
+export type PublicPlan = {
+  id: string;
+  name: string;
+  description: string | null;
+  billing_period: z.infer<typeof billingPeriodEnum>;
+  trial_days: number;
+  price: number;
+  currency: string;
+  max_users: number | null;
+  max_branches: number | null;
+  max_doctors: number | null;
+  public_notes: string | null;
+  display_order: number;
+  features: PublicPlanFeature[];
+};
+
 /** A single global-settings key/value update. */
 export const globalSettingSchema = z.object({
   key: z.string().min(1),

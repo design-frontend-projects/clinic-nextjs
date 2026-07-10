@@ -176,7 +176,7 @@ export function UserRoleTable({
             <Button
               onClick={handleSave}
               disabled={isLoading}
-              className="h-9 text-xs text-white bg-primary hover:bg-primary-hover"
+              className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Save Mappings
             </Button>

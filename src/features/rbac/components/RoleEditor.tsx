@@ -122,7 +122,7 @@ export function RoleEditor({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="role_name" className="text-xs font-semibold text-ink uppercase">
                 Role Name
@@ -202,7 +202,7 @@ export function RoleEditor({
             <Button
               type="submit"
               disabled={isLoading}
-              className="h-9 text-xs text-white bg-primary hover:bg-primary-hover"
+              className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {role ? "Save Changes" : "Create Role"}
             </Button>

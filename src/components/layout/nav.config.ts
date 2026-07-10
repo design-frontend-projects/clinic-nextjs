@@ -24,6 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.appointments", href: "/admin/appointments", iconKey: "appointments", roles: ["admin", "owner"], requiredPermission: "appointment.read" },
   { titleKey: "sidebar.billing", href: "/admin/billing", iconKey: "billing", roles: ["admin", "owner"] },
   { titleKey: "sidebar.clinicDefinition", href: "/admin/clinics", iconKey: "clinic", roles: ["admin", "owner"] },
+  { titleKey: "sidebar.reviews", href: "/admin/reviews", iconKey: "reviews", roles: ["admin", "owner"] },
   { titleKey: "sidebar.settings", href: "/admin/settings", iconKey: "settings", roles: ["admin", "owner"] },
 
   // Settings group (RBAC) — gated by settings permissions

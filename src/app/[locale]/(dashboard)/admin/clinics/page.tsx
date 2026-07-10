@@ -74,7 +74,7 @@ export default function ClinicAdminPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             Clinic Definition
@@ -120,7 +120,7 @@ export default function ClinicAdminPage() {
                   placeholder="e.g. REG-12345"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" type="email" {...register("email")} />

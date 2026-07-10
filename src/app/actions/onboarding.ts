@@ -175,52 +175,88 @@ export async function saveClinicStep(data: ClinicFormData, subscriptionData: Sub
       },
     });
 
-    // Ensure the subscription plan exists (mock data for now)
-    const existingPlan = await prisma.subscription_plans.findFirst({
-      where: { name: planIdString === "basic" ? "Basic" : "Pro" },
-    });
+    // Resolve the selected plan: a uuid means a real subscription_plans row
+    // chosen on the public pricing page / onboarding picker; the legacy
+    // "basic"/"pro" ids fall back to the mock create-if-missing behavior.
+    const UUID_RE =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    let planId = existingPlan?.id;
+    let plan = UUID_RE.test(planIdString)
+      ? await prisma.subscription_plans.findFirst({
+          where: { id: planIdString, status: "active", deleted_at: null },
+        })
+      : null;
 
-    if (!planId) {
-      const newPlan = await prisma.subscription_plans.create({
-        data: {
-          name: planIdString === "basic" ? "Basic" : "Pro",
-          billing_period: "monthly",
-          price: planIdString === "basic" ? 29 : 99,
-          currency: "USD",
-        },
+    if (!plan) {
+      const legacyName = planIdString === "pro" ? "Pro" : "Basic";
+      plan = await prisma.subscription_plans.findFirst({
+        where: { name: legacyName },
       });
-      planId = newPlan.id;
+      if (!plan) {
+        plan = await prisma.subscription_plans.create({
+          data: {
+            name: legacyName,
+            billing_period: "monthly",
+            price: legacyName === "Basic" ? 29 : 99,
+            currency: "USD",
+          },
+        });
+      }
     }
 
-    // Create or update tenant subscription
+    // Derive the subscription window from the plan's billing period.
+    const MONTHS_BY_PERIOD: Record<string, number | null> = {
+      monthly: 1,
+      quarterly: 3,
+      semi_annual: 6,
+      annual: 12,
+      lifetime: null,
+    };
     const startDate = new Date();
-    // Add 1 month using vanilla JS date
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 1);
+    const months = MONTHS_BY_PERIOD[plan.billing_period] ?? 1;
+    let endDate: Date | null = null;
+    if (months !== null) {
+      endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + months);
+    }
 
     await prisma.tenant_subscriptions.upsert({
       where: { tenant_id: clinic.id },
       update: {
-        plan_id: planId,
+        plan_id: plan.id,
         start_date: startDate,
         end_date: endDate,
         renewal_date: endDate,
         status: "active",
-        billing_cycle: "monthly",
-        price: planIdString === "basic" ? 29 : 99,
+        billing_cycle: plan.billing_period,
+        price: plan.price,
       },
       create: {
         tenant_id: clinic.id,
-        plan_id: planId,
+        plan_id: plan.id,
         start_date: startDate,
         end_date: endDate,
         renewal_date: endDate,
         status: "active",
-        billing_cycle: "monthly",
-        price: planIdString === "basic" ? 29 : 99,
+        billing_cycle: plan.billing_period,
+        price: plan.price,
       },
+    });
+
+    // Best-effort sync of the legacy string tier used by src/lib/subscription.ts
+    // (free < pro < enterprise). The rich subscription_plans table and this
+    // string gate remain decoupled; unknown plan names map to "pro" so paid
+    // plans aren't gated as free.
+    const planName = plan.name.toLowerCase();
+    const tier =
+      Number(plan.price) === 0
+        ? "free"
+        : planName.includes("enterprise")
+          ? "enterprise"
+          : "pro";
+    await prisma.clinics.update({
+      where: { id: clinic.id },
+      data: { subscription_plan: tier },
     });
 
     return { success: true, clinicId: clinic.id };

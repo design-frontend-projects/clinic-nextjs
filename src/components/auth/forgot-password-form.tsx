@@ -57,10 +57,10 @@ export function ForgotPasswordForm() {
   if (isSent) {
     return (
       <div className="text-center py-4 space-y-4">
-        <p className="text-sm text-[#a8a8a8]">
+        <p className="text-sm text-muted-foreground">
           We have sent a password reset link to your email. Please check your inbox and click the link to proceed.
         </p>
-        <p className="text-xs text-[#666666]">
+        <p className="text-xs text-muted-foreground">
           If you don't receive it within a few minutes, check your spam folder.
         </p>
       </div>
@@ -70,12 +70,11 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-white">Email address</Label>
+        <Label htmlFor="email">Email address</Label>
         <Input
           id="email"
           type="email"
           placeholder="doctor@clinic.com"
-          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("email")}
         />
         {errors.email && (
@@ -85,10 +84,10 @@ export function ForgotPasswordForm() {
 
       <Button
         type="submit"
-        className="w-full bg-[#0007cd] text-white hover:bg-[#0005a3] border-none text-sm font-medium mt-2"
+        className="w-full text-sm mt-2"
         disabled={isLoading}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
         Send reset link
       </Button>
     </form>

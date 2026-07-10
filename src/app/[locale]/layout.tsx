@@ -28,13 +28,18 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = (await import(`../../messages/${locale}.json`)).default;
   return (
-    <html lang={locale} suppressHydrationWarning className="dark">
+    <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <ThemeProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
             <QueryProvider>
               {children}
-              <Toaster position="top-right" />
+              <Toaster position={locale === "ar" ? "top-left" : "top-right"} />
             </QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>

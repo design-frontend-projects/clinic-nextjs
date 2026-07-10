@@ -96,14 +96,14 @@ export function BranchSetupStep({
             disabled={loading}
             className="flex-1"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="me-2 h-4 w-4" />
             {tOnboarding("back")}
           </Button>
           <Button type="submit" className="flex-1" disabled={loading}>
             {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
             ) : (
-              <CheckCircle className="mr-2 h-4 w-4" />
+              <CheckCircle className="me-2 h-4 w-4" />
             )}
             {tOnboarding("completeSetup")}
           </Button>

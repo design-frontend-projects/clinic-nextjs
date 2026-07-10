@@ -34,11 +34,14 @@ type OnboardingProgressData = {
 type OnboardingFormProps = {
   defaultEmail?: string;
   defaultFullName?: string;
+  /** Plan chosen on the public pricing page; wins over any persisted value. */
+  initialPlanId?: string;
 };
 
 export function OnboardingForm({
   defaultEmail,
   defaultFullName,
+  initialPlanId,
 }: OnboardingFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -84,6 +87,12 @@ export function OnboardingForm({
           if (data.clinicId) setClinicId(data.clinicId);
         }
 
+        // The plan picked on the public pricing page overrides anything
+        // persisted locally or restored from the server.
+        if (initialPlanId) {
+          setSubscriptionData({ plan_id: initialPlanId });
+        }
+
         setStep(res.step as OnboardingStep);
       } catch (err) {
         console.error(err);
@@ -92,7 +101,7 @@ export function OnboardingForm({
       }
     }
     loadProgress();
-  }, [setSubscriptionData, setClinicData, setBranchData, setSpecialtyIds, setStep, setClinicId, router]);
+  }, [setSubscriptionData, setClinicData, setBranchData, setSpecialtyIds, setStep, setClinicId, router, initialPlanId]);
 
   const handleSubscriptionSubmit = async (data: SubscriptionFormData) => {
     setLoading(true);

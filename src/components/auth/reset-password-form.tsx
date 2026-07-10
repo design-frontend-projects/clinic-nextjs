@@ -65,12 +65,11 @@ export function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-white">New Password</Label>
+        <Label htmlFor="password">New Password</Label>
         <Input
           id="password"
           type="password"
           placeholder="••••••••"
-          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("password")}
         />
         {errors.password && (
@@ -79,12 +78,11 @@ export function ResetPasswordForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword" className="text-white">Confirm New Password</Label>
+        <Label htmlFor="confirmPassword">Confirm New Password</Label>
         <Input
           id="confirmPassword"
           type="password"
           placeholder="••••••••"
-          className="bg-[#181818] border-[#222222] text-white placeholder:text-[#666666] focus-visible:border-[#0007cd] focus-visible:ring-[#0007cd]/30"
           {...register("confirmPassword")}
         />
         {errors.confirmPassword && (
@@ -94,10 +92,10 @@ export function ResetPasswordForm() {
 
       <Button
         type="submit"
-        className="w-full bg-[#0007cd] text-white hover:bg-[#0005a3] border-none text-sm font-medium mt-2"
+        className="w-full text-sm mt-2"
         disabled={isLoading}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
         Reset password
       </Button>
     </form>

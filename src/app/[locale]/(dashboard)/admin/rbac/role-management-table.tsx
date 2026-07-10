@@ -151,7 +151,7 @@ export default function RoleManagementTable({
               </div>
               <div className="grid gap-2">
                 <Label>Permissions</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2 h-48 overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 h-48 overflow-y-auto pr-2">
                   {allPermissions.map((perm) => (
                     <div key={perm.id} className="flex items-center space-x-2">
                       <Checkbox

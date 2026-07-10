@@ -16,12 +16,13 @@ model profiles {
   created_at                                             DateTime                 @default(now())
   is_profile_completed                                   Boolean?                 @default(false)
   address                                                Json?
-  auth_user_id                                           String                   @unique
-  tenant_id                                              String?                  @db.Uuid
+  auth_user_id                                           String                   @unique @default(dbgenerated("auth.uid()")) @db.Uuid
+  tenant_id                                              String?                  @default(dbgenerated("auth.uid()")) @db.Uuid
   role                                                   ProfileRole?
   is_owner                                               Boolean                  @default(false)
   clinic_id                                              String?                  @db.Uuid
   appointments                                           appointments[]
+  doctor_specialties                                     doctor_specialties[]
   encounters                                             encounters[]
   lab_orders                                             lab_orders[]
   medical_files                                          medical_files[]
@@ -36,7 +37,8 @@ model profiles {
   stock_transfers_stock_transfers_initiated_byToprofiles stock_transfers[]        @relation("stock_transfers_initiated_byToprofiles")
   user_permissions                                       user_permissions[]
   user_roles                                             user_roles[]
-  doctor_specialties                                     doctor_specialties[]
+  reviews_as_doctor                                      appointment_reviews[]    @relation("review_doctor")
+  reviews_approved                                       appointment_reviews[]    @relation("review_approver")
 
   @@index([auth_user_id])
   @@index([tenant_id])
@@ -69,6 +71,7 @@ model patients {
   profiles               profiles?                @relation(fields: [profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   pharmacy_sales         pharmacy_sales[]
   prescription_dispenses prescription_dispenses[]
+  appointment_reviews    appointment_reviews[]
 
   @@index([clinic_id])
 }
@@ -88,6 +91,7 @@ model appointments {
   profiles         profiles?         @relation(fields: [doctor_id], references: [id])
   patients         patients          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   encounters       encounters[]
+  review           appointment_reviews?
 
   @@index([appointment_date])
   @@index([clinic_id])
@@ -463,7 +467,7 @@ model clinics {
   created_at              DateTime                 @default(now())
   updated_at              DateTime                 @default(now())
   is_primary              Boolean?                 @default(false)
-  auth_user_id            String?
+  auth_user_id            String?                  @default(dbgenerated("auth.uid()")) @db.Uuid
   onboarding_completed_at DateTime?
   have_pharmacy           Boolean?                 @default(false)
   have_lab                Boolean?                 @default(false)
@@ -497,6 +501,7 @@ model clinics {
   tenant_subscription     tenant_subscriptions?
   user_permissions        user_permissions[]
   user_roles              user_roles[]
+  appointment_reviews     appointment_reviews[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -910,6 +915,64 @@ model payment_records {
   subscription           tenant_subscriptions @relation(fields: [tenant_subscription_id], references: [id], onDelete: Cascade)
 }
 
+/// Global catalog of medical specialties, curated by the app owner and shared by
+/// every clinic. Not tenant-scoped (mirrors subscription_plans).
+model specialties {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String               @unique
+  name_ar            String?
+  description        String?
+  is_active          Boolean              @default(true)
+  display_order      Int                  @default(0)
+  created_at         DateTime             @default(now())
+  updated_at         DateTime             @default(now()) @updatedAt
+  created_by         String?              @db.Uuid
+  updated_by         String?              @db.Uuid
+  doctor_specialties doctor_specialties[]
+
+  @@index([is_active])
+}
+
+/// Junction linking a doctor profile to one or more catalog specialties.
+model doctor_specialties {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id   String      @db.Uuid
+  specialty_id String      @db.Uuid
+  created_at   DateTime    @default(now())
+  profiles     profiles    @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  specialties  specialties @relation(fields: [specialty_id], references: [id], onDelete: Cascade)
+
+  @@unique([profile_id, specialty_id])
+  @@index([profile_id])
+  @@index([specialty_id])
+}
+
+/// Patient rating for a completed appointment. Requires clinic-admin approval
+/// (status: pending -> approved/rejected) before public display.
+model appointment_reviews {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointment_id String       @unique @db.Uuid
+  clinic_id      String       @db.Uuid
+  patient_id     String       @db.Uuid
+  doctor_id      String?      @db.Uuid
+  rating         Int          @db.SmallInt
+  comment        String?
+  status         String       @default("pending")
+  approved_by    String?      @db.Uuid
+  approved_at    DateTime?
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @default(now()) @updatedAt
+  appointments   appointments @relation(fields: [appointment_id], references: [id], onDelete: Cascade)
+  clinics        clinics      @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  patients       patients     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  doctor         profiles?    @relation("review_doctor", fields: [doctor_id], references: [id])
+  approver       profiles?    @relation("review_approver", fields: [approved_by], references: [id])
+
+  @@index([clinic_id, status])
+  @@index([patient_id])
+  @@index([status, created_at(sort: Desc)])
+}
+
 enum AppointmentStatus {
   scheduled
   checked_in
@@ -997,8 +1060,8 @@ enum ProfileRole {
   doctor
   admin
   patient
-  super_admin
   app_owner
+  super_admin
 }
 
 enum UserStatus {
@@ -1026,36 +1089,4 @@ enum SubscriptionStatus {
   past_due
   suspended
   cancelled
-}
-
-/// Global catalog of medical specialties, curated by the app owner and shared by
-/// every clinic. Not tenant-scoped (mirrors subscription_plans).
-model specialties {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name               String               @unique
-  name_ar            String?
-  description        String?
-  is_active          Boolean              @default(true)
-  display_order      Int                  @default(0)
-  created_at         DateTime             @default(now())
-  updated_at         DateTime             @default(now()) @updatedAt
-  created_by         String?              @db.Uuid
-  updated_by         String?              @db.Uuid
-  doctor_specialties doctor_specialties[]
-
-  @@index([is_active])
-}
-
-/// Junction linking a doctor profile to one or more catalog specialties.
-model doctor_specialties {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile_id   String      @db.Uuid
-  specialty_id String      @db.Uuid
-  created_at   DateTime    @default(now())
-  profiles     profiles    @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  specialties  specialties @relation(fields: [specialty_id], references: [id], onDelete: Cascade)
-
-  @@unique([profile_id, specialty_id])
-  @@index([profile_id])
-  @@index([specialty_id])
 }

@@ -138,7 +138,7 @@ export default function AuditLogsPage() {
                       <TableRow className="bg-surface-elevated border-b border-hairline hover:bg-surface-elevated">
                         <TableCell colSpan={5} className="p-4">
                           <div className="rounded-md border border-hairline bg-background p-4 space-y-4 font-mono text-[11px] leading-relaxed text-mute">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
                                 <span className="font-bold text-ink uppercase">IP Address:</span> {log.ip_address || "Localhost"}
                               </div>

@@ -103,7 +103,7 @@ export function SignInForm() {
       transition={{ duration: 0.4 }}
     >
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-white">
+        <Label htmlFor="email">
           {t("emailLabel")}
         </Label>
         <Input
@@ -120,12 +120,12 @@ export function SignInForm() {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-white">
+          <Label htmlFor="password">
             {t("passwordLabel")}
           </Label>
           <Link
             href="/forgot-password"
-            className="text-xs text-[#a8a8a8] hover:text-white hover:underline transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
           >
             {t("forgotPassword")}
           </Link>
@@ -146,12 +146,12 @@ export function SignInForm() {
         <input
           id="rememberMe"
           type="checkbox"
-          className="h-4 w-4 rounded-[4px] border border-[#333333] bg-[#222222] text-[#0007cd] focus:ring-0 focus:ring-offset-0 focus:ring-[#0007cd] accent-[#0007cd] cursor-pointer"
+          className="h-4 w-4 rounded-[4px] border border-border bg-card accent-primary cursor-pointer"
           {...register("rememberMe")}
         />
         <Label
           htmlFor="rememberMe"
-          className="text-xs font-normal text-[#a8a8a8] cursor-pointer hover:text-white transition-colors"
+          className="text-xs font-normal text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
         >
           {t("rememberMe")}
         </Label>
@@ -164,10 +164,10 @@ export function SignInForm() {
       >
         <Button
           type="submit"
-          className="w-full bg-primary text-white hover:bg-primary/90 border-none text-sm font-medium mt-2"
+          className="w-full text-sm mt-2"
           disabled={isLoading}
         >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
           {t("signInButton")}
         </Button>
       </motion.div>

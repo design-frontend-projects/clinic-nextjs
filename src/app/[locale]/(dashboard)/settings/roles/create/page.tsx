@@ -81,7 +81,7 @@ export default function CreateRolePage() {
 
   return (
     <div className="space-y-6 font-inter max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={() => router.push("/settings/roles")} className="h-9 w-9 border-hairline">
             <ArrowLeft className="h-4 w-4" />
@@ -95,7 +95,7 @@ export default function CreateRolePage() {
         <Button
           onClick={handleSave}
           disabled={createMutation.isPending}
-          className="h-9 text-xs text-white bg-primary hover:bg-primary-hover flex gap-1.5"
+          className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90 flex gap-1.5"
         >
           <Save className="h-4 w-4" /> Save Role
         </Button>

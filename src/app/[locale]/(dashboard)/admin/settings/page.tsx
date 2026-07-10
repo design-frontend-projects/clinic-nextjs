@@ -42,7 +42,7 @@ export default function SettingsPage() {
               <Label htmlFor="reg_number">Registration Number</Label>
               <Input id="reg_number" placeholder="REG-001" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="clinic_email">Email</Label>
                 <Input
@@ -71,7 +71,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg border p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-lg font-semibold">Trial Plan</p>
                   <p className="text-sm text-muted-foreground">
