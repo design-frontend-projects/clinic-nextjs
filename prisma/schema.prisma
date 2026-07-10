@@ -21,6 +21,8 @@ model profiles {
   role                                                   ProfileRole?
   is_owner                                               Boolean                  @default(false)
   clinic_id                                              String?                  @db.Uuid
+  reviews_approved                                       appointment_reviews[]    @relation("review_approver")
+  reviews_as_doctor                                      appointment_reviews[]    @relation("review_doctor")
   appointments                                           appointments[]
   doctor_specialties                                     doctor_specialties[]
   encounters                                             encounters[]
@@ -37,8 +39,7 @@ model profiles {
   stock_transfers_stock_transfers_initiated_byToprofiles stock_transfers[]        @relation("stock_transfers_initiated_byToprofiles")
   user_permissions                                       user_permissions[]
   user_roles                                             user_roles[]
-  reviews_as_doctor                                      appointment_reviews[]    @relation("review_doctor")
-  reviews_approved                                       appointment_reviews[]    @relation("review_approver")
+  user_settings                                          user_settings[]
 
   @@index([auth_user_id])
   @@index([tenant_id])
@@ -57,6 +58,7 @@ model patients {
   address                String?
   created_at             DateTime                 @default(now())
   profile_id             String?                  @db.Uuid
+  appointment_reviews    appointment_reviews[]
   appointments           appointments[]
   encounters             encounters[]
   file_storage           file_storage[]
@@ -71,27 +73,26 @@ model patients {
   profiles               profiles?                @relation(fields: [profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   pharmacy_sales         pharmacy_sales[]
   prescription_dispenses prescription_dispenses[]
-  appointment_reviews    appointment_reviews[]
 
   @@index([clinic_id])
 }
 
 model appointments {
-  id               String            @id @default(uuid()) @db.Uuid
-  clinic_id        String            @db.Uuid
-  branch_id        String?           @db.Uuid
-  patient_id       String            @db.Uuid
-  doctor_id        String?           @db.Uuid
+  id               String               @id @default(uuid()) @db.Uuid
+  clinic_id        String               @db.Uuid
+  branch_id        String?              @db.Uuid
+  patient_id       String               @db.Uuid
+  doctor_id        String?              @db.Uuid
   appointment_date DateTime
-  status           AppointmentStatus @default(scheduled)
+  status           AppointmentStatus    @default(scheduled)
   notes            String?
-  created_at       DateTime          @default(now())
-  branches         branches?         @relation(fields: [branch_id], references: [id])
-  clinics          clinics           @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  profiles         profiles?         @relation(fields: [doctor_id], references: [id])
-  patients         patients          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
-  encounters       encounters[]
+  created_at       DateTime             @default(now())
   review           appointment_reviews?
+  branches         branches?            @relation(fields: [branch_id], references: [id])
+  clinics          clinics              @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  profiles         profiles?            @relation(fields: [doctor_id], references: [id])
+  patients         patients             @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  encounters       encounters[]
 
   @@index([appointment_date])
   @@index([clinic_id])
@@ -113,6 +114,7 @@ model invoices {
   branch_id        String?            @db.Uuid
   patient_id       String?            @db.Uuid
   invoice_type     String?
+  invoice_number   String?
   total_amount     Decimal?           @db.Decimal(12, 2)
   status           InvoiceStatus      @default(draft)
   created_at       DateTime           @default(now())
@@ -471,6 +473,8 @@ model clinics {
   onboarding_completed_at DateTime?
   have_pharmacy           Boolean?                 @default(false)
   have_lab                Boolean?                 @default(false)
+  have_radio_center       Boolean?                 @default(false)
+  appointment_reviews     appointment_reviews[]
   appointments            appointments[]
   audit_logs              audit_logs[]
   branches                branches[]
@@ -501,7 +505,14 @@ model clinics {
   tenant_subscription     tenant_subscriptions?
   user_permissions        user_permissions[]
   user_roles              user_roles[]
-  appointment_reviews     appointment_reviews[]
+  tenant_settings          tenant_settings[]
+  user_settings            user_settings[]
+  settings_history         settings_history[]
+  lookup_values            lookup_values[]
+  tenant_feature_overrides tenant_feature_overrides[]
+  document_sequences       document_sequences[]
+  notification_templates   notification_templates[]
+  notification_channels    notification_channels[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -963,14 +974,263 @@ model appointment_reviews {
   created_at     DateTime     @default(now())
   updated_at     DateTime     @default(now()) @updatedAt
   appointments   appointments @relation(fields: [appointment_id], references: [id], onDelete: Cascade)
-  clinics        clinics      @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  patients       patients     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
-  doctor         profiles?    @relation("review_doctor", fields: [doctor_id], references: [id])
   approver       profiles?    @relation("review_approver", fields: [approved_by], references: [id])
+  clinics        clinics      @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  doctor         profiles?    @relation("review_doctor", fields: [doctor_id], references: [id])
+  patients       patients     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id, status])
   @@index([patient_id])
   @@index([status, created_at(sort: Desc)])
+}
+
+/// Typed catalog of every configurable setting key (Enterprise Global Settings
+/// Module). Values live per scope: global_settings (platform, matched by key),
+/// tenant_settings, user_settings. See prisma/migrations/08_settings_core.sql.
+model setting_definitions {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key             String            @unique
+  module          String
+  category        String
+  value_type      String
+  default_value   Json
+  validation      Json?
+  allowed_scopes  String[]          @default(["platform", "tenant"])
+  is_sensitive    Boolean           @default(false)
+  is_public       Boolean           @default(false)
+  description     String?
+  display_order   Int               @default(0)
+  is_active       Boolean           @default(true)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @default(now()) @updatedAt
+  deleted_at      DateTime?
+  created_by      String?           @db.Uuid
+  updated_by      String?           @db.Uuid
+  tenant_settings tenant_settings[]
+  user_settings   user_settings[]
+
+  @@index([module, display_order])
+}
+
+/// Per-clinic setting values (tenant scope of the layered settings system).
+model tenant_settings {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String              @db.Uuid
+  definition_id   String              @db.Uuid
+  value           Json
+  vault_secret_id String?             @db.Uuid
+  version         Int                 @default(1)
+  is_active       Boolean             @default(true)
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @default(now()) @updatedAt
+  deleted_at      DateTime?
+  created_by      String?             @db.Uuid
+  updated_by      String?             @db.Uuid
+  definition      setting_definitions @relation(fields: [definition_id], references: [id], onDelete: Cascade)
+  clinics         clinics             @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, definition_id])
+  @@index([tenant_id])
+}
+
+/// Per-profile preference values (user scope of the layered settings system).
+model user_settings {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id    String              @db.Uuid
+  tenant_id     String?             @db.Uuid
+  definition_id String              @db.Uuid
+  value         Json
+  version       Int                 @default(1)
+  is_active     Boolean             @default(true)
+  created_at    DateTime            @default(now())
+  updated_at    DateTime            @default(now()) @updatedAt
+  deleted_at    DateTime?
+  created_by    String?             @db.Uuid
+  updated_by    String?             @db.Uuid
+  definition    setting_definitions @relation(fields: [definition_id], references: [id], onDelete: Cascade)
+  profiles      profiles            @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  clinics       clinics?            @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([profile_id, definition_id])
+  @@index([tenant_id, profile_id])
+}
+
+/// Append-only settings change log (all scopes). Rollback re-writes an old
+/// value as a NEW version — never destructive.
+model settings_history {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scope          String
+  tenant_id      String?   @db.Uuid
+  profile_id     String?   @db.Uuid
+  definition_key String
+  old_value      Json?
+  new_value      Json?
+  version        Int
+  change_reason  String?
+  changed_by     String?   @db.Uuid
+  changed_at     DateTime  @default(now())
+  clinics        clinics?  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id, definition_key, changed_at(sort: Desc)])
+  @@index([scope, changed_at(sort: Desc)])
+}
+
+/// Lookup categories (gender, appointment types, payment methods, ...).
+model lookup_categories {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                String          @unique
+  name                String
+  name_ar             String?
+  description         String?
+  allow_tenant_values Boolean         @default(true)
+  is_system           Boolean         @default(false)
+  is_active           Boolean         @default(true)
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @default(now()) @updatedAt
+  deleted_at          DateTime?
+  created_by          String?         @db.Uuid
+  updated_by          String?         @db.Uuid
+  values              lookup_values[]
+}
+
+/// Lookup values with tenant shadowing: tenant_id NULL = global default;
+/// a tenant row with the same code shadows the global row for that tenant.
+/// NOTE: uniqueness is enforced by partial unique indexes in SQL (09_lookups.sql)
+/// which Prisma cannot express — repository code must find-then-write in a
+/// transaction, never upsert.
+model lookup_values {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_id   String            @db.Uuid
+  tenant_id     String?           @db.Uuid
+  code          String
+  label         String
+  label_ar      String?
+  metadata      Json?
+  display_order Int               @default(0)
+  is_active     Boolean           @default(true)
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @default(now()) @updatedAt
+  deleted_at    DateTime?
+  created_by    String?           @db.Uuid
+  updated_by    String?           @db.Uuid
+  category      lookup_categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  clinics       clinics?          @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@index([category_id, tenant_id, display_order])
+  @@index([tenant_id])
+}
+
+/// Platform-owned feature flag catalog. Evaluation chain: kill_switch >
+/// tenant override > plan entitlement (subscription_features) > default_enabled.
+model feature_flags {
+  id              String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key             String                     @unique
+  name            String
+  name_ar         String?
+  description     String?
+  default_enabled Boolean                    @default(false)
+  kill_switch     Boolean                    @default(false)
+  environments    String[]                   @default(["production", "development"])
+  is_beta         Boolean                    @default(false)
+  is_active       Boolean                    @default(true)
+  created_at      DateTime                   @default(now())
+  updated_at      DateTime                   @default(now()) @updatedAt
+  deleted_at      DateTime?
+  created_by      String?                    @db.Uuid
+  updated_by      String?                    @db.Uuid
+  overrides       tenant_feature_overrides[]
+}
+
+/// App-owner-granted per-tenant feature exceptions (optionally expiring).
+model tenant_feature_overrides {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id   String        @db.Uuid
+  feature_key String
+  is_enabled  Boolean
+  reason      String?
+  expires_at  DateTime?
+  is_active   Boolean       @default(true)
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @default(now()) @updatedAt
+  deleted_at  DateTime?
+  created_by  String?       @db.Uuid
+  updated_by  String?       @db.Uuid
+  feature     feature_flags @relation(fields: [feature_key], references: [key], onDelete: Cascade)
+  clinics     clinics       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, feature_key])
+  @@index([tenant_id])
+}
+
+/// Configurable document numbering. One row per (tenant, type, period); the
+/// row is both counter and format config. Numbers are claimed atomically via
+/// public.claim_document_number() (11_document_sequences.sql).
+model document_sequences {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id      String    @db.Uuid
+  document_type  String
+  prefix         String    @default("")
+  padding        Int       @default(5)
+  reset_period   String    @default("never")
+  period_key     String    @default("")
+  include_period Boolean   @default(true)
+  current_value  BigInt    @default(0)
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now()) @updatedAt
+  deleted_at     DateTime?
+  created_by     String?   @db.Uuid
+  updated_by     String?   @db.Uuid
+  clinics        clinics   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, document_type, period_key])
+  @@index([tenant_id, document_type])
+}
+
+/// Notification templates: tenant_id NULL = global default; fallback chain
+/// tenant+locale > tenant+en > global+locale > global+en.
+/// Uniqueness enforced by partial unique indexes in SQL (12_notifications.sql).
+model notification_templates {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id    String?   @db.Uuid
+  channel      String
+  template_key String
+  locale       String    @default("en")
+  subject      String?
+  body         String
+  variables    Json?
+  is_active    Boolean   @default(true)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @default(now()) @updatedAt
+  deleted_at   DateTime?
+  created_by   String?   @db.Uuid
+  updated_by   String?   @db.Uuid
+  clinics      clinics?  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id, template_key])
+}
+
+/// Per-tenant notification delivery config. config holds NON-secret fields
+/// only; secret_ref is a Supabase Vault secret UUID — never the secret itself.
+model notification_channels {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id        String    @db.Uuid
+  channel_type     String
+  config           Json      @default("{}")
+  secret_ref       String?   @db.Uuid
+  is_enabled       Boolean   @default(false)
+  is_verified      Boolean   @default(false)
+  last_verified_at DateTime?
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now()) @updatedAt
+  deleted_at       DateTime?
+  created_by       String?   @db.Uuid
+  updated_by       String?   @db.Uuid
+  clinics          clinics   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, channel_type])
+  @@index([tenant_id])
 }
 
 enum AppointmentStatus {
@@ -1062,6 +1322,8 @@ enum ProfileRole {
   patient
   app_owner
   super_admin
+  pharmacist
+  receptionist
 }
 
 enum UserStatus {

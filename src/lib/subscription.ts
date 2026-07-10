@@ -12,6 +12,10 @@ const PLAN_HIERARCHY: Record<SubscriptionPlan, number> = {
 /**
  * Checks if the current tenant's subscription meets the required plan level.
  * Throws an error if they don't.
+ *
+ * @deprecated Prefer `requireFeature()` from `src/lib/features.ts` — it
+ * evaluates real plan entitlements (subscription_features) plus feature flags
+ * and per-tenant overrides, instead of this legacy plan-name string check.
  */
 export async function requireSubscription(requiredPlan: SubscriptionPlan) {
   const tenant = await requireTenantInfo();
@@ -36,6 +40,9 @@ export async function requireSubscription(requiredPlan: SubscriptionPlan) {
 /**
  * Checks if the current tenant's subscription meets the required plan level
  * without throwing an error, returning a boolean.
+ *
+ * @deprecated Prefer `hasFeature()` from `src/lib/features.ts` (see
+ * requireSubscription above).
  */
 export async function hasSubscription(requiredPlan: SubscriptionPlan) {
   try {

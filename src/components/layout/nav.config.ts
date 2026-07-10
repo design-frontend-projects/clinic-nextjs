@@ -13,6 +13,8 @@ export interface NavItem {
   roles: string[];
   /** Optional permission gate, evaluated server-side. */
   requiredPermission?: string;
+  /** Optional feature-flag gate (see src/lib/features.ts), evaluated server-side. */
+  requiredFeature?: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -25,13 +27,14 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.billing", href: "/admin/billing", iconKey: "billing", roles: ["admin", "owner"] },
   { titleKey: "sidebar.clinicDefinition", href: "/admin/clinics", iconKey: "clinic", roles: ["admin", "owner"] },
   { titleKey: "sidebar.reviews", href: "/admin/reviews", iconKey: "reviews", roles: ["admin", "owner"] },
-  { titleKey: "sidebar.settings", href: "/admin/settings", iconKey: "settings", roles: ["admin", "owner"] },
+  { titleKey: "sidebar.settings", href: "/admin/settings", iconKey: "settings", roles: ["admin", "owner"], requiredPermission: "settings.core.read" },
 
   // Settings group (RBAC) — gated by settings permissions
   { titleKey: "sidebar.roles", href: "/settings/roles", iconKey: "roles", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
   { titleKey: "sidebar.users", href: "/settings/user-roles", iconKey: "users", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
   { titleKey: "sidebar.permissions", href: "/settings/permissions", iconKey: "permissions", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
   { titleKey: "sidebar.audit", href: "/settings/audit", iconKey: "audit", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.audit.read" },
+  { titleKey: "sidebar.preferences", href: "/settings/preferences", iconKey: "preferences", roles: ["admin", "owner", "doctor", "staff"] },
 
   // Doctor
   { titleKey: "sidebar.dashboard", href: "/doctor", iconKey: "dashboard", roles: ["doctor"] },
@@ -63,6 +66,7 @@ export type ResolvedNavItem = Pick<NavItem, "titleKey" | "href" | "iconKey">;
 export async function resolveNavItems(
   role: string,
   checkPermission: (permission: string) => Promise<boolean>,
+  checkFeature?: (feature: string) => Promise<boolean>,
 ): Promise<ResolvedNavItem[]> {
   const candidates = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
@@ -71,6 +75,10 @@ export async function resolveNavItems(
       if (item.requiredPermission) {
         const allowed = await checkPermission(item.requiredPermission);
         if (!allowed) return null;
+      }
+      if (item.requiredFeature && checkFeature) {
+        const enabled = await checkFeature(item.requiredFeature);
+        if (!enabled) return null;
       }
       return {
         titleKey: item.titleKey,

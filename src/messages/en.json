@@ -171,7 +171,8 @@
     "users": "Users",
     "permissions": "Permissions",
     "audit": "Audit Log",
-    "reviews": "Reviews"
+    "reviews": "Reviews",
+    "preferences": "My Preferences"
   },
   "pages": {
     "admin": {
@@ -454,6 +455,232 @@
       "title": "Something went wrong",
       "description": "We couldn't load this page. Please try again, or contact your administrator if the problem persists.",
       "retry": "Try again"
+    }
+  },
+  "settings": {
+    "title": "Clinic Settings",
+    "subtitle": "Configure your clinic's preferences, policies and lists.",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "saved": "Settings saved",
+    "saveFailed": "Could not save settings",
+    "loading": "Loading settings...",
+    "loadFailed": "Failed to load settings",
+    "retry": "Retry",
+    "export": "Export",
+    "import": "Import",
+    "importTitle": "Import Settings",
+    "importPrompt": "Paste a clinic-settings/v1 JSON document. Values are validated before anything is applied.",
+    "imported": "Settings imported",
+    "exported": "Settings copied to clipboard",
+    "common": {
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "close": "Close",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "tabs": {
+      "general": "General",
+      "localization": "Localization",
+      "branding": "Branding",
+      "workingHours": "Working Hours",
+      "appointments": "Appointments",
+      "notifications": "Notifications",
+      "features": "Features",
+      "lookups": "Lists",
+      "numbering": "Numbering",
+      "history": "History"
+    },
+    "general": {
+      "title": "Organization",
+      "description": "Identity and contact details used across the app and on documents.",
+      "displayName": "Display name",
+      "legalName": "Legal name",
+      "taxNumber": "Tax number",
+      "address": "Address",
+      "contactEmail": "Contact email",
+      "contactPhone": "Contact phone"
+    },
+    "localization": {
+      "title": "Localization",
+      "description": "Language, timezone, currency and display formats for the clinic.",
+      "language": "Default language",
+      "timezone": "Timezone",
+      "currency": "Currency (ISO code)",
+      "dateFormat": "Date format",
+      "timeFormat": "Time format",
+      "firstDayOfWeek": "First day of week",
+      "languages": {
+        "en": "English",
+        "ar": "Arabic"
+      },
+      "timeFormats": {
+        "h12": "12-hour",
+        "h24": "24-hour"
+      }
+    },
+    "branding": {
+      "title": "Branding",
+      "description": "Logo, colors and document footer for your clinic.",
+      "logoUrl": "Logo URL",
+      "primaryColor": "Primary color",
+      "secondaryColor": "Secondary color",
+      "invoiceFooter": "Invoice footer text"
+    },
+    "workingHours": {
+      "title": "Working Hours",
+      "description": "Weekly opening hours. Bookings outside these hours are rejected.",
+      "open": "Open",
+      "from": "From",
+      "to": "To"
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "appointments": {
+      "title": "Appointments",
+      "description": "Slot length, booking windows, cancellation policy and reminders.",
+      "slotDuration": "Slot duration (minutes)",
+      "minLeadTime": "Minimum lead time (hours)",
+      "maxAdvanceDays": "Maximum advance booking (days)",
+      "cancellationWindow": "Cancellation window (hours)",
+      "allowOnlineBooking": "Allow online booking",
+      "reminders": "Reminder rules",
+      "addReminder": "Add reminder",
+      "channel": "Channel",
+      "offsetHours": "Hours before appointment"
+    },
+    "channels": {
+      "email": "Email",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp",
+      "in_app": "In-app"
+    },
+    "notificationsTab": {
+      "title": "Notifications",
+      "description": "Sender identity, message templates and delivery channels.",
+      "senderName": "Sender name",
+      "remindersEnabled": "Appointment reminders enabled",
+      "templates": "Templates",
+      "templatesDescription": "Message templates. Editing creates a clinic override of the global default.",
+      "channelsSection": "Delivery channels",
+      "channelsDescription": "Configure how messages are delivered. Secrets are stored encrypted and never shown again.",
+      "subject": "Subject",
+      "body": "Body",
+      "variables": "Available variables",
+      "preview": "Preview",
+      "key": "Template",
+      "locale": "Language",
+      "source": "Source",
+      "global": "Default",
+      "custom": "Customized",
+      "channelType": "Channel type",
+      "host": "Host",
+      "port": "Port",
+      "username": "Username",
+      "fromAddress": "From address",
+      "secret": "Password / API key",
+      "secretHint": "Leave empty to keep the current secret.",
+      "secretStored": "A secret is stored for this channel",
+      "enabled": "Enabled",
+      "verified": "Verified",
+      "notVerified": "Not verified",
+      "test": "Test",
+      "testSuccess": "Channel verified",
+      "configure": "Configure"
+    },
+    "features": {
+      "title": "Features",
+      "description": "What your current plan enables. Contact support to change your plan.",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "beta": "Beta",
+      "sources": {
+        "kill_switch": "Temporarily unavailable",
+        "environment": "Not available in this environment",
+        "tenant_override": "Granted for your clinic",
+        "plan": "Included in your plan",
+        "default": "Platform default"
+      }
+    },
+    "lookups": {
+      "title": "Lists",
+      "description": "Reusable value lists. Your changes only affect this clinic.",
+      "category": "Category",
+      "code": "Code",
+      "label": "Label",
+      "labelAr": "Label (Arabic)",
+      "order": "Order",
+      "active": "Active",
+      "inactive": "Hidden",
+      "addValue": "Add value",
+      "editValue": "Edit value",
+      "deleteTitle": "Delete this value?",
+      "deleteBody": "The value is removed from this clinic's list. Global defaults are only hidden, not deleted.",
+      "deleted": "Value removed",
+      "global": "Default",
+      "custom": "Custom",
+      "shadowed": "Overrides default"
+    },
+    "numbering": {
+      "title": "Document Numbering",
+      "description": "Number formats for invoices and other documents. Changes apply to future numbers.",
+      "documentType": "Document type",
+      "prefix": "Prefix",
+      "padding": "Digits",
+      "resetPeriod": "Reset",
+      "includePeriod": "Include period in number",
+      "preview": "Next number preview",
+      "currentValue": "Current counter",
+      "updated": "Sequence updated",
+      "periods": {
+        "never": "Never",
+        "yearly": "Yearly",
+        "monthly": "Monthly"
+      },
+      "types": {
+        "invoice": "Invoice",
+        "receipt": "Receipt",
+        "patient_file": "Patient file",
+        "lab_order": "Lab order"
+      }
+    },
+    "history": {
+      "title": "Change History",
+      "description": "Every settings change, with one-click rollback.",
+      "setting": "Setting",
+      "oldValue": "Previous value",
+      "newValue": "New value",
+      "version": "Version",
+      "changedAt": "Changed at",
+      "rollback": "Roll back",
+      "rollbackTitle": "Roll back this change?",
+      "rollbackBody": "The previous value is written back as a new version. Nothing is deleted.",
+      "rolledBack": "Setting rolled back",
+      "empty": "No changes recorded yet."
+    },
+    "preferences": {
+      "title": "My Preferences",
+      "subtitle": "Personal display settings. They follow your account on any device.",
+      "theme": "Theme",
+      "themes": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "language": "Language",
+      "timezone": "Timezone",
+      "dateFormat": "Date format"
     }
   }
 }

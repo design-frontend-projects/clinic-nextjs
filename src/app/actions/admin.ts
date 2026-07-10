@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { createUserAccount, rollbackAuthUser } from "@/lib/invitations";
 import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
 import { createAppointmentWithPatientSchema, type CreateAppointmentWithPatientData } from "@/types/appointment.types";
+import { getAppointmentSettings, getWorkingHours } from "@/lib/settings";
+import { validateBookingTime, validateCancellation } from "@/features/settings/domain/booking-policy";
 
 export async function getDashboardStats() {
   const tenant = await requireTenantInfo();
@@ -216,13 +218,24 @@ export async function createAppointment(data: {
   const tenant = await requireTenantInfo();
   await requirePermission("appointment.manage");
 
+  // Enforce tenant scheduling policy (working hours, lead time, slot alignment).
+  const appointmentDate = new Date(data.appointment_date);
+  const [workingHours, appointmentSettings] = await Promise.all([
+    getWorkingHours(),
+    getAppointmentSettings(),
+  ]);
+  const policyError = validateBookingTime(appointmentDate, workingHours, appointmentSettings);
+  if (policyError) {
+    throw new Error(policyError);
+  }
+
   const appointment = await prisma.appointments.create({
     data: {
       clinic_id: tenant.clinicId,
       branch_id: tenant.branchId,
       patient_id: data.patient_id,
       doctor_id: data.doctor_id,
-      appointment_date: new Date(data.appointment_date),
+      appointment_date: appointmentDate,
       notes: data.notes || null,
       status: "scheduled",
     },
@@ -235,6 +248,21 @@ export async function createAppointment(data: {
 export async function updateAppointmentStatus(id: string, status: string) {
   const tenant = await requireTenantInfo();
   await requirePermission("appointment.manage");
+
+  // Enforce the tenant's cancellation window.
+  if (status === "cancelled") {
+    const existing = await prisma.appointments.findFirst({
+      where: { id, clinic_id: tenant.clinicId },
+      select: { appointment_date: true },
+    });
+    if (existing) {
+      const { cancellationWindowHours } = await getAppointmentSettings();
+      const policyError = validateCancellation(existing.appointment_date, cancellationWindowHours);
+      if (policyError) {
+        throw new Error(policyError);
+      }
+    }
+  }
 
   const appointment = await prisma.appointments.update({
     where: { id, clinic_id: tenant.clinicId },
@@ -313,6 +341,20 @@ export async function registerPatientAndCreateAppointment(data: CreateAppointmen
     });
     if (duplicate) {
       return { error: duplicateMessage(duplicate) };
+    }
+
+    // Enforce tenant scheduling policy before creating any accounts.
+    const [workingHours, appointmentSettings] = await Promise.all([
+      getWorkingHours(),
+      getAppointmentSettings(),
+    ]);
+    const policyError = validateBookingTime(
+      new Date(appointmentData.appointment_date),
+      workingHours,
+      appointmentSettings
+    );
+    if (policyError) {
+      return { error: policyError };
     }
 
     // Create the patient's confirmed auth user with a temp password

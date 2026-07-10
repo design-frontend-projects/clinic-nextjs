@@ -24,6 +24,7 @@ import {
   KeyRound,
   ScrollText,
   Star,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ const ICONS: Record<string, LucideIcon> = {
   permissions: KeyRound,
   audit: ScrollText,
   reviews: Star,
+  preferences: SlidersHorizontal,
 };
 
 type SidebarNavProps = {

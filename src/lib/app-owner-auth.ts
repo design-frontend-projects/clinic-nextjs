@@ -23,7 +23,7 @@ export async function requireAppOwner() {
     },
   });
 
-  if (!profile || profile.role !== "app_owner") {
+  if (!profile || (profile.role !== "app_owner" && profile.role !== 'owner')) {
     // If they have a profile but they are not an app_owner, redirect to standard dashboard or home
     return redirect({ href: "/", locale: await getLocale() });
   }

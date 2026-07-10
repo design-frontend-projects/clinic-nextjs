@@ -18,7 +18,7 @@ export default async function PharmacyLayout({
   }
 
   const { tenant } = result;
-  if (tenant.role !== "admin" && tenant.role !== "pharmacist") {
+  if (tenant.role !== "admin" && tenant.role !== "pharmacist" && tenant.role !== "doctor") {
     return redirect({ href: `/${tenant.role || ""}`, locale: await getLocale() });
   }
 
