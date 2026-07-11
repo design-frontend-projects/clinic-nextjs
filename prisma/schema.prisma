@@ -32,6 +32,7 @@ model profiles {
   patients                                               patients[]
   pharmacy_sales                                         pharmacy_sales[]
   prescription_dispenses                                 prescription_dispenses[]
+  prescriptions                                          prescriptions[]
   clinics                                                clinics?                 @relation(fields: [clinic_id], references: [id])
   clinics_tenant                                         clinics?                 @relation("profile_tenant", fields: [tenant_id], references: [id])
   stock_movements                                        stock_movements[]
@@ -75,6 +76,7 @@ model patients {
   profiles               profiles?                @relation(fields: [profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   pharmacy_sales         pharmacy_sales[]
   prescription_dispenses prescription_dispenses[]
+  prescriptions          prescriptions[]
 
   @@index([clinic_id])
 }
@@ -471,6 +473,7 @@ model branches {
   pharmacy_inventory                                       pharmacy_inventory[]
   pharmacy_sales                                           pharmacy_sales[]
   prescription_dispenses                                   prescription_dispenses[]
+  prescriptions                                            prescriptions[]
   purchase_orders                                          purchase_orders[]
   stock_movements                                          stock_movements[]
   stock_transfers_stock_transfers_from_branch_idTobranches stock_transfers[]        @relation("stock_transfers_from_branch_idTobranches")
@@ -481,52 +484,53 @@ model branches {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model clinics {
-  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                    String
-  registration_number     String?
-  email                   String?
-  phone                   String?
-  subscription_plan       String?
-  status                  ClinicStatus             @default(trial)
-  created_at              DateTime                 @default(now())
-  updated_at              DateTime                 @default(now())
-  is_primary              Boolean?                 @default(false)
-  auth_user_id            String?                  @default(dbgenerated("auth.uid()")) @db.Uuid
-  onboarding_completed_at DateTime?
-  have_pharmacy           Boolean?                 @default(false)
-  have_lab                Boolean?                 @default(false)
-  have_radio_center       Boolean?                 @default(false)
-  appointment_reviews     appointment_reviews[]
-  appointments            appointments[]
-  audit_logs              audit_logs[]
-  branches                branches[]
-  encounters              encounters[]
-  file_storage            file_storage[]
-  insurance_claims        insurance_claims[]
-  invoices                invoices[]
-  lab_orders              lab_orders[]
-  medical_records         medical_records[]
-  medication_batches      medication_batches[]
-  medications             medications[]
-  patients                patients[]
-  pharmacy_inventory      pharmacy_inventory[]
-  pharmacy_sales          pharmacy_sales[]
-  prescription_dispenses  prescription_dispenses[]
-  profiles                profiles[]
-  staff_profiles          profiles[]               @relation("profile_tenant")
-  purchase_orders         purchase_orders[]
-  role_group_roles        role_group_roles[]
-  role_groups             role_groups[]
-  role_hierarchy          role_hierarchy[]
-  role_permissions        role_permissions[]
-  roles                   roles[]
-  stock_movements         stock_movements[]
-  suppliers               suppliers[]
-  tenant_permissions      tenant_permissions[]
-  tenant_roles            tenant_roles[]
-  tenant_subscription     tenant_subscriptions?
-  user_permissions        user_permissions[]
-  user_roles              user_roles[]
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String
+  registration_number      String?
+  email                    String?
+  phone                    String?
+  subscription_plan        String?
+  status                   ClinicStatus               @default(trial)
+  created_at               DateTime                   @default(now())
+  updated_at               DateTime                   @default(now())
+  is_primary               Boolean?                   @default(false)
+  auth_user_id             String?                    @default(dbgenerated("auth.uid()")) @db.Uuid
+  onboarding_completed_at  DateTime?
+  have_pharmacy            Boolean?                   @default(false)
+  have_lab                 Boolean?                   @default(false)
+  have_radio_center        Boolean?                   @default(false)
+  appointment_reviews      appointment_reviews[]
+  appointments             appointments[]
+  audit_logs               audit_logs[]
+  branches                 branches[]
+  encounters               encounters[]
+  file_storage             file_storage[]
+  insurance_claims         insurance_claims[]
+  invoices                 invoices[]
+  lab_orders               lab_orders[]
+  medical_records          medical_records[]
+  medication_batches       medication_batches[]
+  medications              medications[]
+  patients                 patients[]
+  pharmacy_inventory       pharmacy_inventory[]
+  pharmacy_sales           pharmacy_sales[]
+  prescription_dispenses   prescription_dispenses[]
+  prescriptions            prescriptions[]
+  profiles                 profiles[]
+  staff_profiles           profiles[]                 @relation("profile_tenant")
+  purchase_orders          purchase_orders[]
+  role_group_roles         role_group_roles[]
+  role_groups              role_groups[]
+  role_hierarchy           role_hierarchy[]
+  role_permissions         role_permissions[]
+  roles                    roles[]
+  stock_movements          stock_movements[]
+  suppliers                suppliers[]
+  tenant_permissions       tenant_permissions[]
+  tenant_roles             tenant_roles[]
+  tenant_subscription      tenant_subscriptions?
+  user_permissions         user_permissions[]
+  user_roles               user_roles[]
   tenant_settings          tenant_settings[]
   user_settings            user_settings[]
   settings_history         settings_history[]
@@ -675,6 +679,7 @@ model medications {
   medication_batches   medication_batches[]
   clinics              clinics                @relation(fields: [clinic_id], references: [id])
   pharmacy_inventory   pharmacy_inventory[]
+  prescription_items   prescription_items[]
   purchase_order_items purchase_order_items[]
   stock_transfer_items stock_transfer_items[]
 
@@ -763,6 +768,61 @@ model prescription_dispense_items {
   prescription_dispenses prescription_dispenses @relation(fields: [dispense_id], references: [id], onDelete: Cascade)
   medication_batches     medication_batches     @relation(fields: [medication_batch_id], references: [id])
 
+  @@index([clinic_id])
+}
+
+/// Doctor-authored prescription (the prescribing act). One header per
+/// patient/visit; the prescribed drugs live in prescription_items. Distinct
+/// from prescription_dispenses, which models pharmacy fulfillment against
+/// medication_batches. RLS + FKs live in 15_prescriptions.sql (applied
+/// manually in Supabase). Reads are tenant-scoped by clinic_id at the action
+/// layer; deleted_at is a soft-delete tombstone (see prisma-soft-delete.ts).
+model prescriptions {
+  id                 String               @id @default(uuid()) @db.Uuid
+  clinic_id          String               @db.Uuid
+  branch_id          String?              @db.Uuid
+  patient_id         String               @db.Uuid
+  doctor_id          String?              @db.Uuid
+  encounter_id       String?              @db.Uuid
+  diagnosis          String?
+  notes              String?
+  status             PrescriptionStatus   @default(active)
+  issued_at          DateTime             @default(now())
+  created_at         DateTime             @default(now())
+  updated_at         DateTime             @default(now()) @updatedAt
+  deleted_at         DateTime?
+  prescription_items prescription_items[]
+  clinics            clinics              @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  branches           branches?            @relation(fields: [branch_id], references: [id])
+  patients           patients             @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  profiles           profiles?            @relation(fields: [doctor_id], references: [id])
+
+  @@index([clinic_id])
+  @@index([patient_id])
+  @@index([doctor_id])
+}
+
+/// A single prescribed drug within a prescription. medication_id optionally
+/// links the clinic medications catalog; medication_name is always denormalized
+/// so free-text entries (drug not in catalog) are fully self-describing.
+model prescription_items {
+  id              String        @id @default(uuid()) @db.Uuid
+  clinic_id       String        @db.Uuid
+  prescription_id String        @db.Uuid
+  medication_id   String?       @db.Uuid
+  medication_name String
+  dosage          String?
+  frequency       String?
+  duration        String?
+  route           String?
+  quantity        Int?
+  instructions    String?
+  updated_at      DateTime      @default(now()) @updatedAt
+  deleted_at      DateTime?
+  prescriptions   prescriptions @relation(fields: [prescription_id], references: [id], onDelete: Cascade)
+  medications     medications?  @relation(fields: [medication_id], references: [id])
+
+  @@index([prescription_id])
   @@index([clinic_id])
 }
 
@@ -1092,18 +1152,18 @@ model user_settings {
 /// Append-only settings change log (all scopes). Rollback re-writes an old
 /// value as a NEW version — never destructive.
 model settings_history {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   scope          String
-  tenant_id      String?   @db.Uuid
-  profile_id     String?   @db.Uuid
+  tenant_id      String?  @db.Uuid
+  profile_id     String?  @db.Uuid
   definition_key String
   old_value      Json?
   new_value      Json?
   version        Int
   change_reason  String?
-  changed_by     String?   @db.Uuid
-  changed_at     DateTime  @default(now())
-  clinics        clinics?  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  changed_by     String?  @db.Uuid
+  changed_at     DateTime @default(now())
+  clinics        clinics? @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
 
   @@index([tenant_id, definition_key, changed_at(sort: Desc)])
   @@index([scope, changed_at(sort: Desc)])
@@ -1340,6 +1400,12 @@ enum Gender {
   male
   female
   other
+}
+
+enum PrescriptionStatus {
+  active
+  completed
+  cancelled
 }
 
 enum InvoiceStatus {

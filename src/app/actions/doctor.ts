@@ -149,9 +149,10 @@ export async function getPatientDetails(patientId: string) {
       },
       orderBy: { encounter_date: "desc" },
     }),
-    prisma.prescription_dispenses.findMany({
+    prisma.prescriptions.findMany({
       where: { patient_id: patientId, clinic_id: tenant.clinicId },
-      orderBy: { dispensed_at: "desc" },
+      include: { prescription_items: true },
+      orderBy: { issued_at: "desc" },
     }),
     prisma.lab_orders.findMany({
       where: { patient_id: patientId, clinic_id: tenant.clinicId },

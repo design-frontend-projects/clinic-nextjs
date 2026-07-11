@@ -10,6 +10,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, Pill, History } from "lucide-react";
 import { EncounterForm } from "./encounter-form";
+import {
+  PatientPrescriptions,
+  type PatientPrescription,
+} from "./patient-prescriptions";
 
 export default async function PatientConsultationPage({
   params,
@@ -105,32 +109,14 @@ export default async function PatientConsultationPage({
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-md flex items-center gap-2">
-                    <Pill className="h-4 w-4" /> Active Prescriptions
+                    <Pill className="h-4 w-4" /> Prescriptions
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {prescriptions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        No prescriptions on file.
-                      </p>
-                    ) : (
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      prescriptions.slice(0, 5).map((rx: any) => (
-                        <div
-                          key={rx.id}
-                          className="border-b last:border-0 pb-3 last:pb-0 text-sm"
-                        >
-                          <p className="font-semibold">
-                            {format(new Date(rx.dispensed_at), "MMM d, yyyy")}
-                          </p>
-                          <p className="text-muted-foreground mt-1">
-                            Rx details placeholder
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  <PatientPrescriptions
+                    patientId={patient.id}
+                    prescriptions={prescriptions as PatientPrescription[]}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
