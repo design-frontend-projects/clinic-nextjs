@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
+import { OnlineProvider } from "@/components/providers/online-provider";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import "../globals.css";
@@ -17,6 +19,16 @@ export const metadata: Metadata = {
   description:
     "Production-grade multi-tenant clinic management SaaS for doctors, staff, and patients.",
   robots: { index: true, follow: true },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "ClinicPro" },
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon-180.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f172a",
 };
 
 import { NextIntlClientProvider } from "next-intl";
@@ -30,6 +42,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <ServiceWorkerProvider />
         <NextIntlClientProvider messages={messages} locale={locale}>
           <ThemeProvider
             attribute="class"
@@ -38,6 +51,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <QueryProvider>
+              <OnlineProvider />
               {children}
               <Toaster position={locale === "ar" ? "top-left" : "top-right"} />
             </QueryProvider>

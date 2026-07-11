@@ -2,6 +2,13 @@
   "brand": {
     "name": "Bluewave Clinic"
   },
+  "offline": {
+    "title": "You're offline",
+    "description": "You've lost your connection. You can keep viewing recently loaded data, and any changes you make will be saved and synced automatically once you're back online.",
+    "banner": "Offline — changes are saved locally and will sync when you reconnect.",
+    "syncing": "Syncing…",
+    "conflictKept": "A newer version from the server was kept."
+  },
   "auth": {
     "signIn": {
       "title": "Welcome back",

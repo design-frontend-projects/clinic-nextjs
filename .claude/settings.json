@@ -8,5 +8,6 @@
       "PowerShell(npx eslint src/lib/invitations.ts src/lib/user-creation.ts src/app/actions/personnel.ts src/app/actions/patient.ts src/app/actions/admin.ts src/app/actions/staff.ts src/components/admin/temp-password-dialog.tsx src/components/admin/personnel-management.tsx src/components/appointments/new-appointment-dialog.tsx \"src/app/[locale]/\\(dashboard\\)/admin/patients/page.tsx\" src/lib/__tests__/user-creation.test.ts 2>&1)",
       "PowerShell(pnpm build 2>&1)"
     ]
-  }
+  },
+  "enabledPlugins": {}
 }

@@ -4,6 +4,7 @@ import { hasFeature } from "@/lib/features";
 import { resolveNavItems, type ResolvedNavItem } from "@/components/layout/nav.config";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { PreferencesBootstrap } from "@/features/settings/components/PreferencesBootstrap";
+import { OfflineProvider } from "@/lib/offline/offline-context";
 import { settingsService } from "@/features/settings/services/settings.service";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +18,14 @@ export default async function DashboardLayout({
   let navItems: ResolvedNavItem[] = [];
   let userTheme: string | null = null;
   let userLanguage: string | null = null;
+  let clinicId: string | null = null;
+  let userId: string | null = null;
 
   try {
     const tenant = await requireAuthenticatedTenant();
     role = tenant.role || "staff";
+    clinicId = tenant.clinicId ?? null;
+    userId = tenant.userId ?? null;
     navItems = await resolveNavItems(role, hasPermission, hasFeature);
 
     // Cross-device user preferences (only values the user explicitly set).
@@ -40,10 +45,22 @@ export default async function DashboardLayout({
     navItems = [];
   }
 
-  return (
-    <DashboardShell role={role} items={navItems}>
+  const content = (
+    <>
       <PreferencesBootstrap theme={userTheme} language={userLanguage} />
       {children}
+    </>
+  );
+
+  return (
+    <DashboardShell role={role} items={navItems}>
+      {clinicId && userId ? (
+        <OfflineProvider clinicId={clinicId} userId={userId}>
+          {content}
+        </OfflineProvider>
+      ) : (
+        content
+      )}
     </DashboardShell>
   );
 }

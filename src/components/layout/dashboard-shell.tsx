@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { OfflineBanner } from "@/components/layout/offline-banner";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import type { ResolvedNavItem } from "@/components/layout/nav.config";
 
@@ -24,6 +25,7 @@ export function DashboardShell({ role, items, children }: DashboardShellProps) {
           isOpen ? "lg:ms-64" : "lg:ms-16",
         )}
       >
+        <OfflineBanner />
         <Header />
         <main className="p-4 sm:p-6">{children}</main>
       </div>
