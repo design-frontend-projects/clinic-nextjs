@@ -43,6 +43,43 @@
       "accountCreated": "Account created! Please check your email to confirm.",
       "accountCreatedRedirect": "Account created! Redirecting to onboarding..."
     },
+    "common": {
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "forgotPassword": {
+      "title": "Reset password",
+      "subtitle": "Enter your email and we will send you a password reset link",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "doctor@clinic.com",
+      "invalidEmail": "Please enter a valid email address",
+      "sendButton": "Send reset link",
+      "sentToast": "Password reset email sent! Check your inbox.",
+      "sentMessage": "We have sent a password reset link to your email. Please check your inbox and click the link to proceed.",
+      "sentSpamHint": "If you don't receive it within a few minutes, check your spam folder.",
+      "rememberPassword": "Remember your password?",
+      "backToSignIn": "Sign in",
+      "error": "Failed to send reset link"
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "subtitle": "Choose a new password for your account",
+      "passwordLabel": "New password",
+      "confirmPasswordLabel": "Confirm new password",
+      "passwordPlaceholder": "••••••••",
+      "passwordMin": "Password must be at least 6 characters",
+      "confirmPasswordMin": "Confirm password must be at least 6 characters",
+      "passwordsMismatch": "Passwords do not match",
+      "submitButton": "Reset password",
+      "success": "Password successfully updated. Please sign in.",
+      "invalidLinkTitle": "Link invalid or expired",
+      "invalidLinkMessage": "This password reset link is invalid or has expired. Please request a new one.",
+      "requestNewLink": "Request a new link",
+      "checking": "Verifying your reset link...",
+      "rememberPassword": "Remember your password?",
+      "backToSignIn": "Sign in",
+      "error": "Failed to update password"
+    },
     "onboarding": {
       "title": "Welcome to Clinic Pro",
       "subtitle": "Let's set up your profile and clinic workspace",

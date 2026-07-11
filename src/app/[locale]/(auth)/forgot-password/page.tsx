@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
 import { Activity } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations();
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas p-4 relative overflow-hidden font-sans">
       {/* Background Spotlight Glow */}
@@ -25,29 +27,29 @@ export default function ForgotPasswordPage() {
             </div>
           </Link>
           <h2 className="text-xl font-medium tracking-tight text-foreground mt-2">
-            ClinicPro
+            {t("brand.name")}
           </h2>
         </div>
 
         <Card className="rounded-xl">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-              Reset password
+              {t("auth.forgotPassword.title")}
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
-              Enter your email and we will send you a password reset link
+              {t("auth.forgotPassword.subtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ForgotPasswordForm />
           </CardContent>
           <CardFooter className="flex justify-center text-sm text-muted-foreground border-t border-hairline-soft pt-4">
-            Remember your password?{" "}
+            {t("auth.forgotPassword.rememberPassword")}{" "}
             <Link
               href="/sign-in"
               className="ms-1 text-accent-blue hover:underline font-medium"
             >
-              Sign in
+              {t("auth.forgotPassword.backToSignIn")}
             </Link>
           </CardFooter>
         </Card>

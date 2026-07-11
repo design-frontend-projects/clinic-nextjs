@@ -9,12 +9,28 @@ import type { EmailOtpType } from "@supabase/supabase-js";
  * session is actually persisted, then forwards to `next` (e.g. the
  * set-password screen for invited users).
  */
+
+/**
+ * `next` is attacker-controlled input on a public route. Only accept a
+ * same-origin path: a single leading slash (protocol-relative "//host"
+ * URLs change the authority when resolved) and no backslashes.
+ */
+function isSafeNextPath(value: string | null): value is string {
+  return Boolean(
+    value &&
+      value.startsWith("/") &&
+      !value.startsWith("//") &&
+      !value.includes("\\"),
+  );
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/";
+  const rawNext = searchParams.get("next");
+  const next = isSafeNextPath(rawNext) ? rawNext : "/";
 
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -60,6 +76,13 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${next}`);
   }
 
-  // return the user to an error page with instructions
+  // When a `next` target was provided (e.g. the reset-password page), send the
+  // user back there with an error flag so the page can render an
+  // invalid/expired-link state. Otherwise fall back to the generic error URL.
+  if (isSafeNextPath(rawNext)) {
+    const errorUrl = new URL(rawNext, origin);
+    errorUrl.searchParams.set("error", "auth_callback_failed");
+    return NextResponse.redirect(errorUrl);
+  }
   return NextResponse.redirect(`${origin}/auth/auth-code-error`);
 }

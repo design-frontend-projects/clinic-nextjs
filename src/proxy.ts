@@ -5,9 +5,24 @@ import { routing } from "./i18n/routing";
 
 const handleI18nRouting = createMiddleware(routing);
 
-const publicRoutes = ["/", "/sign-in", "/sign-up", "/api/webhooks"];
+const publicRoutes = [
+  "/",
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/reset-password",
+  "/offline",
+  "/api/webhooks",
+];
 
 export default async function middleware(request: NextRequest) {
+  // The Supabase callback (code exchange for OAuth/invite/recovery links) lives
+  // outside the [locale] tree and runs before a session exists — it must not be
+  // locale-redirected by next-intl or auth-gated below.
+  if (request.nextUrl.pathname.startsWith("/auth/")) {
+    return NextResponse.next();
+  }
+
   const response = handleI18nRouting(request);
 
   const supabase = createServerClient(

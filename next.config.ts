@@ -19,8 +19,30 @@ const withSerwist = withSerwistInit({
   reloadOnOnline: false,
 });
 
+// Must match routing.defaultLocale in src/i18n/routing.ts.
+const DEFAULT_LOCALE = "en";
+
+// All pages live under the [locale] segment and there is no i18n middleware,
+// so unprefixed auth URLs (typed directly, bookmarked, or from external
+// links/emails) would otherwise be swallowed by [locale] and render the
+// landing page. Send them to the default-locale route; query params (e.g.
+// ?error= on reset-password) are preserved automatically.
+const UNPREFIXED_AUTH_ROUTES = [
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/reset-password",
+  "/onboarding",
+];
+
 const nextConfig: NextConfig = {
-  // other existing config options can be added here if needed
+  async redirects() {
+    return UNPREFIXED_AUTH_ROUTES.map((route) => ({
+      source: route,
+      destination: `/${DEFAULT_LOCALE}${route}`,
+      permanent: false,
+    }));
+  },
 };
 
 export default withSerwist(withNextIntl(nextConfig));

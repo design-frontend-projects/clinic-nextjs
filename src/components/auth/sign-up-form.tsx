@@ -8,6 +8,7 @@ import * as z from "zod";
 import { signUpAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -60,8 +61,12 @@ export function SignUpForm({ planId }: { planId?: string }) {
         router.push(planId ? `/onboarding?plan=${planId}` : "/onboarding");
         router.refresh();
       }
-    } catch (error: any) {
-      toast.error(error.message || t("createAccountButton"));
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t("createAccountButton"),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -103,9 +108,8 @@ export function SignUpForm({ planId }: { planId?: string }) {
         <Label htmlFor="password">
           {t("passwordLabel")}
         </Label>
-        <Input
+        <PasswordInput
           id="password"
-          type="password"
           placeholder={t("passwordPlaceholder")}
           {...register("password")}
         />

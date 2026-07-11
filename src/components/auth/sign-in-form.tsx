@@ -10,6 +10,7 @@ import { syncOnboardingCookie } from "@/app/actions/auth";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -82,13 +83,15 @@ export function SignInForm() {
             : "/admin";
 
       toast.success(t("signInButton"));
-      console.log("i will redirect to: ", redirectPath);
 
       router.refresh();
       router.push(redirectPath);
-      console.log("redirect done success");
-    } catch (error: any) {
-      toast.error(error.message || t("signInButton"));
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t("signInButton"),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -130,9 +133,8 @@ export function SignInForm() {
             {t("forgotPassword")}
           </Link>
         </div>
-        <Input
+        <PasswordInput
           id="password"
-          type="password"
           placeholder={t("passwordPlaceholder")}
           className="bg-background border-primary text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:ring-primary/30"
           {...register("password")}

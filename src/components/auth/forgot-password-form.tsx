@@ -9,17 +9,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
+const forgotPasswordSchema = (invalidEmail: string) =>
+  z.object({
+    email: z.string().email(invalidEmail),
+  });
 
-type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+type ForgotPasswordValues = z.infer<ReturnType<typeof forgotPasswordSchema>>;
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
 
 export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const t = useTranslations("auth.forgotPassword");
+  const locale = useLocale();
   const supabase = createSupabaseClient();
 
   const {
@@ -27,18 +38,21 @@ export function ForgotPasswordForm() {
     handleSubmit,
     formState: { errors },
   } = useForm<ForgotPasswordValues>({
-    resolver: zodResolver(forgotPasswordSchema),
+    resolver: zodResolver(forgotPasswordSchema(t("invalidEmail"))),
     defaultValues: {
       email: "",
-    }
+    },
   });
 
   const onSubmit = async (data: ForgotPasswordValues) => {
     setIsLoading(true);
     try {
-      const redirectToUrl = `${window.location.origin}/reset-password`;
+      // The recovery link must go through /auth/callback so the code/token is
+      // exchanged for a session before landing on the localized reset page.
+      const next = encodeURIComponent(`/${locale}/reset-password`);
+      const redirectTo = `${window.location.origin}/auth/callback?next=${next}`;
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: redirectToUrl,
+        redirectTo,
       });
 
       if (error) {
@@ -46,9 +60,9 @@ export function ForgotPasswordForm() {
       }
 
       setIsSent(true);
-      toast.success("Password reset email sent! Check your inbox.");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send reset link");
+      toast.success(t("sentToast"));
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, t("error")));
     } finally {
       setIsLoading(false);
     }
@@ -57,12 +71,9 @@ export function ForgotPasswordForm() {
   if (isSent) {
     return (
       <div className="text-center py-4 space-y-4">
-        <p className="text-sm text-muted-foreground">
-          We have sent a password reset link to your email. Please check your inbox and click the link to proceed.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          If you don't receive it within a few minutes, check your spam folder.
-        </p>
+        <MailCheck className="h-10 w-10 mx-auto text-primary" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">{t("sentMessage")}</p>
+        <p className="text-xs text-muted-foreground">{t("sentSpamHint")}</p>
       </div>
     );
   }
@@ -70,11 +81,11 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
       <div className="space-y-2">
-        <Label htmlFor="email">Email address</Label>
+        <Label htmlFor="email">{t("emailLabel")}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="doctor@clinic.com"
+          placeholder={t("emailPlaceholder")}
           {...register("email")}
         />
         {errors.email && (
@@ -82,13 +93,9 @@ export function ForgotPasswordForm() {
         )}
       </div>
 
-      <Button
-        type="submit"
-        className="w-full text-sm mt-2"
-        disabled={isLoading}
-      >
+      <Button type="submit" className="w-full text-sm mt-2" disabled={isLoading}>
         {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-        Send reset link
+        {t("sendButton")}
       </Button>
     </form>
   );
