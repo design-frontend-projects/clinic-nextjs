@@ -1233,6 +1233,42 @@ model notification_channels {
   @@index([tenant_id])
 }
 
+/// In-app notification inbox — one row per recipient (display fields are
+/// denormalized so the Realtime payload is self-sufficient). A single send
+/// fans out to N rows sharing one group_id. See 13_in_app_notifications.sql.
+/// FKs (tenant_id -> clinics, sender/recipient -> profiles) live in SQL; they
+/// are intentionally not modeled as Prisma relations to keep this row
+/// self-contained — the server actions query by scalar recipient_id/tenant_id.
+model notifications {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id      String?   @db.Uuid
+  group_id       String    @db.Uuid
+  sender_id      String    @db.Uuid
+  sender_role    String
+  sender_name    String?
+  recipient_id   String    @db.Uuid
+  recipient_role String
+  title          String
+  body           String
+  category       String?
+  priority       String    @default("normal")
+  deep_link      String?
+  status         String    @default("unread")
+  delivered_at   DateTime?
+  read_at        DateTime?
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now()) @updatedAt
+  deleted_at     DateTime?
+  created_by     String?   @db.Uuid
+  updated_by     String?   @db.Uuid
+
+  @@unique([group_id, recipient_id])
+  @@index([recipient_id, status])
+  @@index([tenant_id])
+  @@index([group_id])
+}
+
 enum AppointmentStatus {
   scheduled
   checked_in

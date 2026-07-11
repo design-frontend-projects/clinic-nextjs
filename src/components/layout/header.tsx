@@ -1,7 +1,7 @@
 "use client";
 
 import { useSidebarStore } from "@/stores/sidebar-store";
-import { Menu, Bell, Moon, Sun, LogOut, User, Globe } from "lucide-react";
+import { Menu, Moon, Sun, LogOut, User, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import {
@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
@@ -20,6 +19,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { BranchSelector } from "./branch-selector";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function Header() {
   const { setMobileOpen } = useSidebarStore();
@@ -99,51 +99,7 @@ export function Header() {
         </Button>
 
         {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="icon" className="relative h-9 w-9">
-              <Bell className="h-4 w-4" />
-              <Badge
-                variant="destructive"
-                className="absolute -inset-e-1 -top-1 h-5 w-5 items-center justify-center rounded-full p-0 text-[10px]"
-              >
-                3
-              </Badge>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 bg-card border-border">
-            <DropdownMenuItem>
-              <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium text-foreground font-inter">
-                  {t("notifications.newAppointment")}
-                </p>
-                <p className="text-xs text-muted-foreground font-inter">
-                  {t("notifications.newAppointmentTime")}
-                </p>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium text-foreground font-inter">
-                  {t("notifications.labResults")}
-                </p>
-                <p className="text-xs text-muted-foreground font-inter">
-                  {t("notifications.labResultsTime")}
-                </p>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium text-foreground font-inter">
-                  {t("notifications.paymentReceived")}
-                </p>
-                <p className="text-xs text-muted-foreground font-inter">
-                  {t("notifications.paymentTime")}
-                </p>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationBell />
 
         {/* User Menu */}
         <DropdownMenu>

@@ -35,6 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.permissions", href: "/settings/permissions", iconKey: "permissions", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
   { titleKey: "sidebar.audit", href: "/settings/audit", iconKey: "audit", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.audit.read" },
   { titleKey: "sidebar.preferences", href: "/settings/preferences", iconKey: "preferences", roles: ["admin", "owner", "doctor", "staff"] },
+  { titleKey: "sidebar.notifications", href: "/settings/notifications", iconKey: "notifications", roles: ["admin", "owner", "doctor", "staff", "pharmacist"] },
 
   // Doctor
   { titleKey: "sidebar.dashboard", href: "/doctor", iconKey: "dashboard", roles: ["doctor"] },

@@ -172,7 +172,8 @@
     "permissions": "الصلاحيات",
     "audit": "سجل التدقيق",
     "reviews": "التقييمات",
-    "preferences": "تفضيلاتي"
+    "preferences": "تفضيلاتي",
+    "notifications": "الإشعارات"
   },
   "pages": {
     "admin": {
@@ -391,12 +392,89 @@
     }
   },
   "notifications": {
-    "newAppointment": "طلب موعد جديد",
-    "newAppointmentTime": "قبل دقيقتين",
-    "labResults": "نتائج المختبر جاهزة",
-    "labResultsTime": "قبل ساعة",
-    "paymentReceived": "تم استلام الدفعة",
-    "paymentTime": "قبل 3 ساعات"
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "viewAll": "عرض كل الإشعارات",
+    "tabs": {
+      "all": "الكل",
+      "unread": "غير المقروءة",
+      "read": "المقروءة"
+    },
+    "empty": {
+      "all": "لا توجد إشعارات بعد.",
+      "unread": "لا توجد إشعارات غير مقروءة.",
+      "read": "لا توجد إشعارات مقروءة."
+    },
+    "priority": {
+      "normal": "عادي",
+      "important": "مهم"
+    },
+    "category": {
+      "announcement": "إعلان",
+      "billing": "الفوترة",
+      "account_status": "حالة الحساب",
+      "policy": "سياسة",
+      "shift_change": "تغيير الوردية",
+      "handoff": "تسليم مريض",
+      "general": "عام"
+    },
+    "roles": {
+      "owner": "المالك",
+      "admin": "مسؤول",
+      "doctor": "طبيب",
+      "staff": "موظف",
+      "pharmacist": "صيدلي",
+      "app_owner": "مالك التطبيق",
+      "super_admin": "مسؤول عام",
+      "receptionist": "موظف استقبال",
+      "patient": "مريض"
+    },
+    "audience": {
+      "role_group": "مجموعة مستلمين",
+      "individual": "أشخاص محددون"
+    },
+    "toast": {
+      "sent": "تم إرسال الإشعار إلى {count} مستلم.",
+      "failed": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+    },
+    "compose": {
+      "title": "إشعار جديد",
+      "description": "اكتب رسالة واختر من يستلمها.",
+      "send": "إرسال",
+      "cancel": "إلغاء",
+      "noRecipients": "لا يوجد مستلمون مطابقون.",
+      "selectedCount": "{count} محدد",
+      "fields": {
+        "title": "العنوان",
+        "body": "الرسالة",
+        "priority": "الأولوية",
+        "category": "الفئة",
+        "deepLink": "رابط (اختياري)",
+        "audience": "إرسال إلى",
+        "recipientGroup": "مجموعة المستلمين",
+        "recipients": "المستلمون"
+      },
+      "placeholders": {
+        "title": "عنوان قصير",
+        "body": "اكتب رسالتك…",
+        "category": "اختياري",
+        "recipientGroup": "اختر مجموعة",
+        "searchRecipients": "ابحث عن أشخاص…"
+      }
+    },
+    "center": {
+      "title": "الإشعارات",
+      "description": "سجل الإشعارات الخاص بك. صفِّ حسب حالة القراءة أو أرسل إشعارًا جديدًا.",
+      "newNotification": "إشعار جديد",
+      "open": "فتح",
+      "columns": {
+        "title": "الإشعار",
+        "sender": "من",
+        "priority": "الأولوية",
+        "status": "الحالة",
+        "received": "وصل"
+      }
+    }
   },
   "plans": {
     "basic": "أساسي",

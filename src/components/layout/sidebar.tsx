@@ -25,6 +25,7 @@ import {
   ScrollText,
   Star,
   SlidersHorizontal,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ const ICONS: Record<string, LucideIcon> = {
   audit: ScrollText,
   reviews: Star,
   preferences: SlidersHorizontal,
+  notifications: Bell,
 };
 
 type SidebarNavProps = {

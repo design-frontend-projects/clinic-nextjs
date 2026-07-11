@@ -8,6 +8,7 @@ import {
   Settings,
   LayoutDashboard,
   Stethoscope,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +32,11 @@ const navItems = [
     title: "Specialties",
     href: "/app-owner/specialties",
     icon: Stethoscope,
+  },
+  {
+    title: "Notifications",
+    href: "/app-owner/notifications",
+    icon: Bell,
   },
   {
     title: "Global Settings",

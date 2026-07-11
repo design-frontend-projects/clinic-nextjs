@@ -172,7 +172,8 @@
     "permissions": "Permissions",
     "audit": "Audit Log",
     "reviews": "Reviews",
-    "preferences": "My Preferences"
+    "preferences": "My Preferences",
+    "notifications": "Notifications"
   },
   "pages": {
     "admin": {
@@ -391,12 +392,89 @@
     }
   },
   "notifications": {
-    "newAppointment": "New appointment request",
-    "newAppointmentTime": "2 minutes ago",
-    "labResults": "Lab results ready",
-    "labResultsTime": "1 hour ago",
-    "paymentReceived": "Payment received",
-    "paymentTime": "3 hours ago"
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "viewAll": "View all notifications",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "empty": {
+      "all": "You have no notifications yet.",
+      "unread": "No unread notifications.",
+      "read": "No read notifications."
+    },
+    "priority": {
+      "normal": "Normal",
+      "important": "Important"
+    },
+    "category": {
+      "announcement": "Announcement",
+      "billing": "Billing",
+      "account_status": "Account status",
+      "policy": "Policy",
+      "shift_change": "Shift change",
+      "handoff": "Patient handoff",
+      "general": "General"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "doctor": "Doctor",
+      "staff": "Staff",
+      "pharmacist": "Pharmacist",
+      "app_owner": "App Owner",
+      "super_admin": "Super Admin",
+      "receptionist": "Receptionist",
+      "patient": "Patient"
+    },
+    "audience": {
+      "role_group": "Recipient group",
+      "individual": "Specific people"
+    },
+    "toast": {
+      "sent": "Notification sent to {count} recipient(s).",
+      "failed": "Something went wrong. Please try again."
+    },
+    "compose": {
+      "title": "New notification",
+      "description": "Compose a message and choose who receives it.",
+      "send": "Send",
+      "cancel": "Cancel",
+      "noRecipients": "No matching recipients.",
+      "selectedCount": "{count} selected",
+      "fields": {
+        "title": "Title",
+        "body": "Message",
+        "priority": "Priority",
+        "category": "Category",
+        "deepLink": "Link (optional)",
+        "audience": "Send to",
+        "recipientGroup": "Recipient group",
+        "recipients": "Recipients"
+      },
+      "placeholders": {
+        "title": "Short headline",
+        "body": "Write your message…",
+        "category": "Optional",
+        "recipientGroup": "Select a group",
+        "searchRecipients": "Search people…"
+      }
+    },
+    "center": {
+      "title": "Notifications",
+      "description": "Your notification history. Filter by read state or send a new one.",
+      "newNotification": "New notification",
+      "open": "Open",
+      "columns": {
+        "title": "Notification",
+        "sender": "From",
+        "priority": "Priority",
+        "status": "Status",
+        "received": "Received"
+      }
+    }
   },
   "plans": {
     "basic": "Basic",
