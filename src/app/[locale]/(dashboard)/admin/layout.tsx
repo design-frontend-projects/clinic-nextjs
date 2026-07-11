@@ -18,7 +18,9 @@ export default async function AdminLayout({
   }
 
   const { tenant } = result;
-  if (tenant.role !== "admin") {
+  // Owners are the tenant super-users (same bypass tier as admin in lib/rbac)
+  // and manage the clinic from the admin dashboard.
+  if (tenant.role !== "admin" && tenant.role !== "owner") {
     return redirect({ href: "/", locale: await getLocale() });
   }
 

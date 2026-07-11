@@ -48,7 +48,7 @@ export async function hasSubscription(requiredPlan: SubscriptionPlan) {
   try {
     const tenant = await requireTenantInfo();
     
-    if (tenant.role === "admin") {
+    if (isBypassRole(tenant.role)) {
       return true;
     }
 

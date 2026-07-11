@@ -40,7 +40,7 @@ export default async function LandingPage() {
         dashboardPath = "/staff";
       } else if (role === "doctor") {
         dashboardPath = "/doctor";
-      } else if (role === "admin") {
+      } else if (role === "admin" || role === "owner") {
         dashboardPath = "/admin";
       }
     } else {

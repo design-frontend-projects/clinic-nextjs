@@ -1,6 +1,7 @@
 import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
 import type { ProfileRole } from "@prisma/client";
+import type { InvitableProfileRole } from "@/types/clinic.types";
 
 /**
  * Generate a strong temporary password guaranteeing at least one upper, lower,
@@ -116,4 +117,33 @@ export function roleNameToProfileRole(roleName: string | null | undefined): Prof
     return "admin";
   }
   return "staff";
+}
+
+/**
+ * Candidate seeded RBAC role names (lowercase) for each invitable profile role,
+ * in preference order — first match against the tenant's roles wins.
+ */
+const PROFILE_ROLE_TO_RBAC_NAMES: Record<InvitableProfileRole, string[]> = {
+  doctor: ["doctor"],
+  admin: ["administrator", "tenant owner"],
+  staff: ["staff"],
+  pharmacist: ["pharmacist", "staff"],
+  receptionist: ["receptionist", "staff"],
+};
+
+/**
+ * Find the tenant RBAC role matching a selected profile role, so the invite
+ * flow can assign permissions. Returns `null` when the tenant has no matching
+ * role (e.g. RBAC seeding was skipped) — callers should then skip assignment.
+ */
+export function findRbacRoleForProfileRole<T extends { id: string; name: string }>(
+  roles: readonly T[],
+  profileRole: InvitableProfileRole,
+): T | null {
+  const candidates = PROFILE_ROLE_TO_RBAC_NAMES[profileRole];
+  for (const candidate of candidates) {
+    const match = roles.find((r) => r.name.trim().toLowerCase() === candidate);
+    if (match) return match;
+  }
+  return null;
 }

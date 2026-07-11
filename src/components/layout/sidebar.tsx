@@ -75,7 +75,8 @@ function SidebarNav({
   const { toggle, isOpen } = useSidebarStore();
   const t = useTranslations();
 
-  const baseUrl = `/${role}`;
+  // Owners use the admin dashboard; there is no /owner route group.
+  const baseUrl = role === "owner" ? "/admin" : `/${role}`;
 
   return (
     <div className="flex h-full flex-col">

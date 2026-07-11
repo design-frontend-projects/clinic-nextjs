@@ -6,7 +6,7 @@ import {
   upsertPersonnel,
   deletePersonnel,
 } from "@/app/actions/personnel";
-import { getClinicRoles } from "@/app/actions/rbac";
+import { getActiveSpecialties } from "@/app/actions/specialties";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import {
   TempPasswordDialog,
@@ -32,7 +32,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { profileSchema, type Profile } from "@/types/clinic.types";
+import {
+  profileSchema,
+  INVITABLE_PROFILE_ROLES,
+  type Profile,
+} from "@/types/clinic.types";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Plus, Trash2, User } from "lucide-react";
@@ -60,8 +65,12 @@ interface PersonnelManagementProps {
   title: string;
 }
 
+/** "receptionist" -> "Receptionist" for dropdown labels. */
+const roleLabel = (r: string) => r.charAt(0).toUpperCase() + r.slice(1);
+
 export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   const queryClient = useQueryClient();
+  const locale = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [editingPersonnel, setEditingPersonnel] = useState<Profile | null>(
     null,
@@ -85,9 +94,10 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     enabled: !!authUserId,
   });
 
-  const { data: roles } = useQuery({
-    queryKey: ["clinic-roles"],
-    queryFn: () => getClinicRoles(),
+  const { data: specialties } = useQuery({
+    queryKey: ["active-specialties"],
+    queryFn: () => getActiveSpecialties(),
+    enabled: role === "doctor",
   });
 
   const upsertMutation = useMutation({
@@ -146,7 +156,6 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     setEditingPersonnel(null);
     reset({
       role,
-      role_id: "",
       status: "active",
       full_name: "",
       email: "",
@@ -163,8 +172,22 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   };
 
   const onSubmit: SubmitHandler<Profile> = (data) => {
-    upsertMutation.mutate({ ...data, role: role });
+    // New invites use the role selected in the form; edits keep the stored
+    // role (the dropdown is hidden and the update path never changes it).
+    upsertMutation.mutate(data);
   };
+
+  // Catalog specialties, plus the stored value when it isn't in the active
+  // catalog (legacy free-text entries) so the select isn't blank on edit.
+  const currentSpecialty = watch("specialty");
+  const specialtyOptions =
+    currentSpecialty &&
+    !(specialties ?? []).some((s) => s.name === currentSpecialty)
+      ? [
+          ...(specialties ?? []),
+          { id: currentSpecialty, name: currentSpecialty, name_ar: null },
+        ]
+      : (specialties ?? []);
 
   if (!authUserId) return <div>Initializing...</div>;
   if (isLoading) return <div>Loading {role}s...</div>;
@@ -306,12 +329,22 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               </div>
               {role === "doctor" && (
                 <div className="space-y-2 col-span-2">
-                  <Label htmlFor="specialty">Specialty</Label>
-                  <Input
-                    id="specialty"
-                    {...register("specialty")}
-                    placeholder="e.g. Cardiology"
-                  />
+                  <Label>Specialty</Label>
+                  <Select
+                    value={watch("specialty") ?? ""}
+                    onValueChange={(val) => setValue("specialty", val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Specialty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {specialtyOptions.map((s) => (
+                        <SelectItem key={s.name} value={s.name}>
+                          {locale === "ar" && s.name_ar ? s.name_ar : s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
               <div className="space-y-2">
@@ -334,18 +367,18 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               </div>
               {!editingPersonnel && (
                 <div className="space-y-2">
-                  <Label htmlFor="role_id">Role</Label>
+                  <Label>Role</Label>
                   <Select
-                    value={watch("role_id") ?? ""}
-                    onValueChange={(val) => setValue("role_id", val)}
+                    value={watch("role") || role}
+                    onValueChange={(val) => setValue("role", val)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {roles?.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
+                      {INVITABLE_PROFILE_ROLES.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {roleLabel(r)}
                         </SelectItem>
                       ))}
                     </SelectContent>

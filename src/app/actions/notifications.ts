@@ -146,9 +146,9 @@ export async function sendNotification(
 
     // Never notify the sender themselves.
     const targets = recipients.filter((r) => r.id !== sender.profileId);
-    if (targets.length === 0) {
-      return { error: "No recipients matched." };
-    }
+    // if (targets.length === 0) {
+    //   return { error: "No recipients matched." };
+    // }
 
     const groupId = randomUUID();
     const now = new Date();

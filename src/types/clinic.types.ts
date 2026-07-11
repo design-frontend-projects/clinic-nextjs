@@ -24,6 +24,21 @@ export const branchSchema = z.object({
   is_main: z.boolean().optional(),
 });
 
+/**
+ * Profile roles a clinic admin/owner can assign when inviting personnel.
+ * Subset of the Prisma `ProfileRole` enum — excludes owner/patient/app_owner/
+ * super_admin, which are never granted through the invite flow.
+ */
+export const INVITABLE_PROFILE_ROLES = [
+  "doctor",
+  "staff",
+  "admin",
+  "pharmacist",
+  "receptionist",
+] as const;
+export const invitableRoleEnum = z.enum(INVITABLE_PROFILE_ROLES);
+export type InvitableProfileRole = z.infer<typeof invitableRoleEnum>;
+
 export const profileSchema = z.object({
   id: z.string().uuid().optional(),
   auth_user_id: z.string().optional(),
