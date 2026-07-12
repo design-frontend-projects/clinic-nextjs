@@ -48,6 +48,7 @@ export default async function LandingPage() {
       if (roles?.includes("app_owner")) dashboardPath = "/app-owner";
       else if (roles?.includes("staff")) dashboardPath = "/staff";
       else if (roles?.includes("doctor")) dashboardPath = "/doctor";
+      else if (roles?.includes("admin") || roles?.includes("owner")) dashboardPath = "/admin";
     }
   }
 

@@ -3,8 +3,11 @@ import { Inter } from "next/font/google";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
 import { OnlineProvider } from "@/components/providers/online-provider";
+import {
+  IntlProvider,
+  LocalizedToaster,
+} from "@/components/providers/intl-provider";
 import { ThemeProvider } from "next-themes";
-import { Toaster } from "sonner";
 import "../globals.css";
 
 const inter = Inter({
@@ -31,7 +34,6 @@ export const viewport: Viewport = {
   themeColor: "#0f172a",
 };
 
-import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 
 export default async function RootLayout({
@@ -43,7 +45,7 @@ export default async function RootLayout({
     <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ServiceWorkerProvider />
-        <NextIntlClientProvider messages={messages} locale={locale}>
+        <IntlProvider initialLocale={locale} initialMessages={messages}>
           <ThemeProvider
             attribute="class"
             defaultTheme="light"
@@ -53,10 +55,10 @@ export default async function RootLayout({
             <QueryProvider>
               <OnlineProvider />
               {children}
-              <Toaster position={locale === "ar" ? "top-left" : "top-right"} />
+              <LocalizedToaster />
             </QueryProvider>
           </ThemeProvider>
-        </NextIntlClientProvider>
+        </IntlProvider>
       </body>
     </html>
   );

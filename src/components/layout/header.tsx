@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
 import { useTranslations, useLocale } from "next-intl";
+import { useLocaleSwitcher } from "@/components/providers/intl-provider";
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
@@ -26,6 +27,7 @@ export function Header() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const locale = useLocale();
+  const { switchLocale } = useLocaleSwitcher();
   const t = useTranslations();
 
   const { data: tenant } = useQuery({
@@ -40,8 +42,7 @@ export function Header() {
   };
 
   const toggleLanguage = () => {
-    const nextLocale = locale === "en" ? "ar" : "en";
-    router.push("/", { locale: nextLocale });
+    void switchLocale(locale === "en" ? "ar" : "en");
   };
 
   return (

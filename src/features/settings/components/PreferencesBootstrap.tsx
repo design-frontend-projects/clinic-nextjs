@@ -7,7 +7,7 @@
 import { useEffect } from "react";
 import { useTheme } from "next-themes";
 import { useLocale } from "next-intl";
-import { usePathname, useRouter } from "@/i18n/routing";
+import { useLocaleSwitcher } from "@/components/providers/intl-provider";
 
 interface PreferencesBootstrapProps {
   /** Theme persisted at the user scope, or null when the user never set one. */
@@ -18,8 +18,7 @@ interface PreferencesBootstrapProps {
 
 export function PreferencesBootstrap({ theme, language }: PreferencesBootstrapProps) {
   const { setTheme } = useTheme();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { switchLocale } = useLocaleSwitcher();
   const locale = useLocale();
 
   useEffect(() => {
@@ -33,9 +32,9 @@ export function PreferencesBootstrap({ theme, language }: PreferencesBootstrapPr
     if (language !== "en" && language !== "ar") return;
     const hasLocaleCookie = document.cookie.split("; ").some((entry) => entry.startsWith("NEXT_LOCALE="));
     if (!hasLocaleCookie) {
-      router.replace(pathname, { locale: language });
+      void switchLocale(language);
     }
-  }, [language, locale, pathname, router]);
+  }, [language, locale, switchLocale]);
 
   return null;
 }
