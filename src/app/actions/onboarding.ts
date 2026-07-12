@@ -302,7 +302,7 @@ export async function saveBranchStep(data: BranchFormData, clinicId: string) {
     if (!parsed.success) return { error: parsed.error.issues[0]?.message || "Invalid data" };
 
     // Transaction to ensure branch creation, profile completion, and clinic onboarding mark succeed together
-    await prisma.$transaction(async (tx) => {
+    const createdBranch = await prisma.$transaction(async (tx) => {
       let branch = await tx.branches.findFirst({
         where: { clinic_id: clinicId, name: parsed.data.name },
       });
@@ -336,6 +336,8 @@ export async function saveBranchStep(data: BranchFormData, clinicId: string) {
         where: { auth_user_id: session.user.id },
         data: { is_profile_completed: true },
       });
+
+      return branch;
     });
 
     // Set cookie for middleware
@@ -345,6 +347,13 @@ export async function saveBranchStep(data: BranchFormData, clinicId: string) {
       secure: process.env.NODE_ENV === "production",
       path: "/",
       sameSite: "lax",
+    });
+
+    // Default the owner's active branch to the branch created during setup so
+    // fresh sessions don't start with a null branch context.
+    cookieStore.set("active_branch_id", createdBranch.id, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
     });
 
     return { success: true };

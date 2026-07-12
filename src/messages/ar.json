@@ -183,6 +183,9 @@
   "header": {
     "welcomeBack": "مرحباً مرة أخرى",
     "manageClinic": "إدارة عمليات عيادتك",
+    "clinic": "العيادة",
+    "branch": "الفرع",
+    "noBranchAssigned": "لا يوجد فرع مخصص",
     "notifications": "الإشعارات",
     "userMenu": "قائمة المستخدم",
     "logout": "تسجيل الخروج",
@@ -565,7 +568,12 @@
     "email": "البريد الإلكتروني",
     "emailPlaceholder": "info@clinic.com",
     "phone": "الهاتف",
-    "phonePlaceholder": "+1 (555) 000-0000"
+    "phonePlaceholder": "+1 (555) 000-0000",
+    "subscriptionPlan": "خطة الاشتراك",
+    "free": "مجاني",
+    "starter": "بدء",
+    "professional": "محترف",
+    "enterprise": "مؤسسة"
   },
   "dashboard": {
     "noClinic": {

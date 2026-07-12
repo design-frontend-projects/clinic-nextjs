@@ -20,6 +20,7 @@ import { useLocaleSwitcher } from "@/components/providers/intl-provider";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { BranchSelector } from "./branch-selector";
+import { BranchDisplay } from "./branch-display";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function Header() {
@@ -59,10 +60,17 @@ export function Header() {
 
         {tenant?.clinicId && (
           <div className="hidden md:block">
-            <BranchSelector
-              clinicId={tenant.clinicId}
-              currentBranchId={tenant.branchId}
-            />
+            {tenant.branchLocked ? (
+              <BranchDisplay
+                clinicName={tenant.clinicName}
+                branchName={tenant.branchName}
+              />
+            ) : (
+              <BranchSelector
+                clinicId={tenant.clinicId}
+                currentBranchId={tenant.branchId}
+              />
+            )}
           </div>
         )}
 

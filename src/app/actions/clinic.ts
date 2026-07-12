@@ -77,23 +77,43 @@ export async function updateClinic(
 }
 
 export async function getBranches(clinicId: string) {
-  await requireTenantInfo();
+  const tenant = await requireTenantInfo();
+  // Only ever list branches for the caller's own clinic — ignore any other id
+  // passed from the client (prevents cross-tenant branch enumeration).
+  if (clinicId !== tenant.clinicId) {
+    throw new Error("Unauthorized: branch does not belong to this clinic");
+  }
   return prisma.branches.findMany({
-    where: { clinic_id: clinicId },
+    where: { clinic_id: tenant.clinicId },
     orderBy: { created_at: "asc" },
   });
 }
 
 export async function upsertBranch(data: z.infer<typeof branchSchema>) {
-  await requireTenantInfo();
+  const tenant = await requireTenantInfo();
   await requirePermission("clinic.manage");
   const validatedData = branchSchema.parse(data);
+
+  // Branches can only be created/edited within the caller's own clinic.
+  if (validatedData.clinic_id !== tenant.clinicId) {
+    throw new Error("Unauthorized: branch does not belong to this clinic");
+  }
+  // On edit, verify the target branch is actually in this clinic.
+  if (validatedData.id) {
+    const existing = await prisma.branches.findFirst({
+      where: { id: validatedData.id, clinic_id: tenant.clinicId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new Error("Branch not found in this clinic");
+    }
+  }
 
   const branch = await prisma.branches.upsert({
     where: { id: validatedData.id || "new-id" },
     create: {
       id: crypto.randomUUID(),
-      clinic_id: validatedData.clinic_id,
+      clinic_id: tenant.clinicId,
       name: validatedData.name,
       address: validatedData.address,
       phone: validatedData.phone,
@@ -112,8 +132,18 @@ export async function upsertBranch(data: z.infer<typeof branchSchema>) {
 }
 
 export async function deleteBranch(id: string) {
-  await requireTenantInfo();
+  const tenant = await requireTenantInfo();
   await requirePermission("clinic.manage");
+
+  // Ensure the branch belongs to the caller's clinic before any check/delete
+  // (prevents cross-tenant branch deletion).
+  const branch = await prisma.branches.findFirst({
+    where: { id, clinic_id: tenant.clinicId },
+    select: { id: true },
+  });
+  if (!branch) {
+    throw new Error("Branch not found in this clinic");
+  }
 
   // Rule: Branch cannot be deleted if future appointments exist
   const appointmentCount = await prisma.appointments.count({
@@ -125,6 +155,17 @@ export async function deleteBranch(id: string) {
 
   if (appointmentCount > 0) {
     throw new Error("Cannot delete branch with future appointments");
+  }
+
+  // Rule: Branch cannot be deleted while personnel are assigned to it
+  const assignedProfiles = await prisma.profiles.count({
+    where: { branch_id: id },
+  });
+
+  if (assignedProfiles > 0) {
+    throw new Error(
+      "Cannot delete a branch with assigned staff. Reassign them to another branch first.",
+    );
   }
 
   await prisma.branches.delete({

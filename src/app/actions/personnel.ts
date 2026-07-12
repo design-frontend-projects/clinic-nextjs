@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import {
   profileSchema,
   invitableRoleEnum,
+  isBranchLockedRole,
   type Profile,
   type CreateAccountResult,
 } from "@/types/clinic.types";
@@ -25,8 +26,35 @@ export async function getPersonnel(userId: string) {
     where: {
       tenant_id: tenant.clinicId,
     },
+    include: {
+      branches: { select: { id: true, name: true } },
+    },
     orderBy: { created_at: "desc" },
   });
+}
+
+/**
+ * Ensure the assigned branch exists and belongs to the acting tenant's clinic.
+ * Prevents cross-tenant branch assignment via forged form payloads. `requireActive`
+ * is enforced only when the branch is newly assigned/changed, so editing an
+ * unrelated field on a profile whose branch was later deactivated still works.
+ */
+async function assertBranchInClinic(
+  branchId: string,
+  clinicId: string,
+  requireActive = true,
+) {
+  const branch = await prisma.branches.findFirst({
+    where: {
+      id: branchId,
+      clinic_id: clinicId,
+      ...(requireActive && { status: "active" }),
+    },
+    select: { id: true },
+  });
+  if (!branch) {
+    throw new Error("The selected branch does not belong to this clinic");
+  }
 }
 
 /**
@@ -49,15 +77,37 @@ export async function upsertPersonnel(
   const isNewRecord = !validatedData.id;
 
   if (!isNewRecord) {
-    // Update existing profile in database
+    // Scope the target profile to the acting tenant — never trust the id from
+    // the client payload (prevents cross-tenant profile takeover).
+    const existing = await prisma.profiles.findFirst({
+      where: { id: validatedData.id, tenant_id: tenant.clinicId },
+      select: { id: true, branch_id: true },
+    });
+    if (!existing) {
+      throw new Error("Profile not found in this clinic");
+    }
+
+    // Validate the branch against this clinic; only require it to be active
+    // when it's actually changing.
+    if (validatedData.branch_id) {
+      await assertBranchInClinic(
+        validatedData.branch_id,
+        tenant.clinicId,
+        validatedData.branch_id !== existing.branch_id,
+      );
+    }
+
     await prisma.profiles.update({
-      where: { id: validatedData.id },
+      where: { id: existing.id },
       data: {
         full_name: validatedData.full_name,
         email: validatedData.email,
         phone: validatedData.phone ?? null,
         specialty: validatedData.specialty ?? null,
         status: validatedData.status,
+        ...(validatedData.branch_id !== undefined && {
+          branch_id: validatedData.branch_id,
+        }),
       },
     });
 
@@ -77,6 +127,15 @@ export async function upsertPersonnel(
     throw new Error("A valid role is required to invite a new user");
   }
   const profileRole = roleResult.data;
+
+  // Branch-locked roles (doctor/staff/pharmacist/receptionist) must be assigned
+  // a home branch; for other roles (e.g. admin) branch is optional/informational.
+  if (isBranchLockedRole(profileRole) && !validatedData.branch_id) {
+    throw new Error("A branch is required to invite a new user");
+  }
+  if (validatedData.branch_id) {
+    await assertBranchInClinic(validatedData.branch_id, tenant.clinicId);
+  }
 
   // Best-effort permissions: match the selected profile role to one of the
   // tenant's seeded RBAC roles. Tenants without seeded roles get no assignment;
@@ -117,6 +176,7 @@ export async function upsertPersonnel(
         status: validatedData.status || "active",
         is_owner: false,
         is_profile_completed: false,
+        branch_id: validatedData.branch_id,
       },
       create: {
         auth_user_id: user.id,
@@ -129,6 +189,7 @@ export async function upsertPersonnel(
         status: validatedData.status || "active",
         is_owner: false,
         is_profile_completed: false,
+        branch_id: validatedData.branch_id,
       },
     });
 

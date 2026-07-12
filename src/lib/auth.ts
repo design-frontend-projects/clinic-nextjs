@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { isBranchLockedRole } from "@/types/clinic.types";
 
 /**
  * Helper to fetch the current authenticated user's session from cookies (server-side).
@@ -64,6 +65,7 @@ export async function getTenantInfo() {
       tenant_id: true,
       is_owner: true,
       status: true,
+      branch_id: true,
     },
   });
   if (!profile) return null;
@@ -101,19 +103,46 @@ export async function getTenantInfo() {
   if (tenantId) {
     clinic = await prisma.clinics.findUnique({
       where: { id: tenantId },
-      select: { id: true, subscription_plan: true },
+      select: { id: true, name: true, subscription_plan: true },
     });
   } else {
     clinic = await prisma.clinics.findFirst({
       where: { auth_user_id: userId, AND: { is_primary: true } },
-      select: { id: true, subscription_plan: true },
+      select: { id: true, name: true, subscription_plan: true },
     });
   }
 
-  // Retrieve branch ID from cookies (if you still store it there).
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  const branchId = cookieStore.get("active_branch_id")?.value ?? null;
+  // Branch resolution. Branch-locked roles (doctor/staff/pharmacist/
+  // receptionist) are pinned to the branch assigned on their profile — the
+  // branch-switcher cookie is ignored for them, so they cannot change it.
+  // Owners/admins keep the cookie-driven switcher behavior.
+  const branchLocked =
+    !(profile.is_owner ?? false) && isBranchLockedRole(profile.role);
+
+  let branchId: string | null;
+  if (branchLocked) {
+    branchId = profile.branch_id ?? null;
+  } else {
+    const cookieStore = await cookies();
+    branchId = cookieStore.get("active_branch_id")?.value ?? null;
+  }
+
+  // Validate the resolved branch against the clinic; drop stale/foreign values
+  // (e.g. a cookie from another clinic or a branch deleted after assignment).
+  let branchName: string | null = null;
+  if (branchId && clinic?.id) {
+    const branch = await prisma.branches.findFirst({
+      where: { id: branchId, clinic_id: clinic.id },
+      select: { name: true },
+    });
+    if (branch) {
+      branchName = branch.name;
+    } else {
+      branchId = null;
+    }
+  } else if (branchId && !clinic?.id) {
+    branchId = null;
+  }
 
   return {
     userId,
@@ -125,8 +154,11 @@ export async function getTenantInfo() {
     is_profile_completed: profile.is_profile_completed ?? false,
     is_owner: profile.is_owner ?? false,
     clinicId: clinic?.id ?? null,
+    clinicName: clinic?.name ?? null,
     subscriptionPlan: clinic?.subscription_plan ?? "free",
     branchId,
+    branchName,
+    branchLocked,
     auth_user_id: userId,
   };
 }

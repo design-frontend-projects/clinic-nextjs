@@ -9,6 +9,12 @@ import { cookies } from "next/headers";
 export async function updateProfileBranch(branchId: string) {
   const tenant = await requireTenantInfo();
 
+  // Branch-locked roles (doctor/staff/pharmacist/receptionist) cannot switch
+  // branches — their branch is assigned by the clinic admin on their profile.
+  if (tenant.branchLocked) {
+    throw new Error("Your branch is assigned by your clinic administrator");
+  }
+
   // Verify the branch belongs to the user's clinic
   const branch = await prisma.branches.findFirst({
     where: {

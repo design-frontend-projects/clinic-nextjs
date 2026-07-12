@@ -7,6 +7,7 @@ import {
   deletePersonnel,
 } from "@/app/actions/personnel";
 import { getActiveSpecialties } from "@/app/actions/specialties";
+import { getBranches } from "@/app/actions/clinic";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import {
   TempPasswordDialog,
@@ -35,12 +36,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   profileSchema,
   INVITABLE_PROFILE_ROLES,
+  isBranchLockedRole,
   type Profile,
 } from "@/types/clinic.types";
 import { useLocale } from "next-intl";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Plus, Trash2, User } from "lucide-react";
+import { Building2, Edit2, MapPin, Plus, Trash2, User } from "lucide-react";
 import { useState } from "react";
 import {
   AlertDialog,
@@ -99,6 +101,16 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     queryFn: () => getActiveSpecialties(),
     enabled: role === "doctor",
   });
+
+  const clinicId = tenant?.clinicId ?? null;
+
+  const { data: branches } = useQuery({
+    queryKey: ["clinic-branches", clinicId],
+    queryFn: () => getBranches(clinicId!),
+    enabled: !!clinicId,
+  });
+
+  const activeBranches = (branches ?? []).filter((b) => b.status === "active");
 
   const upsertMutation = useMutation({
     mutationFn: (data: Profile) => upsertPersonnel(data),
@@ -161,6 +173,8 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
       email: "",
       phone: "",
       specialty: "",
+      // Preselect when the clinic has a single branch.
+      branch_id: activeBranches.length === 1 ? activeBranches[0].id : null,
     });
     setIsOpen(true);
   };
@@ -172,10 +186,33 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   };
 
   const onSubmit: SubmitHandler<Profile> = (data) => {
+    // Branch is mandatory for new invites of branch-locked roles
+    // (also enforced server-side).
+    if (
+      !editingPersonnel &&
+      isBranchLockedRole(data.role) &&
+      !data.branch_id
+    ) {
+      toast.error("Please select a branch");
+      return;
+    }
     // New invites use the role selected in the form; edits keep the stored
     // role (the dropdown is hidden and the update path never changes it).
     upsertMutation.mutate(data);
   };
+
+  const currentBranchId = watch("branch_id");
+  // Include the assigned branch even if it's now inactive, so editing an
+  // unrelated field doesn't blank the select or resubmit a hidden value.
+  const branchOptions =
+    currentBranchId &&
+    !activeBranches.some((b) => b.id === currentBranchId) &&
+    (branches ?? []).some((b) => b.id === currentBranchId)
+      ? [
+          ...activeBranches,
+          (branches ?? []).find((b) => b.id === currentBranchId)!,
+        ]
+      : activeBranches;
 
   // Catalog specialties, plus the stored value when it isn't in the active
   // catalog (legacy free-text entries) so the select isn't blank on edit.
@@ -209,6 +246,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               <TableHead>Name</TableHead>
               <TableHead>Contact</TableHead>
               {role === "doctor" && <TableHead>Specialty</TableHead>}
+              <TableHead>Branch</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -231,6 +269,11 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                 {role === "doctor" && (
                   <TableCell>{p.specialty || "General"}</TableCell>
                 )}
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {p.branches?.name ?? "—"}
+                  </span>
+                </TableCell>
                 <TableCell>
                   <Badge
                     variant={p.status === "active" ? "default" : "secondary"}
@@ -260,7 +303,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
             {personnel?.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={role === "doctor" ? 5 : 4}
+                  colSpan={role === "doctor" ? 6 : 5}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No {role}s found. Invite one to get started.
@@ -326,6 +369,50 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
                 <Input id="phone" {...register("phone")} />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Clinic</Label>
+                <div className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span>{tenant?.clinicName ?? "—"}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  New {role}s are created under your clinic.
+                </p>
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>
+                  Branch <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={watch("branch_id") ?? ""}
+                  onValueChange={(val) =>
+                    setValue("branch_id", val, { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branchOptions.map((b) => (
+                      <SelectItem key={b.id} value={b.id!}>
+                        <span className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          {b.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.branch_id && (
+                  <p className="text-xs text-destructive">
+                    {errors.branch_id.message}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  The {role} will be locked to this branch and cannot change
+                  it.
+                </p>
               </div>
               {role === "doctor" && (
                 <div className="space-y-2 col-span-2">

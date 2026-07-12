@@ -183,6 +183,9 @@
   "header": {
     "welcomeBack": "Welcome back",
     "manageClinic": "Manage your clinic operations",
+    "clinic": "Clinic",
+    "branch": "Branch",
+    "noBranchAssigned": "No branch assigned",
     "notifications": "Notifications",
     "userMenu": "User Menu",
     "logout": "Log out",
@@ -565,7 +568,12 @@
     "email": "Email",
     "emailPlaceholder": "info@clinic.com",
     "phone": "Phone",
-    "phonePlaceholder": "+1 (555) 000-0000"
+    "phonePlaceholder": "+1 (555) 000-0000",
+    "subscriptionPlan": "Subscription Plan",
+    "free": "Free",
+    "starter": "Starter",
+    "professional": "Professional",
+    "enterprise": "Enterprise"
   },
   "dashboard": {
     "noClinic": {

@@ -39,6 +39,23 @@ export const INVITABLE_PROFILE_ROLES = [
 export const invitableRoleEnum = z.enum(INVITABLE_PROFILE_ROLES);
 export type InvitableProfileRole = z.infer<typeof invitableRoleEnum>;
 
+/**
+ * Roles locked to the branch assigned on their profile: their tenant context
+ * always resolves `branchId` from `profiles.branch_id` (the branch-switcher
+ * cookie is ignored) and the header shows a read-only clinic/branch display.
+ * Owners and invited admins keep the free branch switcher.
+ */
+export const BRANCH_LOCKED_ROLES = [
+  "doctor",
+  "staff",
+  "pharmacist",
+  "receptionist",
+] as const;
+
+export function isBranchLockedRole(role: string | null | undefined): boolean {
+  return (BRANCH_LOCKED_ROLES as readonly string[]).includes(role ?? "");
+}
+
 export const profileSchema = z.object({
   id: z.string().uuid().optional(),
   auth_user_id: z.string().optional(),
@@ -50,6 +67,9 @@ export const profileSchema = z.object({
   role_id: z.string().uuid().optional().nullable(),
   specialty: z.string().optional().nullable(),
   status: profileStatusEnum,
+  // Home branch within the clinic; required for new invites (enforced in the
+  // server action so legacy edit payloads without the field keep working).
+  branch_id: z.string().uuid().optional().nullable(),
 });
 
 /** Result of a create-and-invite action that surfaces a temp password. */

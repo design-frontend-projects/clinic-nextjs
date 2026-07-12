@@ -21,6 +21,8 @@ model profiles {
   role                                                   ProfileRole?
   is_owner                                               Boolean                  @default(false)
   clinic_id                                              String?                  @db.Uuid
+  branch_id                                              String?                  @db.Uuid
+  branches                                               branches?                @relation(fields: [branch_id], references: [id])
   reviews_approved                                       appointment_reviews[]    @relation("review_approver")
   reviews_as_doctor                                      appointment_reviews[]    @relation("review_doctor")
   appointments                                           appointments[]
@@ -44,6 +46,7 @@ model profiles {
 
   @@index([auth_user_id])
   @@index([tenant_id])
+  @@index([branch_id])
 }
 
 model patients {
@@ -474,6 +477,7 @@ model branches {
   pharmacy_sales                                           pharmacy_sales[]
   prescription_dispenses                                   prescription_dispenses[]
   prescriptions                                            prescriptions[]
+  profiles                                                 profiles[]
   purchase_orders                                          purchase_orders[]
   stock_movements                                          stock_movements[]
   stock_transfers_stock_transfers_from_branch_idTobranches stock_transfers[]        @relation("stock_transfers_from_branch_idTobranches")
