@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { BranchSelector } from "./branch-selector";
 import { BranchDisplay } from "./branch-display";
+import { DoctorLocationSelector } from "./doctor-location-selector";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function Header() {
@@ -60,7 +61,14 @@ export function Header() {
 
         {tenant?.clinicId && (
           <div className="hidden md:block">
-            {tenant.branchLocked ? (
+            {tenant.role === "doctor" ? (
+              <DoctorLocationSelector
+                activeClinicId={tenant.clinicId}
+                activeBranchId={tenant.branchId}
+                clinicName={tenant.clinicName}
+                branchName={tenant.branchName}
+              />
+            ) : tenant.branchLocked ? (
               <BranchDisplay
                 clinicName={tenant.clinicName}
                 branchName={tenant.branchName}

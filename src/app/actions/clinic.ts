@@ -76,6 +76,41 @@ export async function updateClinic(
   return clinic;
 }
 
+/**
+ * List every clinic owned by the same owner as the caller's current clinic.
+ *
+ * The owner is resolved from the current clinic's `auth_user_id` (the creator),
+ * so this works whether the caller is the owner or an admin acting within the
+ * clinic. Results are limited to that owner's clinics — no cross-owner leakage —
+ * with the default (`is_primary`) clinic ordered first. Used to populate the
+ * clinic dropdown on the personnel-create screen (selection is informational;
+ * personnel are always created under the caller's default clinic).
+ */
+export async function getOwnerClinics() {
+  const tenant = await requireTenantInfo();
+
+  const current = await prisma.clinics.findUnique({
+    where: { id: tenant.clinicId },
+    select: { auth_user_id: true },
+  });
+  const ownerAuthId = current?.auth_user_id ?? null;
+
+  // Without a resolvable owner, fall back to just the current clinic so the
+  // dropdown always has the default option and never enumerates other tenants.
+  if (!ownerAuthId) {
+    return prisma.clinics.findMany({
+      where: { id: tenant.clinicId },
+      select: { id: true, name: true, is_primary: true },
+    });
+  }
+
+  return prisma.clinics.findMany({
+    where: { auth_user_id: ownerAuthId },
+    select: { id: true, name: true, is_primary: true },
+    orderBy: [{ is_primary: "desc" }, { created_at: "asc" }],
+  });
+}
+
 export async function getBranches(clinicId: string) {
   const tenant = await requireTenantInfo();
   // Only ever list branches for the caller's own clinic — ignore any other id
@@ -86,6 +121,41 @@ export async function getBranches(clinicId: string) {
   return prisma.branches.findMany({
     where: { clinic_id: tenant.clinicId },
     orderBy: { created_at: "asc" },
+  });
+}
+
+/**
+ * Every clinic owned by the caller's owner, each with its active branches.
+ * Powers the doctor multi-clinic/multi-branch assignment editor on the
+ * personnel-create screen. Scoped to the owner's clinics only (no cross-owner
+ * leakage), default clinic first. Only active branches are returned.
+ */
+export async function getOwnerClinicsWithBranches() {
+  const tenant = await requireTenantInfo();
+
+  const current = await prisma.clinics.findUnique({
+    where: { id: tenant.clinicId },
+    select: { auth_user_id: true },
+  });
+  const ownerAuthId = current?.auth_user_id ?? null;
+
+  const where = ownerAuthId
+    ? { auth_user_id: ownerAuthId }
+    : { id: tenant.clinicId };
+
+  return prisma.clinics.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      is_primary: true,
+      branches: {
+        where: { status: "active" as const },
+        select: { id: true, name: true, address: true },
+        orderBy: { created_at: "asc" },
+      },
+    },
+    orderBy: [{ is_primary: "desc" }, { created_at: "asc" }],
   });
 }
 

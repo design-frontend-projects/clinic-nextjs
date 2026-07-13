@@ -1,85 +1,78 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Plus, CreditCard } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-type Invoice = {
-  id: string;
-  invoiceNumber: string;
-  patient: string;
-  amount: number;
-  date: Date;
-  status: string; // 'paid', 'pending', 'overdue'
-};
-
-const columns: ColumnDef<Invoice>[] = [
-  {
-    accessorKey: "invoiceNumber",
-    header: "Invoice #",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs">{row.original.invoiceNumber}</span>
-    ),
-  },
-  {
-    accessorKey: "patient",
-    header: "Patient",
-  },
-  {
-    accessorKey: "amount",
-    header: "Amount",
-    cell: ({ row }) => (
-      <span className="font-medium">${row.original.amount.toFixed(2)}</span>
-    ),
-  },
-  {
-    accessorKey: "date",
-    header: "Date Issued",
-    cell: ({ row }) => format(new Date(row.original.date), "MMM d, yyyy"),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => (
-      <Button variant="ghost" size="sm" className="hidden sm:flex">
-        <CreditCard className="mr-2 h-4 w-4" />
-        Process Payment
-      </Button>
-    ),
-  },
-];
+import { getStaffInvoices } from "@/app/actions/staff";
+import type { StaffInvoiceRow } from "@/types/staff.types";
 
 export default function StaffBillingPage() {
+  const t = useTranslations("pages.staff");
+
+  const { data: invoices = [], isLoading } = useQuery({
+    queryKey: ["staff-invoices"],
+    queryFn: () => getStaffInvoices(),
+  });
+
+  const columns: ColumnDef<StaffInvoiceRow>[] = [
+    {
+      accessorKey: "invoiceNumber",
+      header: t("colInvoiceNumber"),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.invoiceNumber}</span>
+      ),
+    },
+    {
+      accessorKey: "patientName",
+      header: t("colPatient"),
+    },
+    {
+      accessorKey: "amount",
+      header: t("colAmount"),
+      cell: ({ row }) => (
+        <span className="font-medium">${row.original.amount.toFixed(2)}</span>
+      ),
+    },
+    {
+      accessorKey: "issuedAt",
+      header: t("colDateIssued"),
+      cell: ({ row }) => format(new Date(row.original.issuedAt), "MMM d, yyyy"),
+    },
+    {
+      accessorKey: "status",
+      header: t("colStatus"),
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Billing & Invoices
+            {t("billingTitle")}
           </h1>
-          <p className="text-muted-foreground">
-            Generate invoices and process patient payments
-          </p>
+          <p className="text-muted-foreground">{t("billingSubtitle")}</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Invoice
-        </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={[]}
-        searchKey="patient"
-        searchPlaceholder="Search invoices by patient..."
-      />
+      {isLoading ? (
+        <div className="flex h-40 items-center justify-center rounded-md border border-dashed">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={invoices}
+          searchKey="patientName"
+          searchPlaceholder={t("searchInvoices")}
+        />
+      )}
     </div>
   );
 }

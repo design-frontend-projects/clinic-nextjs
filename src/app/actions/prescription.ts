@@ -15,7 +15,7 @@ import {
  * validate with Zod safeParse, returning an { error } / { success } envelope.
  */
 
-const WRITE_ROLES = ["doctor", "admin"] as const;
+const WRITE_ROLES = ["doctor", "admin", "owner"] as const;
 
 type ActionResult<T> = { success: true; data: T } | { error: string };
 
@@ -135,6 +135,8 @@ export async function createPrescription(
 
   revalidatePath("/doctor/prescriptions");
   revalidatePath(`/doctor/patients/${patient_id}`);
+  revalidatePath("/admin/prescriptions");
+  revalidatePath(`/admin/patients/${patient_id}`);
   return { success: true, data: prescription };
 }
 
@@ -183,6 +185,8 @@ export async function updatePrescription(
 
   revalidatePath("/doctor/prescriptions");
   revalidatePath(`/doctor/patients/${patient_id}`);
+  revalidatePath("/admin/prescriptions");
+  revalidatePath(`/admin/patients/${patient_id}`);
   return { success: true, data: { id } };
 }
 
@@ -210,5 +214,7 @@ export async function deletePrescription(
 
   revalidatePath("/doctor/prescriptions");
   revalidatePath(`/doctor/patients/${existing.patient_id}`);
+  revalidatePath("/admin/prescriptions");
+  revalidatePath(`/admin/patients/${existing.patient_id}`);
   return { success: true, data: { id } };
 }

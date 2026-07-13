@@ -6,6 +6,8 @@ import { hasPermission as rbacHasPermission } from "@/lib/rbac";
  */
 export async function requirePermission(permissionName: string): Promise<true> {
   const allowed = await rbacHasPermission(permissionName);
+  console.log('is user allowed');
+  console.log(allowed);
   if (!allowed) {
     throw new Error(`Forbidden: Missing required permission (${permissionName})`);
   }

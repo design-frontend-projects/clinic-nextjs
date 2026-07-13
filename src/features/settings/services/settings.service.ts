@@ -44,9 +44,11 @@ export class SettingsService {
   // --- Reads ---
   async getDefinitions(): Promise<SettingDefinition[]> {
     const cached = (await this.cache.getDefinitions()) as SettingDefinition[] | null;
-    if (cached) return cached;
+    if (cached && cached.length > 0) return cached;
     const definitions = (await this.repo.findDefinitions()) as unknown as SettingDefinition[];
-    await this.cache.setDefinitions(definitions);
+    if (definitions.length > 0) {
+      await this.cache.setDefinitions(definitions);
+    }
     return definitions;
   }
 
@@ -94,9 +96,14 @@ export class SettingsService {
   }
 
   async getSettingValue<T>(tenantId: string, key: string, profileId: string | null = null): Promise<T> {
-    const definitions = await this.getDefinitions();
-    const definition = definitions.find((d) => d.key === key);
-    if (!definition) throw new Error(`Unknown setting key: ${key}`);
+    let definitions = await this.getDefinitions();
+    let definition = definitions.find((d) => d.key === key);
+    if (!definition) {
+      await this.cache.invalidateDefinitions();
+      definitions = await this.getDefinitions();
+      definition = definitions.find((d) => d.key === key);
+      if (!definition) throw new Error(`Unknown setting key: ${key}`);
+    }
     const values = await this.getScopeValues(tenantId, profileId);
     return this.resolution.resolveSetting(definition, values).value as T;
   }
@@ -110,11 +117,17 @@ export class SettingsService {
 
   // --- Validation shared by all write paths ---
   private async validateUpdates(updates: SettingUpdate[], scope: SettingScope): Promise<ValidatedUpdate[]> {
-    const definitions = await this.getDefinitions();
+    let definitions = await this.getDefinitions();
     const validated: ValidatedUpdate[] = [];
     for (const update of updates) {
-      const definition = definitions.find((d) => d.key === update.key);
-      if (!definition) throw new Error(`Unknown setting key: ${update.key}`);
+      let definition = definitions.find((d) => d.key === update.key);
+      if (!definition) {
+        // Cache might be stale (e.g. DB seeded after app started)
+        await this.cache.invalidateDefinitions();
+        definitions = await this.getDefinitions();
+        definition = definitions.find((d) => d.key === update.key);
+        if (!definition) throw new Error(`Unknown setting key: ${update.key}`);
+      }
       if (!definition.allowed_scopes.includes(scope)) {
         throw new Error(`Setting "${update.key}" cannot be set at the ${scope} level`);
       }

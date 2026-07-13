@@ -72,14 +72,37 @@ import {
   type CreateAppointmentWithPatientData,
 } from "@/types/appointment.types";
 
+type CreateAppointmentFn = (data: {
+  patient_id: string;
+  doctor_id: string;
+  appointment_date: string;
+  notes?: string;
+}) => Promise<unknown>;
+
+type RegisterPatientFn = (
+  data: CreateAppointmentWithPatientData,
+) => Promise<{ success: true; tempPassword: string } | { error: string }>;
+
 interface NewAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Appointment-creation action. Defaults to the admin (`appointment.manage`)
+   * action; staff pages inject their branch-scoped, `appointment.create`
+   * variant instead.
+   */
+  onCreateAppointment?: CreateAppointmentFn;
+  onRegisterPatient?: RegisterPatientFn;
+  /** React Query keys to invalidate after a successful booking. */
+  invalidateKeys?: string[];
 }
 
 export function NewAppointmentDialog({
   open,
   onOpenChange,
+  onCreateAppointment = createAppointment,
+  onRegisterPatient = registerPatientAndCreateAppointment,
+  invalidateKeys = ["appointments", "patients"],
 }: NewAppointmentDialogProps) {
   const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
@@ -132,30 +155,35 @@ export function NewAppointmentDialog({
   });
 
   // Mutations
+  function invalidateAll() {
+    for (const key of invalidateKeys) {
+      queryClient.invalidateQueries({ queryKey: [key] });
+    }
+  }
+
   const createAppointmentMutation = useMutation({
-    mutationFn: (data: AppointmentFormData) => createAppointment({
+    mutationFn: (data: AppointmentFormData) => onCreateAppointment({
       patient_id: data.patient_id,
       doctor_id: data.doctor_id,
       appointment_date: data.appointment_date.toISOString(),
       notes: data.notes,
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      invalidateAll();
       onOpenChange(false);
       existingPatientForm.reset();
     },
   });
 
   const registerPatientMutation = useMutation({
-    mutationFn: (data: CreateAppointmentWithPatientData) => 
-      registerPatientAndCreateAppointment(data),
+    mutationFn: (data: CreateAppointmentWithPatientData) =>
+      onRegisterPatient(data),
     onSuccess: (result, variables) => {
-      if (result.error) {
+      if ("error" in result) {
         newPatientForm.setError("root", { message: result.error });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      invalidateAll();
       onOpenChange(false);
       newPatientForm.reset();
       if (result.tempPassword) {
@@ -310,7 +338,7 @@ export function NewAppointmentDialog({
                           <SelectContent>
                             {doctors.map((doctor) => (
                               <SelectItem key={doctor.id} value={doctor.id}>
-                                {doctor.full_name}
+                                {doctor.full_name || doctor.email || "Unnamed"}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -596,7 +624,7 @@ export function NewAppointmentDialog({
                             <SelectContent>
                               {doctors.map((doctor) => (
                                 <SelectItem key={doctor.id} value={doctor.id}>
-                                  {doctor.full_name}
+                                  {doctor.full_name || doctor.email || "Unnamed"}
                                 </SelectItem>
                               ))}
                             </SelectContent>

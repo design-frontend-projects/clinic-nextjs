@@ -14,7 +14,7 @@ import {
 export async function getSubscriptionPlans() {
   await requireAppOwner();
 
-  return await prisma.subscription_plans.findMany({
+  const plans = await prisma.subscription_plans.findMany({
     include: {
       features: true,
       _count: {
@@ -23,6 +23,11 @@ export async function getSubscriptionPlans() {
     },
     orderBy: { display_order: "asc" },
   });
+
+  return plans.map((plan) => ({
+    ...plan,
+    price: Number(plan.price),
+  }));
 }
 
 /**
@@ -31,10 +36,17 @@ export async function getSubscriptionPlans() {
 export async function getSubscriptionPlan(id: string) {
   await requireAppOwner();
 
-  return await prisma.subscription_plans.findUnique({
+  const plan = await prisma.subscription_plans.findUnique({
     where: { id },
     include: { features: true },
   });
+
+  if (!plan) return null;
+
+  return {
+    ...plan,
+    price: Number(plan.price),
+  };
 }
 
 /**
@@ -76,7 +88,13 @@ export async function upsertSubscriptionPlan(data: SubscriptionPlanFormData) {
     }
 
     revalidatePath("/app-owner/plans");
-    return { success: true, plan: updated };
+    return {
+      success: true,
+      plan: {
+        ...updated,
+        price: Number(updated.price),
+      },
+    };
   } else {
     // Create new plan
     const created = await prisma.subscription_plans.create({
@@ -93,7 +111,13 @@ export async function upsertSubscriptionPlan(data: SubscriptionPlanFormData) {
     });
 
     revalidatePath("/app-owner/plans");
-    return { success: true, plan: created };
+    return {
+      success: true,
+      plan: {
+        ...created,
+        price: Number(created.price),
+      },
+    };
   }
 }
 

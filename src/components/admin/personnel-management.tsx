@@ -7,8 +7,13 @@ import {
   deletePersonnel,
 } from "@/app/actions/personnel";
 import { getActiveSpecialties } from "@/app/actions/specialties";
-import { getBranches } from "@/app/actions/clinic";
+import {
+  getBranches,
+  getOwnerClinics,
+  getOwnerClinicsWithBranches,
+} from "@/app/actions/clinic";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import { DoctorAssignmentEditor } from "@/components/admin/doctor-assignment-editor";
 import {
   TempPasswordDialog,
   type TempPasswordInfo,
@@ -37,7 +42,9 @@ import {
   profileSchema,
   INVITABLE_PROFILE_ROLES,
   isBranchLockedRole,
+  isMultiBranchRole,
   type Profile,
+  type DoctorBranchAssignment,
 } from "@/types/clinic.types";
 import { useLocale } from "next-intl";
 import { toast } from "sonner";
@@ -67,6 +74,9 @@ interface PersonnelManagementProps {
   title: string;
 }
 
+/** A personnel row as returned by `getPersonnel` (includes branch + assignments). */
+type PersonnelRow = Awaited<ReturnType<typeof getPersonnel>>[number];
+
 /** "receptionist" -> "Receptionist" for dropdown labels. */
 const roleLabel = (r: string) => r.charAt(0).toUpperCase() + r.slice(1);
 
@@ -82,6 +92,14 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   );
   const [tempPasswordInfo, setTempPasswordInfo] =
     useState<TempPasswordInfo | null>(null);
+  // Clinic selection is informational only: personnel are always created under
+  // the caller's default clinic (server-derived), and branches are always
+  // listed from that default clinic. `null` falls back to the default clinic.
+  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  // Doctor multi-clinic/branch assignment editor state (used when the form role
+  // is a multi-branch role). `primaryBranchId` is the home/default branch.
+  const [assignments, setAssignments] = useState<DoctorBranchAssignment[]>([]);
+  const [primaryBranchId, setPrimaryBranchId] = useState<string | null>(null);
 
   const { data: tenant } = useQuery({
     queryKey: ["tenant-info"],
@@ -91,8 +109,8 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   const authUserId = tenant?.auth_user_id as string;
 
   const { data: personnel, isLoading } = useQuery({
-    queryKey: ["personnel", authUserId],
-    queryFn: () => getPersonnel(authUserId),
+    queryKey: ["personnel", role],
+    queryFn: () => getPersonnel(role),
     enabled: !!authUserId,
   });
 
@@ -104,6 +122,30 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
 
   const clinicId = tenant?.clinicId ?? null;
 
+  // All clinics owned by this clinic's owner, for the (informational) clinic
+  // dropdown. Default (`is_primary`) clinic is ordered first server-side.
+  const { data: ownerClinics } = useQuery({
+    queryKey: ["owner-clinics", clinicId],
+    queryFn: () => getOwnerClinics(),
+    enabled: !!clinicId,
+  });
+
+  // All of the owner's clinics with their active branches, for the doctor
+  // multi-clinic/branch assignment editor.
+  const { data: ownerClinicsWithBranches } = useQuery({
+    queryKey: ["owner-clinics-branches", clinicId],
+    queryFn: () => getOwnerClinicsWithBranches(),
+    // Fetch whenever a clinic exists: the invite Role dropdown can select
+    // "doctor" even on the staff page, which needs this data.
+    enabled: !!clinicId,
+  });
+
+  // The clinic shown/selected in the dropdown; defaults to the caller's default
+  // clinic. Does not affect submission or the branch list.
+  const displayClinicId = selectedClinicId ?? clinicId;
+
+  // Branches are always listed from the default clinic only, regardless of the
+  // clinic dropdown selection.
   const { data: branches } = useQuery({
     queryKey: ["clinic-branches", clinicId],
     queryFn: () => getBranches(clinicId!),
@@ -116,7 +158,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     mutationFn: (data: Profile) => upsertPersonnel(data),
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["personnel", authUserId],
+        queryKey: ["personnel", role],
       });
       setIsOpen(false);
       setEditingPersonnel(null);
@@ -139,7 +181,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     mutationFn: (id: string) => deletePersonnel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["personnel", authUserId],
+        queryKey: ["personnel", role],
       });
       toast.success(`${title} deleted`);
       setPersonnelToDelete(null);
@@ -166,6 +208,8 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
 
   const onOpenAdd = () => {
     setEditingPersonnel(null);
+    setAssignments([]);
+    setPrimaryBranchId(null);
     reset({
       role,
       status: "active",
@@ -179,13 +223,35 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     setIsOpen(true);
   };
 
-  const onEdit = (p: Profile) => {
-    setEditingPersonnel(p);
-    reset(p);
+  const onEdit = (p: PersonnelRow) => {
+    setEditingPersonnel(p as Profile);
+    // Preload the doctor's existing (clinic, branch) assignments.
+    const rows = p.profile_branches ?? [];
+    setAssignments(
+      rows.map((r) => ({ clinic_id: r.clinic_id, branch_id: r.branch_id })),
+    );
+    setPrimaryBranchId(
+      rows.find((r) => r.is_primary)?.branch_id ?? rows[0]?.branch_id ?? null,
+    );
+    reset(p as Profile);
     setIsOpen(true);
   };
 
   const onSubmit: SubmitHandler<Profile> = (data) => {
+    // Multi-branch roles (doctor): submit the (clinic, branch) assignment set.
+    if (isMultiBranchRole(data.role)) {
+      if (assignments.length === 0) {
+        toast.error("Select at least one clinic and branch");
+        return;
+      }
+      upsertMutation.mutate({
+        ...data,
+        assignments,
+        primary_branch_id: primaryBranchId,
+        branch_id: primaryBranchId,
+      });
+      return;
+    }
     // Branch is mandatory for new invites of branch-locked roles
     // (also enforced server-side).
     if (
@@ -200,6 +266,12 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     // role (the dropdown is hidden and the update path never changes it).
     upsertMutation.mutate(data);
   };
+
+  // The role currently selected in the form (may differ from the page's default
+  // role on new invites, where the Role dropdown is shown). Multi-branch roles
+  // get the clinic/branch assignment editor instead of single selects.
+  const formRole = watch("role");
+  const isDoctorForm = isMultiBranchRole(formRole);
 
   const currentBranchId = watch("branch_id");
   // Include the assigned branch even if it's now inactive, so editing an
@@ -282,21 +354,29 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(p as Profile)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => setPersonnelToDelete(p.id!)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {p.role === "owner" ? (
+                    // The clinic owner appears on the Doctors page but is
+                    // view-only here — never editable/deletable from this screen.
+                    <Badge variant="secondary">Owner</Badge>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(p)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setPersonnelToDelete(p.id!)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -370,50 +450,90 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                 <Label htmlFor="phone">Phone</Label>
                 <Input id="phone" {...register("phone")} />
               </div>
-              <div className="space-y-2 col-span-2">
-                <Label>Clinic</Label>
-                <div className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span>{tenant?.clinicName ?? "—"}</span>
+              {isDoctorForm ? (
+                <div className="space-y-2 col-span-2">
+                  <Label>
+                    Clinics &amp; Branches{" "}
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <DoctorAssignmentEditor
+                    clinics={ownerClinicsWithBranches ?? []}
+                    assignments={assignments}
+                    primaryBranchId={primaryBranchId}
+                    onChange={(a, p) => {
+                      setAssignments(a);
+                      setPrimaryBranchId(p);
+                    }}
+                  />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  New {role}s are created under your clinic.
-                </p>
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label>
-                  Branch <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={watch("branch_id") ?? ""}
-                  onValueChange={(val) =>
-                    setValue("branch_id", val, { shouldValidate: true })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branchOptions.map((b) => (
-                      <SelectItem key={b.id} value={b.id!}>
-                        <span className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          {b.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.branch_id && (
-                  <p className="text-xs text-destructive">
-                    {errors.branch_id.message}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  The {role} will be locked to this branch and cannot change
-                  it.
-                </p>
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Clinic</Label>
+                    <Select
+                      value={displayClinicId ?? ""}
+                      onValueChange={(val) => setSelectedClinicId(val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Clinic" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(ownerClinics ?? []).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            <span className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              {c.name}
+                              {c.is_primary && (
+                                <span className="text-xs text-muted-foreground">
+                                  (Default)
+                                </span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      New {role}s are created under your default clinic;
+                      branches below are from that clinic.
+                    </p>
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>
+                      Branch <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={watch("branch_id") ?? ""}
+                      onValueChange={(val) =>
+                        setValue("branch_id", val, { shouldValidate: true })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Branch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {branchOptions.map((b) => (
+                          <SelectItem key={b.id} value={b.id!}>
+                            <span className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              {b.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.branch_id && (
+                      <p className="text-xs text-destructive">
+                        {errors.branch_id.message}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      The {role} will be locked to this branch and cannot change
+                      it.
+                    </p>
+                  </div>
+                </>
+              )}
               {role === "doctor" && (
                 <div className="space-y-2 col-span-2">
                   <Label>Specialty</Label>

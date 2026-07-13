@@ -24,6 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.staff", href: "/admin/staff", iconKey: "staff", roles: ["admin", "owner"], requiredPermission: "settings.users.manage" },
   { titleKey: "sidebar.patients", href: "/admin/patients", iconKey: "patients", roles: ["admin", "owner"], requiredPermission: "patient.read" },
   { titleKey: "sidebar.appointments", href: "/admin/appointments", iconKey: "appointments", roles: ["admin", "owner"], requiredPermission: "appointment.read" },
+  { titleKey: "sidebar.prescriptions", href: "/admin/prescriptions", iconKey: "prescriptions", roles: ["admin", "owner"] },
   { titleKey: "sidebar.billing", href: "/admin/billing", iconKey: "billing", roles: ["admin", "owner"] },
   { titleKey: "sidebar.clinicDefinition", href: "/admin/clinics", iconKey: "clinic", roles: ["admin", "owner"] },
   { titleKey: "sidebar.reviews", href: "/admin/reviews", iconKey: "reviews", roles: ["admin", "owner"] },

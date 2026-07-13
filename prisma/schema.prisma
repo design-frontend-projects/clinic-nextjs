@@ -22,7 +22,6 @@ model profiles {
   is_owner                                               Boolean                  @default(false)
   clinic_id                                              String?                  @db.Uuid
   branch_id                                              String?                  @db.Uuid
-  branches                                               branches?                @relation(fields: [branch_id], references: [id])
   reviews_approved                                       appointment_reviews[]    @relation("review_approver")
   reviews_as_doctor                                      appointment_reviews[]    @relation("review_doctor")
   appointments                                           appointments[]
@@ -35,6 +34,8 @@ model profiles {
   pharmacy_sales                                         pharmacy_sales[]
   prescription_dispenses                                 prescription_dispenses[]
   prescriptions                                          prescriptions[]
+  profile_branches                                       profile_branches[]
+  branches                                               branches?                @relation(fields: [branch_id], references: [id])
   clinics                                                clinics?                 @relation(fields: [clinic_id], references: [id])
   clinics_tenant                                         clinics?                 @relation("profile_tenant", fields: [tenant_id], references: [id])
   stock_movements                                        stock_movements[]
@@ -61,9 +62,9 @@ model patients {
   email                  String?
   address                String?
   created_at             DateTime                 @default(now())
-  updated_at             DateTime                 @default(now()) @updatedAt
-  deleted_at             DateTime?
   profile_id             String?                  @db.Uuid
+  deleted_at             DateTime?
+  updated_at             DateTime                 @default(now()) @updatedAt
   appointment_reviews    appointment_reviews[]
   appointments           appointments[]
   encounters             encounters[]
@@ -94,8 +95,9 @@ model appointments {
   status           AppointmentStatus    @default(scheduled)
   notes            String?
   created_at       DateTime             @default(now())
-  updated_at       DateTime             @default(now()) @updatedAt
   deleted_at       DateTime?
+  updated_at       DateTime             @default(now()) @updatedAt
+  checked_in_at    DateTime?
   review           appointment_reviews?
   branches         branches?            @relation(fields: [branch_id], references: [id])
   clinics          clinics              @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
@@ -109,14 +111,14 @@ model appointments {
 
 model payments {
   id             String        @id @default(uuid()) @db.Uuid
-  clinic_id      String        @db.Uuid
   invoice_id     String        @db.Uuid
   amount         Decimal?      @db.Decimal(12, 2)
   payment_method String?
   status         PaymentStatus @default(pending)
   paid_at        DateTime?
-  updated_at     DateTime      @default(now()) @updatedAt
+  clinic_id      String        @db.Uuid
   deleted_at     DateTime?
+  updated_at     DateTime      @default(now()) @updatedAt
   invoices       invoices      @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
@@ -128,12 +130,12 @@ model invoices {
   branch_id        String?            @db.Uuid
   patient_id       String?            @db.Uuid
   invoice_type     String?
-  invoice_number   String?
   total_amount     Decimal?           @db.Decimal(12, 2)
   status           InvoiceStatus      @default(draft)
   created_at       DateTime           @default(now())
-  updated_at       DateTime           @default(now()) @updatedAt
   deleted_at       DateTime?
+  invoice_number   String?
+  updated_at       DateTime           @default(now()) @updatedAt
   insurance_claims insurance_claims[]
   invoice_items    invoice_items[]
   branches         branches?          @relation(fields: [branch_id], references: [id])
@@ -156,8 +158,8 @@ model encounters {
   encounter_date   DateTime           @default(now())
   appointment_id   String?            @db.Uuid
   notes            String?
-  updated_at       DateTime           @default(now()) @updatedAt
   deleted_at       DateTime?
+  updated_at       DateTime           @default(now()) @updatedAt
   appointments     appointments?      @relation(fields: [appointment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   branches         branches?          @relation(fields: [branch_id], references: [id])
   clinics          clinics            @relation(fields: [clinic_id], references: [id])
@@ -179,8 +181,8 @@ model lab_orders {
   external_order_id     String?
   status                String        @default("ordered")
   created_at            DateTime      @default(now())
-  updated_at            DateTime      @default(now()) @updatedAt
   deleted_at            DateTime?
+  updated_at            DateTime      @default(now()) @updatedAt
   branches              branches?     @relation(fields: [branch_id], references: [id])
   clinics               clinics       @relation(fields: [clinic_id], references: [id])
   profiles              profiles?     @relation(fields: [doctor_id], references: [id])
@@ -191,13 +193,13 @@ model lab_orders {
 
 model lab_results {
   id              String     @id @default(uuid()) @db.Uuid
-  clinic_id       String     @db.Uuid
   lab_order_id    String     @db.Uuid
   result_data     Json?
   result_file_url String?
   received_at     DateTime?
-  updated_at      DateTime   @default(now()) @updatedAt
+  clinic_id       String     @db.Uuid
   deleted_at      DateTime?
+  updated_at      DateTime   @default(now()) @updatedAt
   lab_orders      lab_orders @relation(fields: [lab_order_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
@@ -211,8 +213,8 @@ model prescription_dispenses {
   patient_id                  String?                       @db.Uuid
   dispensed_by                String?                       @db.Uuid
   dispensed_at                DateTime                      @default(now())
-  updated_at                  DateTime                      @default(now()) @updatedAt
   deleted_at                  DateTime?
+  updated_at                  DateTime                      @default(now()) @updatedAt
   prescription_dispense_items prescription_dispense_items[]
   branches                    branches?                     @relation(fields: [branch_id], references: [id])
   clinics                     clinics                       @relation(fields: [clinic_id], references: [id])
@@ -265,7 +267,7 @@ model permissions {
 }
 
 model permission_categories {
-  id          String        @id @default(uuid()) @db.Uuid
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_id   String?       @db.Uuid
   name        String        @unique
   description String?
@@ -273,13 +275,13 @@ model permission_categories {
   created_at  DateTime      @default(now())
   updated_at  DateTime      @default(now()) @updatedAt
   deleted_at  DateTime?
-  created_by  String?       @db.Uuid
-  updated_by  String?       @db.Uuid
+  created_by  String?       @default(dbgenerated("auth.uid()")) @db.Uuid
+  updated_by  String?       @default(dbgenerated("auth.uid()")) @db.Uuid
   permissions permissions[]
 }
 
 model permission_groups {
-  id          String        @id @default(uuid()) @db.Uuid
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_id   String?       @db.Uuid
   name        String        @unique
   description String?
@@ -477,6 +479,7 @@ model branches {
   pharmacy_sales                                           pharmacy_sales[]
   prescription_dispenses                                   prescription_dispenses[]
   prescriptions                                            prescriptions[]
+  profile_branches                                         profile_branches[]
   profiles                                                 profiles[]
   purchase_orders                                          purchase_orders[]
   stock_movements                                          stock_movements[]
@@ -484,6 +487,28 @@ model branches {
   stock_transfers_stock_transfers_to_branch_idTobranches   stock_transfers[]        @relation("stock_transfers_to_branch_idTobranches")
 
   @@index([clinic_id])
+}
+
+/// Multi-clinic / multi-branch assignments for personnel (currently doctors).
+/// Each row grants the profile access to work in one (clinic, branch); the
+/// distinct clinics form the doctor's clinic set and `is_primary` marks the
+/// home/default branch used on first login. Requires RLS setup — see
+/// prisma/migrations/17_doctor_multi_branch.sql.
+model profile_branches {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id String   @db.Uuid
+  clinic_id  String   @db.Uuid
+  branch_id  String   @db.Uuid
+  is_primary Boolean  @default(false)
+  created_at DateTime @default(now())
+  branches   branches @relation(fields: [branch_id], references: [id], onDelete: Cascade)
+  clinics    clinics  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  profiles   profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+
+  @@unique([profile_id, branch_id])
+  @@index([profile_id])
+  @@index([clinic_id])
+  @@index([branch_id])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -507,19 +532,24 @@ model clinics {
   appointments             appointments[]
   audit_logs               audit_logs[]
   branches                 branches[]
+  document_sequences       document_sequences[]
   encounters               encounters[]
   file_storage             file_storage[]
   insurance_claims         insurance_claims[]
   invoices                 invoices[]
   lab_orders               lab_orders[]
+  lookup_values            lookup_values[]
   medical_records          medical_records[]
   medication_batches       medication_batches[]
   medications              medications[]
+  notification_channels    notification_channels[]
+  notification_templates   notification_templates[]
   patients                 patients[]
   pharmacy_inventory       pharmacy_inventory[]
   pharmacy_sales           pharmacy_sales[]
   prescription_dispenses   prescription_dispenses[]
   prescriptions            prescriptions[]
+  profile_branches         profile_branches[]
   profiles                 profiles[]
   staff_profiles           profiles[]                 @relation("profile_tenant")
   purchase_orders          purchase_orders[]
@@ -528,21 +558,17 @@ model clinics {
   role_hierarchy           role_hierarchy[]
   role_permissions         role_permissions[]
   roles                    roles[]
+  settings_history         settings_history[]
   stock_movements          stock_movements[]
   suppliers                suppliers[]
+  tenant_feature_overrides tenant_feature_overrides[]
   tenant_permissions       tenant_permissions[]
   tenant_roles             tenant_roles[]
+  tenant_settings          tenant_settings[]
   tenant_subscription      tenant_subscriptions?
   user_permissions         user_permissions[]
   user_roles               user_roles[]
-  tenant_settings          tenant_settings[]
   user_settings            user_settings[]
-  settings_history         settings_history[]
-  lookup_values            lookup_values[]
-  tenant_feature_overrides tenant_feature_overrides[]
-  document_sequences       document_sequences[]
-  notification_templates   notification_templates[]
-  notification_channels    notification_channels[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -590,14 +616,14 @@ model insurance_providers {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model invoice_items {
   id          String    @id @default(uuid()) @db.Uuid
-  clinic_id   String    @db.Uuid
   invoice_id  String    @db.Uuid
   description String?
   quantity    Int?
   unit_price  Decimal?  @db.Decimal(12, 2)
   total_price Decimal?  @db.Decimal(12, 2)
-  updated_at  DateTime  @default(now()) @updatedAt
+  clinic_id   String    @db.Uuid
   deleted_at  DateTime?
+  updated_at  DateTime  @default(now()) @updatedAt
   invoices    invoices  @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
@@ -629,8 +655,8 @@ model medical_records {
   treatment              String?
   notes                  String?
   created_at             DateTime                 @default(now())
-  updated_at             DateTime                 @default(now()) @updatedAt
   deleted_at             DateTime?
+  updated_at             DateTime                 @default(now()) @updatedAt
   clinics                clinics                  @relation(fields: [clinic_id], references: [id])
   profiles               profiles?                @relation(fields: [doctor_id], references: [id])
   patients               patients                 @relation(fields: [patient_id], references: [id], onDelete: Cascade)
@@ -761,14 +787,14 @@ model pharmacy_sales {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model prescription_dispense_items {
   id                     String                 @id @default(uuid()) @db.Uuid
-  clinic_id              String                 @db.Uuid
   dispense_id            String                 @db.Uuid
   medication_batch_id    String                 @db.Uuid
   quantity               Int
   unit_price             Decimal?               @db.Decimal(10, 2)
   total_price            Decimal?               @db.Decimal(12, 2)
-  updated_at             DateTime               @default(now()) @updatedAt
+  clinic_id              String                 @db.Uuid
   deleted_at             DateTime?
+  updated_at             DateTime               @default(now()) @updatedAt
   prescription_dispenses prescription_dispenses @relation(fields: [dispense_id], references: [id], onDelete: Cascade)
   medication_batches     medication_batches     @relation(fields: [medication_batch_id], references: [id])
 
@@ -796,10 +822,10 @@ model prescriptions {
   updated_at         DateTime             @default(now()) @updatedAt
   deleted_at         DateTime?
   prescription_items prescription_items[]
-  clinics            clinics              @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   branches           branches?            @relation(fields: [branch_id], references: [id])
-  patients           patients             @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  clinics            clinics              @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   profiles           profiles?            @relation(fields: [doctor_id], references: [id])
+  patients           patients             @relation(fields: [patient_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
   @@index([patient_id])
@@ -823,8 +849,8 @@ model prescription_items {
   instructions    String?
   updated_at      DateTime      @default(now()) @updatedAt
   deleted_at      DateTime?
-  prescriptions   prescriptions @relation(fields: [prescription_id], references: [id], onDelete: Cascade)
   medications     medications?  @relation(fields: [medication_id], references: [id])
+  prescriptions   prescriptions @relation(fields: [prescription_id], references: [id], onDelete: Cascade)
 
   @@index([prescription_id])
   @@index([clinic_id])

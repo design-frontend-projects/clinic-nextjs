@@ -4,11 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { requirePermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
-import { createUserAccount, rollbackAuthUser } from "@/lib/invitations";
 import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
-import { createAppointmentWithPatientSchema, type CreateAppointmentWithPatientData } from "@/types/appointment.types";
-import { getAppointmentSettings, getWorkingHours } from "@/lib/settings";
-import { validateBookingTime, validateCancellation } from "@/features/settings/domain/booking-policy";
+import { type CreateAppointmentWithPatientData } from "@/types/appointment.types";
+import { getAppointmentSettings } from "@/lib/settings";
+import { validateCancellation } from "@/features/settings/domain/booking-policy";
+import {
+  createAppointmentForScope,
+  registerPatientWithAppointmentForScope,
+} from "@/lib/appointment-service";
 
 export async function getDashboardStats() {
   const tenant = await requireTenantInfo();
@@ -172,7 +175,7 @@ export async function getDoctors() {
   return prisma.profiles.findMany({
     where: {
       tenant_id: tenant.clinicId,
-      role: "doctor",
+      OR: [{ role: { in: ["doctor", "owner"] } }, { is_owner: true }],
     },
     orderBy: { created_at: "desc" },
   });
@@ -218,28 +221,7 @@ export async function createAppointment(data: {
   const tenant = await requireTenantInfo();
   await requirePermission("appointment.manage");
 
-  // Enforce tenant scheduling policy (working hours, lead time, slot alignment).
-  const appointmentDate = new Date(data.appointment_date);
-  const [workingHours, appointmentSettings] = await Promise.all([
-    getWorkingHours(),
-    getAppointmentSettings(),
-  ]);
-  const policyError = validateBookingTime(appointmentDate, workingHours, appointmentSettings);
-  if (policyError) {
-    throw new Error(policyError);
-  }
-
-  const appointment = await prisma.appointments.create({
-    data: {
-      clinic_id: tenant.clinicId,
-      branch_id: tenant.branchId,
-      patient_id: data.patient_id,
-      doctor_id: data.doctor_id,
-      appointment_date: appointmentDate,
-      notes: data.notes || null,
-      status: "scheduled",
-    },
-  });
+  const appointment = await createAppointmentForScope(tenant, data);
 
   revalidatePath("/admin/appointments");
   return appointment;
@@ -324,129 +306,17 @@ export async function registerPatientAndCreateAppointment(data: CreateAppointmen
   try {
     const tenant = await requireTenantInfo();
     await requirePermission("appointment.manage");
-    const parsed = createAppointmentWithPatientSchema.safeParse(data);
-    
-    if (!parsed.success) {
-      return { error: parsed.error.issues[0]?.message || "Invalid data" };
+
+    const result = await registerPatientWithAppointmentForScope(tenant, data);
+    if ("success" in result) {
+      revalidatePath("/admin/appointments");
+      revalidatePath("/admin/patients");
     }
-
-    const patientData = parsed.data.patient;
-    const appointmentData = parsed.data.appointment;
-
-    // Block duplicates within the clinic (by email or phone).
-    const duplicate = await findClinicDuplicate({
-      clinicId: tenant.clinicId,
-      email: patientData.email,
-      phone: patientData.phone,
-    });
-    if (duplicate) {
-      return { error: duplicateMessage(duplicate) };
-    }
-
-    // Enforce tenant scheduling policy before creating any accounts.
-    const [workingHours, appointmentSettings] = await Promise.all([
-      getWorkingHours(),
-      getAppointmentSettings(),
-    ]);
-    const policyError = validateBookingTime(
-      new Date(appointmentData.appointment_date),
-      workingHours,
-      appointmentSettings
-    );
-    if (policyError) {
-      return { error: policyError };
-    }
-
-    // Create the patient's confirmed auth user with a temp password
-    let account;
-    try {
-      account = await createUserAccount({
-        email: patientData.email,
-        metadata: {
-          full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
-          role: "patient",
-          tenant_id: tenant.clinicId,
-        },
-      });
-    } catch (inviteError) {
-      const message =
-        inviteError instanceof Error
-          ? inviteError.message
-          : "Failed to create patient account";
-      return { error: message };
-    }
-
-    // Insert new profile, patient, and appointment in a transaction
-    try {
-      await prisma.$transaction(async (tx) => {
-        // 1. Upsert Profile (trigger pre-creates the row on auth-user insert)
-        const profile = await tx.profiles.upsert({
-          where: { auth_user_id: account.user.id },
-          update: {
-            tenant_id: tenant.clinicId,
-            full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
-            email: patientData.email,
-            phone: patientData.phone ?? null,
-            role: "patient",
-            status: "active",
-            is_owner: false,
-            is_profile_completed: false,
-          },
-          create: {
-            auth_user_id: account.user.id,
-            tenant_id: tenant.clinicId,
-            full_name: `${patientData.first_name} ${patientData.last_name}`.trim(),
-            email: patientData.email,
-            phone: patientData.phone ?? null,
-            role: "patient",
-            status: "active",
-            is_owner: false,
-            is_profile_completed: false,
-          },
-        });
-
-        // 2. Create Patient Record
-        const patient = await tx.patients.create({
-          data: {
-            clinic_id: tenant.clinicId,
-            branch_id: tenant.branchId,
-            profile_id: profile.id,
-            first_name: patientData.first_name,
-            last_name: patientData.last_name,
-            email: patientData.email,
-            phone: patientData.phone ?? null,
-            gender: patientData.gender as "male" | "female" | "other" | undefined,
-            date_of_birth: patientData.date_of_birth ? new Date(patientData.date_of_birth) : null,
-            address: patientData.address ?? null,
-          },
-        });
-
-        // 3. Create Appointment
-        await tx.appointments.create({
-          data: {
-            clinic_id: tenant.clinicId,
-            branch_id: tenant.branchId,
-            patient_id: patient.id,
-            doctor_id: appointmentData.doctor_id,
-            appointment_date: new Date(appointmentData.appointment_date),
-            notes: appointmentData.notes ?? null,
-            status: appointmentData.status as any,
-          },
-        });
-      });
-    } catch (dbError) {
-      // Rollback auth user if DB operations fail
-      console.error("Database operations failed, rolling back auth user:", dbError);
-      await rollbackAuthUser(account.user.id);
-      return { error: "Failed to save patient records. Process rolled back." };
-    }
-
-    revalidatePath("/admin/appointments");
-    revalidatePath("/admin/patients");
-
-    return { success: true, tempPassword: account.tempPassword };
-  } catch (error: any) {
-    console.error("Unexpected error in registerPatientAndCreateAppointment:", error);
-    return { error: error.message || "An unexpected error occurred" };
+    return result;
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
+    };
   }
 }

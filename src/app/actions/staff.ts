@@ -1,11 +1,74 @@
 "use server";
 
-import { getSupabaseSession } from "@/lib/auth";
+import { getSupabaseSession, requireTenantInfo } from "@/lib/auth";
+import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { createUserAccount, rollbackAuthUser } from "@/lib/invitations";
 import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
-import { staffInviteSchema, type StaffInviteFormData } from "@/types/staff.types";
+import {
+  staffInviteSchema,
+  type StaffInviteFormData,
+  type AppointmentStatus,
+  type InvoiceStatus,
+  type StaffQueueItem,
+  type StaffDashboardStats,
+  type StaffThroughputPoint,
+  type StaffAppointmentRow,
+  type StaffInvoiceRow,
+} from "@/types/staff.types";
+import type { CreateAppointmentWithPatientData } from "@/types/appointment.types";
+import {
+  createAppointmentForScope,
+  registerPatientWithAppointmentForScope,
+  type AppointmentScope,
+  type RegisterPatientResult,
+} from "@/lib/appointment-service";
+import { getAppointmentSettings } from "@/lib/settings";
+import { validateCancellation } from "@/features/settings/domain/booking-policy";
 import { revalidatePath } from "next/cache";
+
+const ALL_STATUSES: AppointmentStatus[] = [
+  "scheduled",
+  "checked_in",
+  "completed",
+  "cancelled",
+  "no_show",
+];
+
+/** Staff are branch-locked; scope every query to their branch when one is set. */
+function scopedWhere(scope: AppointmentScope): {
+  clinic_id: string;
+  branch_id?: string;
+} {
+  return {
+    clinic_id: scope.clinicId,
+    ...(scope.branchId ? { branch_id: scope.branchId } : {}),
+  };
+}
+
+function todayRange(): { start: Date; end: Date } {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+function fullName(
+  first: string | null,
+  last: string | null,
+  fallback: string,
+): string {
+  const name = `${first ?? ""} ${last ?? ""}`.trim();
+  return name || fallback;
+}
+
+/** Revalidate every staff route that renders appointment/queue data. */
+function revalidateStaffRoutes(): void {
+  revalidatePath("/staff");
+  revalidatePath("/staff/checkin");
+  revalidatePath("/staff/booking");
+}
 
 /**
  * NOTE: Legacy standalone staff-invite action; the live staff path is
@@ -98,4 +161,281 @@ export async function inviteStaffMember(data: StaffInviteFormData) {
     console.error("Error inviting staff:", error);
     return { error: "An unexpected error occurred" };
   }
+}
+
+/**
+ * Build the branch-scoped queue of patients that are scheduled or already
+ * checked in for today, ordered by appointment time. Shared by the dashboard and
+ * the check-in page.
+ */
+async function fetchStaffQueue(
+  scope: AppointmentScope,
+  take: number,
+): Promise<StaffQueueItem[]> {
+  const { start, end } = todayRange();
+
+  const rows = await prisma.appointments.findMany({
+    where: {
+      ...scopedWhere(scope),
+      appointment_date: { gte: start, lt: end },
+      status: { in: ["scheduled", "checked_in"] },
+    },
+    include: {
+      patients: { select: { first_name: true, last_name: true } },
+      profiles: { select: { full_name: true } },
+    },
+    orderBy: { appointment_date: "asc" },
+    take,
+  });
+
+  return rows.map((a) => ({
+    id: a.id,
+    patientName: fullName(
+      a.patients?.first_name ?? null,
+      a.patients?.last_name ?? null,
+      "Unknown patient",
+    ),
+    doctorName: a.profiles?.full_name || "Unassigned",
+    appointmentDate: a.appointment_date.toISOString(),
+    status: a.status as AppointmentStatus,
+    checkedInAt: a.checked_in_at ? a.checked_in_at.toISOString() : null,
+  }));
+}
+
+/** Full check-in queue for the staff check-in page (branch-scoped, today). */
+export async function getStaffQueue(): Promise<StaffQueueItem[]> {
+  const tenant = await requireTenantInfo();
+  await requirePermission("appointment.read");
+  return fetchStaffQueue(tenant, 100);
+}
+
+/** Aggregated, branch-scoped stats for the staff dashboard. */
+export async function getStaffDashboardStats(): Promise<StaffDashboardStats> {
+  const tenant = await requireTenantInfo();
+  await requirePermission("appointment.read");
+
+  const scope = scopedWhere(tenant);
+  const { start, end } = todayRange();
+  const todayAppointmentWhere = {
+    ...scope,
+    appointment_date: { gte: start, lt: end },
+  };
+
+  const [
+    todaysAppointments,
+    completedToday,
+    checkedInQueue,
+    newPatientsToday,
+    paymentsAgg,
+    statusGroups,
+    queue,
+  ] = await Promise.all([
+    prisma.appointments.count({ where: todayAppointmentWhere }),
+    prisma.appointments.count({
+      where: { ...todayAppointmentWhere, status: "completed" },
+    }),
+    prisma.appointments.count({
+      where: { ...todayAppointmentWhere, status: "checked_in" },
+    }),
+    prisma.patients.count({
+      where: { ...scope, created_at: { gte: start, lt: end } },
+    }),
+    prisma.payments.aggregate({
+      _sum: { amount: true },
+      where: {
+        clinic_id: tenant.clinicId,
+        status: "paid",
+        paid_at: { gte: start, lt: end },
+        ...(tenant.branchId
+          ? { invoices: { branch_id: tenant.branchId } }
+          : {}),
+      },
+    }),
+    prisma.appointments.groupBy({
+      by: ["status"],
+      where: todayAppointmentWhere,
+      _count: { _all: true },
+    }),
+    fetchStaffQueue(tenant, 10),
+  ]);
+
+  const countByStatus = new Map(
+    statusGroups.map((g) => [g.status as AppointmentStatus, g._count._all]),
+  );
+  const throughput: StaffThroughputPoint[] = ALL_STATUSES.map((status) => ({
+    status,
+    count: countByStatus.get(status) ?? 0,
+  }));
+
+  const remainingToday = Math.max(todaysAppointments - completedToday, 0);
+
+  return {
+    todaysAppointments,
+    completedToday,
+    remainingToday,
+    checkedInQueue,
+    newPatientsToday,
+    paymentsCollectedToday: Number(paymentsAgg._sum.amount ?? 0),
+    queue,
+    throughput,
+  };
+}
+
+/** Branch-scoped appointment list for the staff booking-central page. */
+export async function getStaffAppointments(filters?: {
+  status?: string;
+}): Promise<StaffAppointmentRow[]> {
+  const tenant = await requireTenantInfo();
+  await requirePermission("appointment.read");
+
+  const where = {
+    ...scopedWhere(tenant),
+    ...(filters?.status && filters.status !== "all"
+      ? { status: filters.status as AppointmentStatus }
+      : {}),
+  };
+
+  const rows = await prisma.appointments.findMany({
+    where,
+    include: {
+      patients: { select: { first_name: true, last_name: true } },
+      profiles: { select: { full_name: true } },
+    },
+    orderBy: { appointment_date: "desc" },
+    take: 100,
+  });
+
+  return rows.map((a) => ({
+    id: a.id,
+    patientName: fullName(
+      a.patients?.first_name ?? null,
+      a.patients?.last_name ?? null,
+      "Unknown patient",
+    ),
+    doctorName: a.profiles?.full_name || "Unassigned",
+    appointmentDate: a.appointment_date.toISOString(),
+    status: a.status as AppointmentStatus,
+    visitType: a.notes ?? "",
+  }));
+}
+
+/** Branch-scoped invoice list for the staff billing page (read-only). */
+export async function getStaffInvoices(): Promise<StaffInvoiceRow[]> {
+  const tenant = await requireTenantInfo();
+  await requirePermission("invoice.read");
+
+  const rows = await prisma.invoices.findMany({
+    where: scopedWhere(tenant),
+    include: {
+      patients: { select: { first_name: true, last_name: true } },
+    },
+    orderBy: { created_at: "desc" },
+    take: 100,
+  });
+
+  return rows.map((inv) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoice_number || inv.id.slice(0, 8).toUpperCase(),
+    patientName: fullName(
+      inv.patients?.first_name ?? null,
+      inv.patients?.last_name ?? null,
+      "Unknown patient",
+    ),
+    amount: Number(inv.total_amount ?? 0),
+    issuedAt: inv.created_at.toISOString(),
+    status: inv.status as InvoiceStatus,
+  }));
+}
+
+/** Book an appointment for an existing patient (front-desk create permission). */
+export async function createStaffAppointment(data: {
+  patient_id: string;
+  doctor_id: string;
+  appointment_date: string;
+  notes?: string;
+}) {
+  const tenant = await requireTenantInfo();
+  console.log('tenant data create booking: ', tenant);
+  await requirePermission("appointment.create");
+  const appointment = await createAppointmentForScope(tenant, data);
+  console.log('appointment data create booking: ', appointment);
+  revalidateStaffRoutes();
+  return appointment;
+}
+
+/** Register a new patient and book their appointment in one flow. */
+export async function registerPatientAndCreateStaffAppointment(
+  data: CreateAppointmentWithPatientData,
+): Promise<RegisterPatientResult> {
+  try {
+    const tenant = await requireTenantInfo();
+    await requirePermission("appointment.create");
+
+    const result = await registerPatientWithAppointmentForScope(tenant, data);
+    if ("success" in result) {
+      revalidateStaffRoutes();
+      revalidatePath("/staff/patients");
+    }
+    return result;
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
+    };
+  }
+}
+
+/** Check a patient in: flip to `checked_in` and stamp the check-in time. */
+export async function checkInStaffAppointment(id: string) {
+  const tenant = await requireTenantInfo();
+  await requirePermission("appointment.create");
+
+  const appointment = await prisma.appointments.update({
+    where: { id, clinic_id: tenant.clinicId },
+    data: { status: "checked_in", checked_in_at: new Date() },
+  });
+
+  revalidateStaffRoutes();
+  return appointment;
+}
+
+/** Progress an appointment through the queue (check-in, complete, cancel, …). */
+export async function updateStaffAppointmentStatus(
+  id: string,
+  status: AppointmentStatus,
+) {
+  const tenant = await requireTenantInfo();
+  // Cancelling is a distinct front-desk permission; other transitions ride on
+  // the create/scheduling permission staff already hold.
+  await requirePermission(
+    status === "cancelled" ? "appointment.cancel" : "appointment.create",
+  );
+
+  if (status === "cancelled") {
+    const existing = await prisma.appointments.findFirst({
+      where: { id, clinic_id: tenant.clinicId },
+      select: { appointment_date: true },
+    });
+    if (existing) {
+      const { cancellationWindowHours } = await getAppointmentSettings();
+      const policyError = validateCancellation(
+        existing.appointment_date,
+        cancellationWindowHours,
+      );
+      if (policyError) {
+        throw new Error(policyError);
+      }
+    }
+  }
+
+  const appointment = await prisma.appointments.update({
+    where: { id, clinic_id: tenant.clinicId },
+    data: {
+      status,
+      ...(status === "checked_in" ? { checked_in_at: new Date() } : {}),
+    },
+  });
+
+  revalidateStaffRoutes();
+  return appointment;
 }
