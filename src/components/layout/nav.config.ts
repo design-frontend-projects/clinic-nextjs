@@ -49,6 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.dashboard", href: "/staff", iconKey: "dashboard", roles: ["staff"] },
   { titleKey: "sidebar.appointments", href: "/staff/booking", iconKey: "appointments", roles: ["staff"] },
   { titleKey: "sidebar.checkinQueue", href: "/staff/checkin", iconKey: "checkin", roles: ["staff"] },
+  { titleKey: "sidebar.patients", href: "/staff/patients", iconKey: "patients", roles: ["staff"] },
   { titleKey: "sidebar.billing", href: "/staff/billing", iconKey: "billing", roles: ["staff"] },
 
   // Patient portal

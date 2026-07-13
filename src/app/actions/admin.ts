@@ -132,6 +132,7 @@ export async function createPatient(data: {
   });
 
   revalidatePath("/admin/patients");
+  revalidatePath("/staff/patients");
   return patient;
 }
 
@@ -166,6 +167,7 @@ export async function updatePatient(
   });
 
   revalidatePath("/admin/patients");
+  revalidatePath("/staff/patients");
   return patient;
 }
 

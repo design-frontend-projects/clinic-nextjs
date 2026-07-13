@@ -181,6 +181,7 @@ export async function invitePatientToPortal(patientId: string) {
     }
 
     revalidatePath("/admin/patients");
+    revalidatePath("/staff/patients");
     return { success: true, tempPassword: account.tempPassword };
   } catch (error) {
     return {
