@@ -111,14 +111,3 @@ export type PublicPlan = {
   display_order: number;
   features: PublicPlanFeature[];
 };
-
-/** A single global-settings key/value update. */
-export const globalSettingSchema = z.object({
-  key: z.string().min(1),
-  value: z.unknown(),
-  category: z.string().min(1),
-  is_public: z.boolean().optional(),
-});
-
-export const globalSettingsUpdateSchema = z.array(globalSettingSchema);
-export type GlobalSettingUpdate = z.infer<typeof globalSettingSchema>;

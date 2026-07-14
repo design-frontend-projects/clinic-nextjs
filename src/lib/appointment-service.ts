@@ -5,8 +5,6 @@ import {
   createAppointmentWithPatientSchema,
   type CreateAppointmentWithPatientData,
 } from "@/types/appointment.types";
-import { getAppointmentSettings, getWorkingHours } from "@/lib/settings";
-import { validateBookingTime } from "@/features/settings/domain/booking-policy";
 
 /**
  * Permission-agnostic appointment write helpers shared by the admin and staff
@@ -33,28 +31,13 @@ export type RegisterPatientResult =
   | { error: string };
 
 /**
- * Validate the tenant scheduling policy and create a `scheduled` appointment for
- * an existing patient. Throws on a policy violation (surfaced to the client via
- * the caller's mutation error handler).
+ * Create a `scheduled` appointment for an existing patient.
  */
 export async function createAppointmentForScope(
   scope: AppointmentScope,
   data: CreateAppointmentInput,
 ) {
   const appointmentDate = new Date(data.appointment_date);
-
-  const [workingHours, appointmentSettings] = await Promise.all([
-    getWorkingHours(),
-    getAppointmentSettings(),
-  ]);
-  const policyError = validateBookingTime(
-    appointmentDate,
-    workingHours,
-    appointmentSettings,
-  );
-  if (policyError) {
-    throw new Error(policyError);
-  }
 
   return prisma.appointments.create({
     data: {
@@ -95,20 +78,6 @@ export async function registerPatientWithAppointmentForScope(
   });
   if (duplicate) {
     return { error: duplicateMessage(duplicate) };
-  }
-
-  // Enforce tenant scheduling policy before creating any accounts.
-  const [workingHours, appointmentSettings] = await Promise.all([
-    getWorkingHours(),
-    getAppointmentSettings(),
-  ]);
-  const policyError = validateBookingTime(
-    new Date(appointmentData.appointment_date),
-    workingHours,
-    appointmentSettings,
-  );
-  if (policyError) {
-    return { error: policyError };
   }
 
   // Create the patient's confirmed auth user with a temp password.

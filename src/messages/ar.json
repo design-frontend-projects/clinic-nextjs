@@ -155,11 +155,6 @@
       "empty": "لم يتم العثور على أدوية لهذه العيادة. أضف واحدًا للبدء.",
       "noClinics": "لا توجد عيادات متاحة. قم بإنشاء عيادة أولاً."
     },
-    "settings": {
-      "title": "الإعدادات العامة",
-      "subtitle": "تكوين إعدادات المنصة العامة والحدود.",
-      "empty": "لم يتم تكوين الإعدادات العامة بعد."
-    },
     "dashboard": {
       "overviewTitle": "نظرة عامة على المنصة",
       "overviewSubtitle": "المقاييس العالمية وحالة النظام.",
@@ -224,7 +219,6 @@
     "inventory": "المخازن",
     "reports": "التقارير",
     "clinicDefinition": "تعريف العيادة",
-    "settings": "الإعدادات",
     "myAppointments": "مواعيدي",
     "myPatients": "مرضيّي",
     "prescriptions": "الموصفات",
@@ -238,7 +232,6 @@
     "permissions": "الصلاحيات",
     "audit": "سجل التدقيق",
     "reviews": "التقييمات",
-    "preferences": "تفضيلاتي",
     "notifications": "الإشعارات"
   },
   "pages": {
@@ -322,30 +315,6 @@
       "colAmount": "المبلغ",
       "colDateIssued": "تاريخ الإصدار",
       "searchInvoices": "بحث في الفواتير باسم المريض..."
-    },
-    "settings": {
-      "title": "الإعدادات",
-      "subtitle": "إدارة ملف عيادتك وتفضيلاتها",
-      "clinicProfile": "ملف العيادة",
-      "updateInfo": "تحديث معلومات عيادتك",
-      "clinicName": "اسم العيادة",
-      "registrationNumber": "رقم التسجيل (اختياري)",
-      "regNumberPlaceholder": "MED-2024-001",
-      "email": "البريد الإلكتروني",
-      "emailPlaceholder": "clinic@example.com",
-      "phone": "الهاتف",
-      "phonePlaceholder": "+1 234 567 890",
-      "saveChanges": "حفظ التغييرات",
-      "subscriptionPlan": "خطة الاشتراك",
-      "yourCurrentPlan": "خطتك الحالية والفاتورة",
-      "trialPlan": "خطة التجربة",
-      "freeFor14Days": "مجاناً لـ 14 يوم",
-      "upgrade": "ترقية",
-      "featuresIncluded": "الميزات المضمنة:",
-      "unlimitedPatients": "مرضى غير محدود",
-      "appointmentManagement": "إدارة المواعيد",
-      "basicBilling": "الفوترة الأساسية",
-      "fiveStaffMembers": "5 موظفين"
     }
   },
   "landing": {
@@ -630,232 +599,6 @@
       "title": "حدث خطأ ما",
       "description": "تعذّر تحميل هذه الصفحة. يرجى المحاولة مرة أخرى، أو التواصل مع المسؤول إذا استمرت المشكلة.",
       "retry": "حاول مرة أخرى"
-    }
-  },
-  "settings": {
-    "title": "إعدادات العيادة",
-    "subtitle": "قم بضبط تفضيلات العيادة وسياساتها وقوائمها.",
-    "save": "حفظ التغييرات",
-    "saving": "جارٍ الحفظ...",
-    "saved": "تم حفظ الإعدادات",
-    "saveFailed": "تعذر حفظ الإعدادات",
-    "loading": "جارٍ تحميل الإعدادات...",
-    "loadFailed": "فشل تحميل الإعدادات",
-    "retry": "إعادة المحاولة",
-    "export": "تصدير",
-    "import": "استيراد",
-    "importTitle": "استيراد الإعدادات",
-    "importPrompt": "الصق مستند JSON بصيغة clinic-settings/v1. يتم التحقق من القيم قبل تطبيق أي تغيير.",
-    "imported": "تم استيراد الإعدادات",
-    "exported": "تم نسخ الإعدادات إلى الحافظة",
-    "common": {
-      "cancel": "إلغاء",
-      "confirm": "تأكيد",
-      "close": "إغلاق",
-      "add": "إضافة",
-      "edit": "تعديل",
-      "delete": "حذف",
-      "yes": "نعم",
-      "no": "لا"
-    },
-    "tabs": {
-      "general": "عام",
-      "localization": "الإعدادات الإقليمية",
-      "branding": "الهوية البصرية",
-      "workingHours": "ساعات العمل",
-      "appointments": "المواعيد",
-      "notifications": "الإشعارات",
-      "features": "المزايا",
-      "lookups": "القوائم",
-      "numbering": "الترقيم",
-      "history": "السجل"
-    },
-    "general": {
-      "title": "المنشأة",
-      "description": "بيانات الهوية والتواصل المستخدمة في التطبيق وعلى المستندات.",
-      "displayName": "الاسم الظاهر",
-      "legalName": "الاسم القانوني",
-      "taxNumber": "الرقم الضريبي",
-      "address": "العنوان",
-      "contactEmail": "البريد الإلكتروني",
-      "contactPhone": "رقم الهاتف"
-    },
-    "localization": {
-      "title": "الإعدادات الإقليمية",
-      "description": "اللغة والمنطقة الزمنية والعملة وتنسيقات العرض للعيادة.",
-      "language": "اللغة الافتراضية",
-      "timezone": "المنطقة الزمنية",
-      "currency": "العملة (رمز ISO)",
-      "dateFormat": "تنسيق التاريخ",
-      "timeFormat": "تنسيق الوقت",
-      "firstDayOfWeek": "أول أيام الأسبوع",
-      "languages": {
-        "en": "الإنجليزية",
-        "ar": "العربية"
-      },
-      "timeFormats": {
-        "h12": "12 ساعة",
-        "h24": "24 ساعة"
-      }
-    },
-    "branding": {
-      "title": "الهوية البصرية",
-      "description": "الشعار والألوان وتذييل المستندات الخاصة بعيادتك.",
-      "logoUrl": "رابط الشعار",
-      "primaryColor": "اللون الأساسي",
-      "secondaryColor": "اللون الثانوي",
-      "invoiceFooter": "نص تذييل الفاتورة"
-    },
-    "workingHours": {
-      "title": "ساعات العمل",
-      "description": "ساعات العمل الأسبوعية. تُرفض الحجوزات خارج هذه الساعات.",
-      "open": "مفتوح",
-      "from": "من",
-      "to": "إلى"
-    },
-    "days": {
-      "monday": "الاثنين",
-      "tuesday": "الثلاثاء",
-      "wednesday": "الأربعاء",
-      "thursday": "الخميس",
-      "friday": "الجمعة",
-      "saturday": "السبت",
-      "sunday": "الأحد"
-    },
-    "appointments": {
-      "title": "المواعيد",
-      "description": "مدة الموعد ونوافذ الحجز وسياسة الإلغاء والتذكيرات.",
-      "slotDuration": "مدة الموعد (بالدقائق)",
-      "minLeadTime": "أقل مهلة للحجز (بالساعات)",
-      "maxAdvanceDays": "أقصى مدة للحجز المسبق (بالأيام)",
-      "cancellationWindow": "نافذة الإلغاء (بالساعات)",
-      "allowOnlineBooking": "السماح بالحجز الإلكتروني",
-      "reminders": "قواعد التذكير",
-      "addReminder": "إضافة تذكير",
-      "channel": "القناة",
-      "offsetHours": "عدد الساعات قبل الموعد"
-    },
-    "channels": {
-      "email": "البريد الإلكتروني",
-      "sms": "رسائل SMS",
-      "whatsapp": "واتساب",
-      "in_app": "داخل التطبيق"
-    },
-    "notificationsTab": {
-      "title": "الإشعارات",
-      "description": "هوية المرسل وقوالب الرسائل وقنوات الإرسال.",
-      "senderName": "اسم المرسل",
-      "remindersEnabled": "تفعيل تذكيرات المواعيد",
-      "templates": "القوالب",
-      "templatesDescription": "قوالب الرسائل. التعديل ينشئ نسخة خاصة بالعيادة من القالب الافتراضي.",
-      "channelsSection": "قنوات الإرسال",
-      "channelsDescription": "قم بضبط طريقة إرسال الرسائل. تُخزَّن الأسرار مشفّرة ولا تُعرض مرة أخرى.",
-      "subject": "الموضوع",
-      "body": "النص",
-      "variables": "المتغيرات المتاحة",
-      "preview": "معاينة",
-      "key": "القالب",
-      "locale": "اللغة",
-      "source": "المصدر",
-      "global": "افتراضي",
-      "custom": "مخصص",
-      "channelType": "نوع القناة",
-      "host": "الخادم",
-      "port": "المنفذ",
-      "username": "اسم المستخدم",
-      "fromAddress": "عنوان المرسل",
-      "secret": "كلمة المرور / مفتاح API",
-      "secretHint": "اتركه فارغًا للاحتفاظ بالسر الحالي.",
-      "secretStored": "يوجد سر مخزَّن لهذه القناة",
-      "enabled": "مفعّل",
-      "verified": "تم التحقق",
-      "notVerified": "لم يتم التحقق",
-      "test": "اختبار",
-      "testSuccess": "تم التحقق من القناة",
-      "configure": "ضبط"
-    },
-    "features": {
-      "title": "المزايا",
-      "description": "ما تتيحه خطتك الحالية. تواصل مع الدعم لتغيير الخطة.",
-      "enabled": "مفعّلة",
-      "disabled": "معطّلة",
-      "beta": "تجريبية",
-      "sources": {
-        "kill_switch": "غير متاحة مؤقتًا",
-        "environment": "غير متاحة في هذه البيئة",
-        "tenant_override": "ممنوحة لعيادتك",
-        "plan": "ضمن خطتك",
-        "default": "الوضع الافتراضي للمنصة"
-      }
-    },
-    "lookups": {
-      "title": "القوائم",
-      "description": "قوائم قيم قابلة لإعادة الاستخدام. تغييراتك تخص هذه العيادة فقط.",
-      "category": "الفئة",
-      "code": "الرمز",
-      "label": "التسمية",
-      "labelAr": "التسمية (بالعربية)",
-      "order": "الترتيب",
-      "active": "نشط",
-      "inactive": "مخفي",
-      "addValue": "إضافة قيمة",
-      "editValue": "تعديل القيمة",
-      "deleteTitle": "حذف هذه القيمة؟",
-      "deleteBody": "تُزال القيمة من قائمة هذه العيادة. القيم الافتراضية العامة تُخفى فقط ولا تُحذف.",
-      "deleted": "تمت إزالة القيمة",
-      "global": "افتراضي",
-      "custom": "مخصص",
-      "shadowed": "يتجاوز الافتراضي"
-    },
-    "numbering": {
-      "title": "ترقيم المستندات",
-      "description": "تنسيقات أرقام الفواتير والمستندات الأخرى. تسري التغييرات على الأرقام المستقبلية.",
-      "documentType": "نوع المستند",
-      "prefix": "البادئة",
-      "padding": "عدد الخانات",
-      "resetPeriod": "إعادة التعيين",
-      "includePeriod": "تضمين الفترة في الرقم",
-      "preview": "معاينة الرقم التالي",
-      "currentValue": "العداد الحالي",
-      "updated": "تم تحديث التسلسل",
-      "periods": {
-        "never": "أبدًا",
-        "yearly": "سنويًا",
-        "monthly": "شهريًا"
-      },
-      "types": {
-        "invoice": "فاتورة",
-        "receipt": "إيصال",
-        "patient_file": "ملف مريض",
-        "lab_order": "طلب مختبر"
-      }
-    },
-    "history": {
-      "title": "سجل التغييرات",
-      "description": "كل تغيير في الإعدادات، مع إمكانية التراجع بنقرة واحدة.",
-      "setting": "الإعداد",
-      "oldValue": "القيمة السابقة",
-      "newValue": "القيمة الجديدة",
-      "version": "الإصدار",
-      "changedAt": "وقت التغيير",
-      "rollback": "تراجع",
-      "rollbackTitle": "التراجع عن هذا التغيير؟",
-      "rollbackBody": "تُكتب القيمة السابقة كإصدار جديد. لا يُحذف أي شيء.",
-      "rolledBack": "تم التراجع عن الإعداد",
-      "empty": "لا توجد تغييرات مسجلة بعد."
-    },
-    "preferences": {
-      "title": "تفضيلاتي",
-      "subtitle": "إعدادات العرض الشخصية. تتبع حسابك على أي جهاز.",
-      "theme": "المظهر",
-      "themes": {
-        "light": "فاتح",
-        "dark": "داكن",
-        "system": "النظام"
-      },
-      "language": "اللغة",
-      "timezone": "المنطقة الزمنية",
-      "dateFormat": "تنسيق التاريخ"
     }
   }
 }

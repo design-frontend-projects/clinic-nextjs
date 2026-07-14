@@ -23,8 +23,6 @@ import {
   type AppointmentScope,
   type RegisterPatientResult,
 } from "@/lib/appointment-service";
-import { getAppointmentSettings } from "@/lib/settings";
-import { validateCancellation } from "@/features/settings/domain/booking-policy";
 import { revalidatePath } from "next/cache";
 
 const ALL_STATUSES: AppointmentStatus[] = [
@@ -410,23 +408,6 @@ export async function updateStaffAppointmentStatus(
   await requirePermission(
     status === "cancelled" ? "appointment.cancel" : "appointment.create",
   );
-
-  if (status === "cancelled") {
-    const existing = await prisma.appointments.findFirst({
-      where: { id, clinic_id: tenant.clinicId },
-      select: { appointment_date: true },
-    });
-    if (existing) {
-      const { cancellationWindowHours } = await getAppointmentSettings();
-      const policyError = validateCancellation(
-        existing.appointment_date,
-        cancellationWindowHours,
-      );
-      if (policyError) {
-        throw new Error(policyError);
-      }
-    }
-  }
 
   const appointment = await prisma.appointments.update({
     where: { id, clinic_id: tenant.clinicId },

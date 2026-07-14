@@ -5,7 +5,6 @@ import { usePathname } from "@/i18n/routing";
 import {
   Building2,
   CreditCard,
-  Settings,
   LayoutDashboard,
   Stethoscope,
   Pill,
@@ -43,11 +42,6 @@ const navItems = [
     title: "Notifications",
     href: "/app-owner/notifications",
     icon: Bell,
-  },
-  {
-    title: "Global Settings",
-    href: "/app-owner/settings",
-    icon: Settings,
   },
 ];
 

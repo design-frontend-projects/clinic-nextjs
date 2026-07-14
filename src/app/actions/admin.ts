@@ -6,8 +6,6 @@ import { requirePermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
 import { type CreateAppointmentWithPatientData } from "@/types/appointment.types";
-import { getAppointmentSettings } from "@/lib/settings";
-import { validateCancellation } from "@/features/settings/domain/booking-policy";
 import {
   createAppointmentForScope,
   registerPatientWithAppointmentForScope,
@@ -232,21 +230,6 @@ export async function createAppointment(data: {
 export async function updateAppointmentStatus(id: string, status: string) {
   const tenant = await requireTenantInfo();
   await requirePermission("appointment.manage");
-
-  // Enforce the tenant's cancellation window.
-  if (status === "cancelled") {
-    const existing = await prisma.appointments.findFirst({
-      where: { id, clinic_id: tenant.clinicId },
-      select: { appointment_date: true },
-    });
-    if (existing) {
-      const { cancellationWindowHours } = await getAppointmentSettings();
-      const policyError = validateCancellation(existing.appointment_date, cancellationWindowHours);
-      if (policyError) {
-        throw new Error(policyError);
-      }
-    }
-  }
 
   const appointment = await prisma.appointments.update({
     where: { id, clinic_id: tenant.clinicId },
