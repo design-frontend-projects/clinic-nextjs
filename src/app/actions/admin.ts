@@ -19,7 +19,9 @@ export async function getDashboardStats() {
     totalPatients,
     totalDoctors,
     todayAppointments,
+    totalAppointments,
     pendingPayments,
+    totalInsurances,
     recentAppointments,
   ] = await Promise.all([
     prisma.patients.count({ where: { clinic_id: clinicId } }),
@@ -35,11 +37,17 @@ export async function getDashboardStats() {
         },
       },
     }),
+    prisma.appointments.count({
+      where: { clinic_id: clinicId },
+    }),
     prisma.payments.count({
       where: {
         invoices: { clinic_id: clinicId },
         status: "pending",
       },
+    }),
+    prisma.insurance_providers.count({
+      where: { clinic_id: clinicId, is_active: true },
     }),
     prisma.appointments.findMany({
       where: { clinic_id: clinicId },
@@ -48,7 +56,7 @@ export async function getDashboardStats() {
         profiles: { select: { full_name: true } },
       },
       orderBy: { appointment_date: "desc" },
-      take: 5,
+      take: 50,
     }),
   ]);
 
@@ -56,7 +64,9 @@ export async function getDashboardStats() {
     totalPatients,
     totalDoctors,
     todayAppointments,
+    totalAppointments,
     pendingPayments,
+    totalInsurances,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recentAppointments: recentAppointments.map((a: any) => ({
       id: a.id,

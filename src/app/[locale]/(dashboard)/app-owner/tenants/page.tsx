@@ -13,22 +13,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TenantRowActions } from "@/components/app-owner/tenant-row-actions";
 
+import { getTranslations } from "next-intl/server";
+
 export default async function TenantsPage() {
   const tenants = await getTenants();
+  const t = await getTranslations("appOwner.tenants");
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Tenants</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
           <p className="text-muted-foreground">
-            Manage all clinics and their active subscriptions.
+            {t("subtitle")}
           </p>
         </div>
         <Button asChild>
           <Link href="/app-owner/tenants/new">
             <Plus className="mr-2 h-4 w-4" />
-            Create Tenant
+            {t("createTenant")}
           </Link>
         </Button>
       </div>
@@ -37,13 +40,13 @@ export default async function TenantsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Clinic Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Subscription</TableHead>
-              <TableHead>Users</TableHead>
-              <TableHead>Patients</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("table.clinicName")}</TableHead>
+              <TableHead>{t("table.status")}</TableHead>
+              <TableHead>{t("table.subscription")}</TableHead>
+              <TableHead>{t("table.users")}</TableHead>
+              <TableHead>{t("table.patients")}</TableHead>
+              <TableHead>{t("table.created")}</TableHead>
+              <TableHead className="text-right">{t("table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -59,7 +62,7 @@ export default async function TenantsPage() {
                   {tenant.tenant_subscription?.plan ? (
                     <Badge variant="outline">{tenant.tenant_subscription.plan.name}</Badge>
                   ) : (
-                    <span className="text-muted-foreground text-sm">No active plan</span>
+                    <span className="text-muted-foreground text-sm">{t("noActivePlan")}</span>
                   )}
                 </TableCell>
                 <TableCell>{tenant._count.staff_profiles}</TableCell>
@@ -89,7 +92,7 @@ export default async function TenantsPage() {
             {tenants.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                  No tenants found.
+                  {t("noTenants")}
                 </TableCell>
               </TableRow>
             )}

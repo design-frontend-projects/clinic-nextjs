@@ -4,8 +4,11 @@ import { getActiveSpecialties } from "@/app/actions/specialties";
 import { TenantCreateForm } from "@/components/app-owner/tenant-create-form";
 import type { PlanOption } from "@/types/tenant-creation.types";
 
+import { getTranslations } from "next-intl/server";
+
 export default async function NewTenantPage() {
   await requireAppOwner();
+  const t = await getTranslations("appOwner.tenants");
 
   const [plans, specialties] = await Promise.all([
     getSubscriptionPlans(),
@@ -26,10 +29,9 @@ export default async function NewTenantPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">New Tenant</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t("newTenantTitle")}</h2>
         <p className="text-muted-foreground">
-          Provision a clinic and its owner account in one step — no onboarding
-          wizard required.
+          {t("newTenantSubtitle")}
         </p>
       </div>
       <TenantCreateForm plans={planOptions} specialties={specialties} />

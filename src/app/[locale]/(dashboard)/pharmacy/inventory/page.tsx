@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowRightLeft } from "lucide-react";
 
+import { useTranslations } from "next-intl";
+
 type InventoryItem = {
   id: string;
   medication: string;
@@ -15,35 +17,35 @@ type InventoryItem = {
   status: string; // 'in_stock', 'low_stock', 'expired'
 };
 
-const columns: ColumnDef<InventoryItem>[] = [
+const getColumns = (t: any): ColumnDef<InventoryItem>[] => [
   {
     accessorKey: "medication",
-    header: "Medication",
+    header: t("table.medication"),
     cell: ({ row }) => (
       <span className="font-medium">{row.original.medication}</span>
     ),
   },
   {
     accessorKey: "batchNumber",
-    header: "Batch #",
+    header: t("table.batchNumber"),
     cell: ({ row }) => (
       <span className="font-mono text-xs">{row.original.batchNumber}</span>
     ),
   },
   {
     accessorKey: "quantity",
-    header: "Quantity",
+    header: t("table.quantity"),
     cell: ({ row }) => (
       <span
         className={`font-semibold ${row.original.quantity < 20 ? "text-destructive" : ""}`}
       >
-        {row.original.quantity} units
+        {row.original.quantity}{t("table.units")}
       </span>
     ),
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: t("table.status"),
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
@@ -51,20 +53,23 @@ const columns: ColumnDef<InventoryItem>[] = [
     cell: ({ row }) => (
       <Button variant="ghost" size="sm">
         <ArrowRightLeft className="mr-2 h-4 w-4" />
-        Transfer
+        {t("table.transfer")}
       </Button>
     ),
   },
 ];
 
 export default function PharmacyInventoryPage() {
+  const t = useTranslations("pharmacy.inventory");
+  const columns = getColumns(t);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Stock Inventory</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Manage medication batches and stock levels
+            {t("subtitle")}
           </p>
         </div>
       </div>
@@ -73,7 +78,7 @@ export default function PharmacyInventoryPage() {
         columns={columns}
         data={[]}
         searchKey="medication"
-        searchPlaceholder="Search stock..."
+        searchPlaceholder={t("searchStock")}
       />
     </div>
   );

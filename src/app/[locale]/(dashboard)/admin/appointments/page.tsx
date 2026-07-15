@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 import { NewAppointmentDialog } from "@/components/appointments/new-appointment-dialog";
 
 type Appointment = {
@@ -47,6 +48,7 @@ type Appointment = {
 };
 
 export default function AppointmentsPage() {
+  const t = useTranslations("admin.appointments");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -78,7 +80,7 @@ export default function AppointmentsPage() {
   const columns: ColumnDef<Appointment>[] = [
     {
       accessorKey: "patients",
-      header: "Patient",
+      header: t("table.patient"),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
@@ -90,7 +92,7 @@ export default function AppointmentsPage() {
               {row.original.patients?.last_name}
             </p>
             <p className="text-xs text-muted-foreground">
-              {row.original.patients?.phone || "No phone"}
+              {row.original.patients?.phone || t("table.noPhone")}
             </p>
           </div>
         </div>
@@ -98,11 +100,11 @@ export default function AppointmentsPage() {
     },
     {
       accessorKey: "profiles",
-      header: "Doctor",
+      header: t("table.doctor"),
       cell: ({ row }) => (
         <div>
           <p className="font-medium">
-            {row.original.profiles?.full_name || "Unassigned"}
+            {row.original.profiles?.full_name || t("table.unassigned")}
           </p>
           <p className="text-xs text-muted-foreground">
             {row.original.profiles?.specialty || ""}
@@ -112,7 +114,7 @@ export default function AppointmentsPage() {
     },
     {
       accessorKey: "appointment_date",
-      header: "Date & Time",
+      header: t("table.dateTime"),
       cell: ({ row }) => (
         <div>
           <p className="text-sm font-medium">
@@ -126,7 +128,7 @@ export default function AppointmentsPage() {
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: t("table.status"),
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
@@ -156,7 +158,7 @@ export default function AppointmentsPage() {
               }
             >
               <LogIn className="mr-2 h-4 w-4" />
-              Check In
+              {t("checkIn")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
@@ -167,7 +169,7 @@ export default function AppointmentsPage() {
               }
             >
               <CheckCircle className="mr-2 h-4 w-4" />
-              Complete
+              {t("complete")}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive"
@@ -179,7 +181,7 @@ export default function AppointmentsPage() {
               }
             >
               <XCircle className="mr-2 h-4 w-4" />
-              Cancel
+              {t("cancel")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -188,18 +190,20 @@ export default function AppointmentsPage() {
     },
   ];
 
+// Moved inside component
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Manage all clinic appointments
+            {t("subtitle")}
           </p>
         </div>
         <Button onClick={() => setIsNewAppointmentOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          New Appointment
+          {t("newAppointment")}
         </Button>
       </div>
 
@@ -212,15 +216,15 @@ export default function AppointmentsPage() {
       <div className="flex items-center gap-4">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder={t("filterByStatus")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="checked_in">Checked In</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-            <SelectItem value="no_show">No Show</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="scheduled">{t("statusScheduled")}</SelectItem>
+            <SelectItem value="checked_in">{t("statusCheckedIn")}</SelectItem>
+            <SelectItem value="completed">{t("statusCompleted")}</SelectItem>
+            <SelectItem value="cancelled">{t("statusCancelled")}</SelectItem>
+            <SelectItem value="no_show">{t("statusNoShow")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

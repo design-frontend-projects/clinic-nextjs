@@ -108,35 +108,12 @@
     }
   },
   "appOwner": {
-    "plans": {
-      "title": "Subscription Plans",
-      "subtitle": "Manage plans, pricing, and feature access.",
-      "newButton": "New Plan",
-      "planName": "Plan Name",
-      "price": "Price",
-      "billingPeriod": "Billing Period",
-      "status": "Status",
-      "activeSubs": "Active Subs",
-      "actions": "Actions",
-      "noPlansFound": "No subscription plans found. Create one to get started.",
-      "active": "active",
-      "inactive": "inactive"
-    },
-    "specialties": {
-      "title": "Specialties",
-      "subtitle": "Define the medical specialties clinics can choose from.",
-      "newButton": "New Specialty",
-      "name": "Name",
-      "nameAr": "Name (Arabic)",
-      "order": "Order",
-      "status": "Status",
-      "doctors": "Doctors",
-      "actions": "Actions",
-      "active": "Active",
-      "inactive": "Inactive",
-      "empty": "No specialties found. Create one to get started."
+    "layout": {
+      "platformAdmin": "Platform Administration"
     },
     "medications": {
+      "newMedication": "New Medication",
+      "editMedication": "Edit Medication",
       "title": "Medications",
       "subtitle": "Manage each clinic's medication catalog.",
       "newButton": "Add Medication",
@@ -154,6 +131,58 @@
       "deactivate": "Deactivate",
       "empty": "No medications found for this clinic. Add one to get started.",
       "noClinics": "No clinics available. Create a clinic first."
+    },
+    "plans": {
+      "newPlanTitle": "New Subscription Plan",
+      "newPlanSubtitle": "Define a new plan and its features.",
+      "editPlanTitle": "Edit Plan",
+      "title": "Subscription Plans",
+      "subtitle": "Manage plans, pricing, and feature access.",
+      "newButton": "New Plan",
+      "planName": "Plan Name",
+      "price": "Price",
+      "billingPeriod": "Billing Period",
+      "status": "Status",
+      "activeSubs": "Active Subs",
+      "actions": "Actions",
+      "noPlansFound": "No subscription plans found. Create one to get started.",
+      "active": "active",
+      "inactive": "inactive"
+    },
+    "specialties": {
+      "newSpecialtyTitle": "New Specialty",
+      "newSpecialtySubtitle": "Add a medical specialty to the shared catalog.",
+      "editSpecialtyTitle": "Edit Specialty",
+      "title": "Specialties",
+      "subtitle": "Define the medical specialties clinics can choose from.",
+      "newButton": "New Specialty",
+      "name": "Name",
+      "nameAr": "Name (Arabic)",
+      "order": "Order",
+      "status": "Status",
+      "doctors": "Doctors",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "empty": "No specialties found. Create one to get started."
+    },
+    "tenants": {
+      "title": "Tenants",
+      "subtitle": "Manage all clinics and their active subscriptions.",
+      "createTenant": "Create Tenant",
+      "noActivePlan": "No active plan",
+      "noTenants": "No tenants found.",
+      "newTenantTitle": "New Tenant",
+      "newTenantSubtitle": "Provision a clinic and its owner account in one step — no onboarding wizard required.",
+      "table": {
+        "clinicName": "Clinic Name",
+        "status": "Status",
+        "subscription": "Subscription",
+        "users": "Users",
+        "patients": "Patients",
+        "created": "Created",
+        "actions": "Actions"
+      }
     },
     "dashboard": {
       "overviewTitle": "Platform Overview",
@@ -808,6 +837,176 @@
       "female": "Female",
       "other": "Other",
       "unknown": "Unknown"
+    }
+  },
+  "admin": {
+    "patients": {
+      "portalActive": "Portal active",
+      "noEmail": "This patient has no email address to invite.",
+      "invitePortal": "Invite to portal",
+      "insurance": "Insurance",
+      "patientAdded": "Patient added.",
+      "failedToAdd": "Failed to add patient.",
+      "title": "Patients",
+      "subtitle": "Manage your clinic's patient records",
+      "addPatient": "Add Patient",
+      "addNewPatient": "Add New Patient",
+      "registerDesc": "Register a new patient in the system.",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "savePatient": "Save Patient",
+      "searchPatients": "Search patients...",
+      "table": {
+        "name": "Name",
+        "noEmail": "No email",
+        "phone": "Phone",
+        "gender": "Gender",
+        "dob": "Date of Birth",
+        "registered": "Registered",
+        "portal": "Portal"
+      },
+      "form": {
+        "firstName": "First Name *",
+        "firstNamePlaceholder": "John",
+        "lastName": "Last Name *",
+        "lastNamePlaceholder": "Doe",
+        "email": "Email",
+        "emailPlaceholder": "john@example.com",
+        "phone": "Phone",
+        "phonePlaceholder": "+1 234 567 890",
+        "gender": "Gender",
+        "genderSelect": "Select gender",
+        "male": "Male",
+        "female": "Female",
+        "other": "Other",
+        "dob": "Date of Birth",
+        "address": "Address",
+        "addressPlaceholder": "123 Main St..."
+      }
+    },
+    "clinics": {
+      "successCreated": "Clinic created successfully",
+      "errorCreated": "Failed to create clinic",
+      "loading": "Loading clinics...",
+      "title": "Clinic Definition",
+      "subtitle": "Manage your clinics, branches, and subscription plans.",
+      "addClinic": "Add Clinic",
+      "createClinic": "Create New Clinic",
+      "createDescription": "Add a new clinic to your organization. A main branch will be created automatically.",
+      "creating": "Creating...",
+      "createClinicSubmit": "Create Clinic",
+      "regNo": "Reg No",
+      "plan": "Plan",
+      "na": "N/A",
+      "noClinics": "No clinics defined",
+      "noClinicsDesc": "Get started by creating your first clinic. Each clinic can have multiple branches.",
+      "addFirstClinic": "Add your first clinic",
+      "radiologyCenter": "Radiology Center",
+      "form": {
+        "name": "Clinic Name",
+        "namePlaceholder": "e.g. HealthCare Center",
+        "registrationNumber": "Registration Number",
+        "registrationPlaceholder": "e.g. REG-12345",
+        "email": "Email",
+        "phone": "Phone",
+        "pharmacy": "Pharmacy",
+        "lab": "Laboratory",
+        "radiology": "Radiology"
+      }
+    },
+    "billing": {
+      "title": "Billing & Invoices",
+      "subtitle": "Track invoices and payments",
+      "createInvoice": "Create Invoice",
+      "searchInvoices": "Search invoices...",
+      "table": {
+        "invoice": "Invoice",
+        "general": "General",
+        "patient": "Patient",
+        "walkIn": "Walk-in",
+        "amount": "Amount",
+        "insurance": "Insurance",
+        "patientPays": "Patient Pays",
+        "status": "Status",
+        "paid": "Paid",
+        "date": "Date"
+      }
+    },
+    "appointments": {
+      "title": "Appointments",
+      "subtitle": "Manage all clinic appointments",
+      "newAppointment": "New Appointment",
+      "filterByStatus": "Filter by status",
+      "allStatuses": "All Statuses",
+      "statusScheduled": "Scheduled",
+      "statusCheckedIn": "Checked In",
+      "statusCompleted": "Completed",
+      "statusCancelled": "Cancelled",
+      "statusNoShow": "No Show",
+      "checkIn": "Check In",
+      "complete": "Complete",
+      "cancel": "Cancel",
+      "table": {
+        "patient": "Patient",
+        "doctor": "Doctor",
+        "dateTime": "Date & Time",
+        "status": "Status",
+        "unassigned": "Unassigned",
+        "noPhone": "No phone"
+      }
+    }
+  },
+  "pharmacy": {
+    "dispensing": {
+      "title": "Prescription Dispensing",
+      "subtitle": "Review prescriptions from doctors and dispense medications",
+      "searchPatient": "Search by patient...",
+      "table": {
+        "patient": "Patient",
+        "prescribedBy": "Prescribed By",
+        "date": "Date",
+        "status": "Status",
+        "dispense": "Dispense",
+        "drPrefix": "Dr. "
+      }
+    },
+    "inventory": {
+      "title": "Stock Inventory",
+      "subtitle": "Manage medication batches and stock levels",
+      "searchStock": "Search stock...",
+      "table": {
+        "medication": "Medication",
+        "batchNumber": "Batch #",
+        "quantity": "Quantity",
+        "units": " units",
+        "status": "Status",
+        "transfer": "Transfer"
+      }
+    },
+    "medications": {
+      "title": "Medications Catalog",
+      "subtitle": "Master list of all clinic medications and drugs",
+      "addMedication": "Add Medication",
+      "searchMedications": "Search medications...",
+      "table": {
+        "medicationName": "Medication Name",
+        "category": "Category",
+        "form": "Form",
+        "strength": "Strength"
+      }
+    },
+    "orders": {
+      "title": "Purchase Orders",
+      "subtitle": "Manage medication orders and track deliveries from suppliers",
+      "createOrder": "Create Order",
+      "searchSupplier": "Search by supplier...",
+      "table": {
+        "orderNumber": "Order #",
+        "supplier": "Supplier",
+        "dateIssued": "Date Issued",
+        "amount": "Amount",
+        "status": "Status"
+      }
     }
   }
 }

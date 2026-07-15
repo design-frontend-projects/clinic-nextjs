@@ -7,6 +7,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { PackageOpen } from "lucide-react";
 import { format } from "date-fns";
 
+import { useTranslations } from "next-intl";
+
 type DispenseRequest = {
   id: string;
   prescriptionId: string;
@@ -16,32 +18,32 @@ type DispenseRequest = {
   status: string; // 'pending', 'dispensed', 'cancelled'
 };
 
-const columns: ColumnDef<DispenseRequest>[] = [
+const getColumns = (t: any): ColumnDef<DispenseRequest>[] => [
   {
     accessorKey: "patientName",
-    header: "Patient",
+    header: t("table.patient"),
     cell: ({ row }) => (
       <span className="font-medium">{row.original.patientName}</span>
     ),
   },
   {
     accessorKey: "doctorName",
-    header: "Prescribed By",
+    header: t("table.prescribedBy"),
     cell: ({ row }) => (
       <span className="text-muted-foreground">
-        Dr. {row.original.doctorName}
+        {t("table.drPrefix")}{row.original.doctorName}
       </span>
     ),
   },
   {
     accessorKey: "date",
-    header: "Date",
+    header: t("table.date"),
     cell: ({ row }) =>
       format(new Date(row.original.date), "MMM d, yyyy h:mm a"),
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: t("table.status"),
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
@@ -53,22 +55,25 @@ const columns: ColumnDef<DispenseRequest>[] = [
         disabled={row.original.status !== "pending"}
       >
         <PackageOpen className="mr-2 h-4 w-4" />
-        Dispense
+        {t("table.dispense")}
       </Button>
     ),
   },
 ];
 
 export default function PharmacyDispensingPage() {
+  const t = useTranslations("pharmacy.dispensing");
+  const columns = getColumns(t);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Prescription Dispensing
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Review prescriptions from doctors and dispense medications
+            {t("subtitle")}
           </p>
         </div>
       </div>
@@ -77,7 +82,7 @@ export default function PharmacyDispensingPage() {
         columns={columns}
         data={[]}
         searchKey="patientName"
-        searchPlaceholder="Search by patient..."
+        searchPlaceholder={t("searchPatient")}
       />
     </div>
   );

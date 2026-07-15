@@ -13,7 +13,7 @@ import {
   UserRoleAssignInput,
   UserPermissionOverrideInput,
   RoleHierarchyLinkInput,
-  AuditLogsQueryInput
+  AuditLogsQueryInput,
 } from "./domain/dtos";
 
 // Helper to safely extract error message
@@ -28,7 +28,7 @@ async function getActor() {
   return {
     id: tenant.profileId,
     email: tenant.email || "system@clinicpro.com",
-    clinicId: tenant.clinicId
+    clinicId: tenant.clinicId,
   };
 }
 
@@ -42,16 +42,19 @@ export async function getUserAuthorizationAction() {
 
     const clinic = await prisma.clinics.findFirst({
       where: { id: tenant.clinicId },
-      select: { name: true }
+      select: { name: true },
     });
 
-    const userRoles = await rbacService.getUserRoles(tenant.clinicId, tenant.profileId);
+    const userRoles = await rbacService.getUserRoles(
+      tenant.clinicId,
+      tenant.profileId,
+    );
     const roleNames = userRoles.map((ur) => ur.roles.name);
-    
+
     // Evaluate permissions
     const permissions = await evaluationService.getUserActivePermissions(
       tenant.clinicId,
-      tenant.profileId
+      tenant.profileId,
     );
 
     return {
@@ -59,18 +62,20 @@ export async function getUserAuthorizationAction() {
         user: {
           id: tenant.profileId,
           email: tenant.email,
-          fullName: tenant.fullName
+          fullName: tenant.fullName,
         },
         tenant: {
           clinicId: tenant.clinicId,
-          name: clinic?.name || "Clinic"
+          name: clinic?.name || "Clinic",
         },
         roles: roleNames,
-        permissions
-      }
+        permissions,
+      },
     };
   } catch (error: unknown) {
-    return { error: getErrorMessage(error) || "Failed to retrieve authorization data" };
+    return {
+      error: getErrorMessage(error) || "Failed to retrieve authorization data",
+    };
   }
 }
 
@@ -116,7 +121,12 @@ export async function updateRoleAction(roleId: string, input: RoleUpdateInput) {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    const role = await rbacService.updateRole(actor.clinicId, roleId, input, actor);
+    const role = await rbacService.updateRole(
+      actor.clinicId,
+      roleId,
+      input,
+      actor,
+    );
     revalidatePath("/settings/roles");
     revalidatePath(`/settings/roles/${roleId}`);
     return { success: true, data: role };
@@ -143,7 +153,12 @@ export async function cloneRoleAction(roleId: string, newName: string) {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    const role = await rbacService.cloneRole(actor.clinicId, roleId, newName, actor);
+    const role = await rbacService.cloneRole(
+      actor.clinicId,
+      roleId,
+      newName,
+      actor,
+    );
     revalidatePath("/settings/roles");
     return { success: true, data: role };
   } catch (error: unknown) {
@@ -152,11 +167,19 @@ export async function cloneRoleAction(roleId: string, newName: string) {
 }
 
 // 8. Toggle Active
-export async function toggleRoleActiveAction(roleId: string, isActive: boolean) {
+export async function toggleRoleActiveAction(
+  roleId: string,
+  isActive: boolean,
+) {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    const role = await rbacService.toggleRoleActive(actor.clinicId, roleId, isActive, actor);
+    const role = await rbacService.toggleRoleActive(
+      actor.clinicId,
+      roleId,
+      isActive,
+      actor,
+    );
     revalidatePath("/settings/roles");
     return { success: true, data: role };
   } catch (error: unknown) {
@@ -202,7 +225,11 @@ export async function assignUserRolesAction(input: UserRoleAssignInput) {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    const data = await rbacService.assignUserRoles(actor.clinicId, input, actor);
+    const data = await rbacService.assignUserRoles(
+      actor.clinicId,
+      input,
+      actor,
+    );
     revalidatePath("/settings/user-roles");
     revalidatePath("/settings/users");
     return { success: true, data };
@@ -212,11 +239,17 @@ export async function assignUserRolesAction(input: UserRoleAssignInput) {
 }
 
 // 13. Set User Override Permission
-export async function setUserPermissionOverrideAction(input: UserPermissionOverrideInput) {
+export async function setUserPermissionOverrideAction(
+  input: UserPermissionOverrideInput,
+) {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    const data = await rbacService.setUserPermissionOverride(actor.clinicId, input, actor);
+    const data = await rbacService.setUserPermissionOverride(
+      actor.clinicId,
+      input,
+      actor,
+    );
     revalidatePath("/settings/user-roles");
     return { success: true, data };
   } catch (error: unknown) {
@@ -237,11 +270,17 @@ export async function getRoleHierarchyAction() {
 }
 
 // 15. Add Hierarchy Link
-export async function addRoleHierarchyLinkAction(input: RoleHierarchyLinkInput) {
+export async function addRoleHierarchyLinkAction(
+  input: RoleHierarchyLinkInput,
+) {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    const data = await rbacService.addRoleHierarchyLink(actor.clinicId, input, actor);
+    const data = await rbacService.addRoleHierarchyLink(
+      actor.clinicId,
+      input,
+      actor,
+    );
     revalidatePath("/settings/roles");
     return { success: true, data };
   } catch (error: unknown) {
@@ -250,11 +289,19 @@ export async function addRoleHierarchyLinkAction(input: RoleHierarchyLinkInput) 
 }
 
 // 16. Remove Hierarchy Link
-export async function removeRoleHierarchyLinkAction(parentRoleId: string, childRoleId: string) {
+export async function removeRoleHierarchyLinkAction(
+  parentRoleId: string,
+  childRoleId: string,
+) {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    await rbacService.removeRoleHierarchyLink(actor.clinicId, parentRoleId, childRoleId, actor);
+    await rbacService.removeRoleHierarchyLink(
+      actor.clinicId,
+      parentRoleId,
+      childRoleId,
+      actor,
+    );
     revalidatePath("/settings/roles");
     return { success: true };
   } catch (error: unknown) {
@@ -279,7 +326,7 @@ export async function getProfilesAction() {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    
+
     // Fetch all profiles belonging to the same clinic
     const profiles = await prisma.profiles.findMany({
       // where: {
@@ -289,9 +336,9 @@ export async function getProfilesAction() {
       // },
       include: {
         user_roles: {
-          include: { roles: true }
-        }
-      }
+          include: { roles: true },
+        },
+      },
     });
 
     return { data: profiles };
@@ -305,7 +352,7 @@ export async function getAllProfilesAction() {
   try {
     await requirePermission("settings.roles.manage");
     const profiles = await prisma.profiles.findMany({
-      orderBy: { full_name: "asc" }
+      orderBy: { full_name: "asc" },
     });
     return { data: profiles };
   } catch (error: unknown) {
@@ -317,15 +364,19 @@ export async function getAllProfilesAction() {
 export async function setRolePermissionCellAction(
   roleId: string,
   permissionId: string,
-  state: "allow" | "deny" | "none"
+  state: "allow" | "deny" | "none",
 ) {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    
+
     if (state === "none") {
       await prisma.role_permissions.deleteMany({
-        where: { tenant_id: actor.clinicId, role_id: roleId, permission_id: permissionId }
+        where: {
+          tenant_id: actor.clinicId,
+          role_id: roleId,
+          permission_id: permissionId,
+        },
       });
     } else {
       const isDeny = state === "deny";
@@ -334,22 +385,22 @@ export async function setRolePermissionCellAction(
           tenant_id_role_id_permission_id: {
             tenant_id: actor.clinicId,
             role_id: roleId,
-            permission_id: permissionId
-          }
+            permission_id: permissionId,
+          },
         },
         update: { is_deny: isDeny, deleted_at: null, is_active: true },
         create: {
           tenant_id: actor.clinicId,
           role_id: roleId,
           permission_id: permissionId,
-          is_deny: isDeny
-        }
+          is_deny: isDeny,
+        },
       });
     }
 
     const { cacheService } = await import("./services/cache.service");
     await cacheService.invalidateTenant(actor.clinicId);
-    
+
     return { success: true };
   } catch (error: unknown) {
     return { error: getErrorMessage(error) };
@@ -361,21 +412,20 @@ export async function getRolePermissionsMatrixDataAction() {
   try {
     const actor = await getActor();
     await requirePermission("settings.roles.manage");
-    
+
     const rolePermissions = await prisma.role_permissions.findMany({
       where: { tenant_id: actor.clinicId, deleted_at: null },
-      select: { role_id: true, permission_id: true, is_deny: true }
+      select: { role_id: true, permission_id: true, is_deny: true },
     });
 
     return {
       data: rolePermissions.map((rp) => ({
         roleId: rp.role_id,
         permissionId: rp.permission_id,
-        isDeny: rp.is_deny
-      }))
+        isDeny: rp.is_deny,
+      })),
     };
   } catch (error: unknown) {
     return { error: getErrorMessage(error) };
   }
 }
-

@@ -108,35 +108,12 @@
     }
   },
   "appOwner": {
-    "plans": {
-      "title": "خطط الاشتراك",
-      "subtitle": "إدارة الخطط والأسعار وإمكانية الوصول إلى الميزات.",
-      "newButton": "خطة جديدة",
-      "planName": "اسم الخطة",
-      "price": "السعر",
-      "billingPeriod": "فترة الفاتورة",
-      "status": "الحالة",
-      "activeSubs": "الاشتراكات النشطة",
-      "actions": "الإجراءات",
-      "noPlansFound": "لم يتم العثور على خطط اشتراك. قم بإنشاء خطة واحدة للبدء.",
-      "active": "نشط",
-      "inactive": "غير نشط"
-    },
-    "specialties": {
-      "title": "التخصصات",
-      "subtitle": "حدد التخصصات الطبية التي يمكن للعيادات الاختيار منها.",
-      "newButton": "تخصص جديد",
-      "name": "الاسم",
-      "nameAr": "الاسم (بالعربية)",
-      "order": "الترتيب",
-      "status": "الحالة",
-      "doctors": "الأطباء",
-      "actions": "الإجراءات",
-      "active": "نشط",
-      "inactive": "غير نشط",
-      "empty": "لم يتم العثور على تخصصات. قم بإنشاء واحد للبدء."
+    "layout": {
+      "platformAdmin": "إدارة المنصة"
     },
     "medications": {
+      "newMedication": "دواء جديد",
+      "editMedication": "تعديل الدواء",
       "title": "الأدوية",
       "subtitle": "إدارة كتالوج الأدوية لكل عيادة.",
       "newButton": "إضافة دواء",
@@ -154,6 +131,58 @@
       "deactivate": "إلغاء التفعيل",
       "empty": "لم يتم العثور على أدوية لهذه العيادة. أضف واحدًا للبدء.",
       "noClinics": "لا توجد عيادات متاحة. قم بإنشاء عيادة أولاً."
+    },
+    "plans": {
+      "newPlanTitle": "خطة اشتراك جديدة",
+      "newPlanSubtitle": "حدد خطة جديدة ومميزاتها.",
+      "editPlanTitle": "تعديل الخطة",
+      "title": "خطط الاشتراك",
+      "subtitle": "إدارة الخطط والأسعار وإمكانية الوصول إلى الميزات.",
+      "newButton": "خطة جديدة",
+      "planName": "اسم الخطة",
+      "price": "السعر",
+      "billingPeriod": "فترة الفاتورة",
+      "status": "الحالة",
+      "activeSubs": "الاشتراكات النشطة",
+      "actions": "الإجراءات",
+      "noPlansFound": "لم يتم العثور على خطط اشتراك. قم بإنشاء خطة واحدة للبدء.",
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "specialties": {
+      "newSpecialtyTitle": "تخصص جديد",
+      "newSpecialtySubtitle": "ضيف تخصص طبي للكتالوج المشترك.",
+      "editSpecialtyTitle": "تعديل التخصص",
+      "title": "التخصصات",
+      "subtitle": "حدد التخصصات الطبية التي يمكن للعيادات الاختيار منها.",
+      "newButton": "تخصص جديد",
+      "name": "الاسم",
+      "nameAr": "الاسم (بالعربية)",
+      "order": "الترتيب",
+      "status": "الحالة",
+      "doctors": "الأطباء",
+      "actions": "الإجراءات",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "empty": "لم يتم العثور على تخصصات. قم بإنشاء واحد للبدء."
+    },
+    "tenants": {
+      "title": "العيادات (Tenants)",
+      "subtitle": "إدارة كل العيادات واشتراكاتها النشطة.",
+      "createTenant": "إنشاء عيادة",
+      "noActivePlan": "مفيش خطة نشطة",
+      "noTenants": "مفيش عيادات موجودة.",
+      "newTenantTitle": "عيادة جديدة",
+      "newTenantSubtitle": "جهز عيادة وحساب المالك بتاعها في خطوة واحدة — من غير خطوات معقدة.",
+      "table": {
+        "clinicName": "اسم العيادة",
+        "status": "الحالة",
+        "subscription": "الاشتراك",
+        "users": "المستخدمين",
+        "patients": "المرضى",
+        "created": "تاريخ الإنشاء",
+        "actions": "إجراءات"
+      }
     },
     "dashboard": {
       "overviewTitle": "نظرة عامة على المنصة",
@@ -809,6 +838,176 @@
       "female": "أنثى",
       "other": "غير ذلك",
       "unknown": "مش معروف"
+    }
+  },
+  "admin": {
+    "patients": {
+      "portalActive": "البوابة متفعلة",
+      "noEmail": "المريض ده معندوش إيميل عشان نبعتله دعوة.",
+      "invitePortal": "ابعت دعوة للبوابة",
+      "insurance": "التأمين",
+      "patientAdded": "المريض اتضاف بنجاح.",
+      "failedToAdd": "فشل في إضافة المريض.",
+      "title": "المرضى",
+      "subtitle": "إدارة سجلات مرضى العيادة",
+      "addPatient": "إضافة مريض",
+      "addNewPatient": "إضافة مريض جديد",
+      "registerDesc": "تسجيل مريض جديد في النظام.",
+      "cancel": "إلغاء",
+      "saving": "جاري الحفظ...",
+      "savePatient": "حفظ المريض",
+      "searchPatients": "بحث في المرضى...",
+      "table": {
+        "name": "الاسم",
+        "noEmail": "مفيش إيميل",
+        "phone": "التليفون",
+        "gender": "النوع",
+        "dob": "تاريخ الميلاد",
+        "registered": "تاريخ التسجيل",
+        "portal": "البوابة"
+      },
+      "form": {
+        "firstName": "الاسم الأول *",
+        "firstNamePlaceholder": "أحمد",
+        "lastName": "الاسم الأخير *",
+        "lastNamePlaceholder": "محمد",
+        "email": "الإيميل",
+        "emailPlaceholder": "ahmed@example.com",
+        "phone": "التليفون",
+        "phonePlaceholder": "01012345678",
+        "gender": "النوع",
+        "genderSelect": "اختار النوع",
+        "male": "ذكر",
+        "female": "أنثى",
+        "other": "غير ذلك",
+        "dob": "تاريخ الميلاد",
+        "address": "العنوان",
+        "addressPlaceholder": "123 شارع التحرير..."
+      }
+    },
+    "clinics": {
+      "successCreated": "تم إنشاء العيادة بنجاح",
+      "errorCreated": "فشل في إنشاء العيادة",
+      "loading": "جاري تحميل العيادات...",
+      "title": "إعدادات العيادة",
+      "subtitle": "إدارة العيادات، الفروع، وخطط الاشتراك.",
+      "addClinic": "إضافة عيادة",
+      "createClinic": "إنشاء عيادة جديدة",
+      "createDescription": "أضف عيادة جديدة للمنظمة. هيتم إنشاء فرع رئيسي تلقائياً.",
+      "creating": "جاري الإنشاء...",
+      "createClinicSubmit": "إنشاء عيادة",
+      "regNo": "رقم التسجيل",
+      "plan": "الخطة",
+      "na": "غير متوفر",
+      "noClinics": "مفيش عيادات متعرفة",
+      "noClinicsDesc": "ابدأ بإنشاء أول عيادة ليك. كل عيادة ممكن يكون ليها أكتر من فرع.",
+      "addFirstClinic": "أضف أول عيادة ليك",
+      "radiologyCenter": "مركز أشعة",
+      "form": {
+        "name": "اسم العيادة",
+        "namePlaceholder": "مثال: مركز الرعاية الصحية",
+        "registrationNumber": "رقم التسجيل",
+        "registrationPlaceholder": "مثال: REG-12345",
+        "email": "البريد الإلكتروني",
+        "phone": "رقم التليفون",
+        "pharmacy": "صيدلية",
+        "lab": "معمل تحاليل",
+        "radiology": "أشعة"
+      }
+    },
+    "billing": {
+      "title": "???????? ??????????",
+      "subtitle": "???? ???????? ??????????",
+      "createInvoice": "?????? ?????",
+      "searchInvoices": "??? ?? ????????...",
+      "table": {
+        "invoice": "????????",
+        "general": "???",
+        "patient": "??????",
+        "walkIn": "???? ???? (Walk-in)",
+        "amount": "??????",
+        "insurance": "???????",
+        "patientPays": "?????? ????",
+        "status": "??????",
+        "paid": "???????",
+        "date": "???????"
+      }
+    },
+    "appointments": {
+      "title": "????????",
+      "subtitle": "????? ?? ?????? ???????",
+      "newAppointment": "????? ????",
+      "filterByStatus": "???? ???????",
+      "allStatuses": "?? ???????",
+      "statusScheduled": "??????",
+      "statusCheckedIn": "???",
+      "statusCompleted": "???",
+      "statusCancelled": "?????",
+      "statusNoShow": "??????",
+      "checkIn": "????? ????",
+      "complete": "?????",
+      "cancel": "?????",
+      "table": {
+        "patient": "??????",
+        "doctor": "???????",
+        "dateTime": "??????? ??????",
+        "status": "??????",
+        "unassigned": "?? ?????",
+        "noPhone": "???? ??????"
+      }
+    }
+  },
+  "pharmacy": {
+    "dispensing": {
+      "title": "صرف الروشتات",
+      "subtitle": "راجع روشتات الدكاترة واصرف الأدوية",
+      "searchPatient": "بحث باسم المريض...",
+      "table": {
+        "patient": "المريض",
+        "prescribedBy": "وصف بواسطة",
+        "date": "التاريخ",
+        "status": "الحالة",
+        "dispense": "صرف",
+        "drPrefix": "د. "
+      }
+    },
+    "inventory": {
+      "title": "جرد المخزون",
+      "subtitle": "إدارة دفعات الأدوية ومستويات المخزون",
+      "searchStock": "بحث في المخزون...",
+      "table": {
+        "medication": "الدواء",
+        "batchNumber": "رقم التشغيلة (Batch)",
+        "quantity": "الكمية",
+        "units": " وحدات",
+        "status": "الحالة",
+        "transfer": "نقل"
+      }
+    },
+    "medications": {
+      "title": "كتالوج الأدوية",
+      "subtitle": "القائمة الأساسية لكل أدوية وعقاقير العيادة",
+      "addMedication": "إضافة دواء",
+      "searchMedications": "بحث في الأدوية...",
+      "table": {
+        "medicationName": "اسم الدواء",
+        "category": "التصنيف",
+        "form": "الشكل",
+        "strength": "التركيز"
+      }
+    },
+    "orders": {
+      "title": "طلبات الشراء",
+      "subtitle": "إدارة طلبات الأدوية وتتبع التسليم من الموردين",
+      "createOrder": "إنشاء طلب",
+      "searchSupplier": "بحث باسم المورد...",
+      "table": {
+        "orderNumber": "رقم الطلب",
+        "supplier": "المورد",
+        "dateIssued": "تاريخ الإصدار",
+        "amount": "المبلغ",
+        "status": "الحالة"
+      }
     }
   }
 }

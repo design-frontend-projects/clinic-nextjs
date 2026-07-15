@@ -29,8 +29,10 @@ import { Building, Plus, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { BranchManagement } from "@/components/admin/branch-management";
 import { Switch } from "@/components/ui/switch";
+import { useTranslations } from "next-intl";
 
 export default function ClinicAdminPage() {
+  const t = useTranslations("admin.clinics");
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
@@ -44,11 +46,11 @@ export default function ClinicAdminPage() {
     mutationFn: (data: Clinic) => createClinic(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinics"] });
-      toast.success("Clinic created successfully");
+      toast.success(t("successCreated"));
       setIsCreateOpen(false);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to create clinic");
+      toast.error(error.message || t("errorCreated"));
     },
   });
 
@@ -75,7 +77,7 @@ export default function ClinicAdminPage() {
   };
 
   if (isLoading) {
-    return <div className="p-8">Loading clinics...</div>;
+    return <div className="p-8">{t("loading")}</div>;
   }
 
   return (
@@ -83,34 +85,33 @@ export default function ClinicAdminPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Clinic Definition
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Manage your clinics, branches, and subscription plans.
+            {t("subtitle")}
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => reset()}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Clinic
+              {t("addClinic")}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Clinic</DialogTitle>
+              <DialogTitle>{t("createClinic")}</DialogTitle>
               <DialogDescription>
-                Add a new clinic to your organization. A main branch will be
-                created automatically.
+                {t("createDescription")}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Clinic Name</Label>
+                <Label htmlFor="name">{t("form.name")}</Label>
                 <Input
                   id="name"
                   {...register("name")}
-                  placeholder="e.g. HealthCare Center"
+                  placeholder={t("form.namePlaceholder")}
                 />
                 {errors.name && (
                   <p className="text-xs text-destructive">
@@ -119,26 +120,26 @@ export default function ClinicAdminPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="registration_number">Registration Number</Label>
+                <Label htmlFor="registration_number">{t("form.registrationNumber")}</Label>
                 <Input
                   id="registration_number"
                   {...register("registration_number")}
-                  placeholder="e.g. REG-12345"
+                  placeholder={t("form.registrationPlaceholder")}
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t("form.email")}</Label>
                   <Input id="email" type="email" {...register("email")} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t("form.phone")}</Label>
                   <Input id="phone" {...register("phone")} />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t pt-4">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="have_pharmacy" className="cursor-pointer text-sm font-medium">Pharmacy</Label>
+                  <Label htmlFor="have_pharmacy" className="cursor-pointer text-sm font-medium">{t("form.pharmacy")}</Label>
                   <div className="flex h-9 items-center">
                     <Switch
                       id="have_pharmacy"
@@ -148,7 +149,7 @@ export default function ClinicAdminPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="have_lab" className="cursor-pointer text-sm font-medium">Laboratory</Label>
+                  <Label htmlFor="have_lab" className="cursor-pointer text-sm font-medium">{t("form.lab")}</Label>
                   <div className="flex h-9 items-center">
                     <Switch
                       id="have_lab"
@@ -158,7 +159,7 @@ export default function ClinicAdminPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="have_radio_center" className="cursor-pointer text-sm font-medium">Radiology</Label>
+                  <Label htmlFor="have_radio_center" className="cursor-pointer text-sm font-medium">{t("form.radiology")}</Label>
                   <div className="flex h-9 items-center">
                     <Switch
                       id="have_radio_center"
@@ -174,8 +175,8 @@ export default function ClinicAdminPage() {
                 disabled={createClinicMutation.isPending}
               >
                 {createClinicMutation.isPending
-                  ? "Creating..."
-                  : "Create Clinic"}
+                  ? t("creating")
+                  : t("createClinicSubmit")}
               </Button>
             </form>
           </DialogContent>
@@ -199,23 +200,23 @@ export default function ClinicAdminPage() {
                   {clinic.name}
                 </CardTitle>
                 <CardDescription>
-                  Reg No: {clinic.registration_number || "N/A"} • Plan:{" "}
+                  {t("regNo")} {clinic.registration_number || t("na")} • {t("plan")}{" "}
                   {clinic.subscription_plan}
                 </CardDescription>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {clinic.have_pharmacy && (
                     <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400">
-                      Pharmacy
+                      {t("form.pharmacy")}
                     </Badge>
                   )}
                   {clinic.have_lab && (
                     <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400">
-                      Laboratory
+                      {t("form.lab")}
                     </Badge>
                   )}
                   {clinic.have_radio_center && (
                     <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400">
-                      Radiology Center
+                      {t("radiologyCenter")}
                     </Badge>
                   )}
                 </div>
@@ -251,17 +252,16 @@ export default function ClinicAdminPage() {
           <Card className="bg-muted/50 border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Building className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-              <p className="text-xl font-semibold">No clinics defined</p>
+              <p className="text-xl font-semibold">{t("noClinics")}</p>
               <p className="text-muted-foreground mt-1 max-w-sm">
-                Get started by creating your first clinic. Each clinic can have
-                multiple branches.
+                {t("noClinicsDesc")}
               </p>
               <Button
                 variant="outline"
                 className="mt-6"
                 onClick={() => setIsCreateOpen(true)}
               >
-                Add your first clinic
+                {t("addFirstClinic")}
               </Button>
             </CardContent>
           </Card>

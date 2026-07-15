@@ -9,12 +9,15 @@ interface NewMedicationPageProps {
   searchParams: Promise<{ clinic?: string }>;
 }
 
+import { getTranslations } from "next-intl/server";
+
 export default async function NewMedicationPage({
   searchParams,
 }: NewMedicationPageProps) {
   await requireAppOwner();
   const { clinic } = await searchParams;
   const clinics = await getManagedClinics();
+  const t = await getTranslations("appOwner.medications");
 
   return (
     <div className="space-y-6">
@@ -24,7 +27,7 @@ export default async function NewMedicationPage({
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h2 className="text-2xl font-bold tracking-tight">New Medication</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t("newMedication")}</h2>
       </div>
       <MedicationEditor clinics={clinics} defaultClinicId={clinic} />
     </div>

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
 import { Plus, Pill } from "lucide-react";
 
+import { useTranslations } from "next-intl";
+
 type Medication = {
   id: string;
   name: string;
@@ -14,10 +16,10 @@ type Medication = {
   strength: string;
 };
 
-const columns: ColumnDef<Medication>[] = [
+const getColumns = (t: any): ColumnDef<Medication>[] => [
   {
     accessorKey: "name",
-    header: "Medication Name",
+    header: t("table.medicationName"),
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
@@ -36,33 +38,36 @@ const columns: ColumnDef<Medication>[] = [
   },
   {
     accessorKey: "category",
-    header: "Category",
+    header: t("table.category"),
   },
   {
     accessorKey: "form",
-    header: "Form",
+    header: t("table.form"),
   },
   {
     accessorKey: "strength",
-    header: "Strength",
+    header: t("table.strength"),
   },
 ];
 
 export default function PharmacyMedicationsPage() {
+  const t = useTranslations("pharmacy.medications");
+  const columns = getColumns(t);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Medications Catalog
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Master list of all clinic medications and drugs
+            {t("subtitle")}
           </p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Add Medication
+          {t("addMedication")}
         </Button>
       </div>
 
@@ -70,7 +75,7 @@ export default function PharmacyMedicationsPage() {
         columns={columns}
         data={[]}
         searchKey="name"
-        searchPlaceholder="Search medications..."
+        searchPlaceholder={t("searchMedications")}
       />
     </div>
   );

@@ -17,11 +17,12 @@ export async function getClinicRoles() {
         name: r.name,
         clinic_id: r.tenant_id,
         is_active: r.is_active,
-        role_permissions: detail?.permissions.map((p) => ({
-          permissions: { id: p.id, name: p.name }
-        })) || []
+        role_permissions:
+          detail?.permissions.map((p) => ({
+            permissions: { id: p.id, name: p.name },
+          })) || [],
       };
-    })
+    }),
   );
   return detailedRoles;
 }
@@ -37,7 +38,7 @@ export async function createRole(name: string, permissionIds: string[]) {
     const role = await rbacService.createRole(
       tenant.clinicId,
       { name, permissionIds },
-      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" }
+      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" },
     );
     revalidatePath("/admin/rbac");
     return { success: true, role };
@@ -46,7 +47,11 @@ export async function createRole(name: string, permissionIds: string[]) {
   }
 }
 
-export async function updateRole(roleId: string, name: string, permissionIds: string[]) {
+export async function updateRole(
+  roleId: string,
+  name: string,
+  permissionIds: string[],
+) {
   const tenant = await requireTenantInfo();
   await requirePermission("settings.roles.manage");
   try {
@@ -54,7 +59,7 @@ export async function updateRole(roleId: string, name: string, permissionIds: st
       tenant.clinicId,
       roleId,
       { name, permissionIds },
-      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" }
+      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" },
     );
     revalidatePath("/admin/rbac");
     return { success: true };
@@ -67,11 +72,10 @@ export async function deleteRole(roleId: string) {
   const tenant = await requireTenantInfo();
   await requirePermission("settings.roles.manage");
   try {
-    await rbacService.deleteRole(
-      tenant.clinicId,
-      roleId,
-      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" }
-    );
+    await rbacService.deleteRole(tenant.clinicId, roleId, {
+      id: tenant.profileId,
+      email: tenant.email || "system@clinicpro.com",
+    });
     revalidatePath("/admin/rbac");
     return { success: true };
   } catch (error: unknown) {
@@ -83,12 +87,15 @@ export async function getClinicStaff() {
   const tenant = await requireTenantInfo();
   const { prisma } = await import("@/lib/prisma");
   const staffs = await prisma.profiles.findMany({
-    orderBy: { full_name: "asc" }
+    orderBy: { full_name: "asc" },
   });
 
   const detailedStaffs = await Promise.all(
     staffs.map(async (staff) => {
-      const userRoles = await rbacService.getUserRoles(tenant.clinicId, staff.id);
+      const userRoles = await rbacService.getUserRoles(
+        tenant.clinicId,
+        staff.id,
+      );
       return {
         id: staff.id,
         full_name: staff.full_name,
@@ -98,9 +105,9 @@ export async function getClinicStaff() {
         assigned_roles: userRoles.map((ur: any) => ({
           id: ur.roles.id,
           name: ur.roles.name,
-        }))
+        })),
       };
-    })
+    }),
   );
 
   return detailedStaffs;
@@ -113,7 +120,7 @@ export async function assignStaffRoles(profileId: string, roleIds: string[]) {
     await rbacService.assignUserRoles(
       tenant.clinicId,
       { profileId, roleIds },
-      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" }
+      { id: tenant.profileId, email: tenant.email || "system@clinicpro.com" },
     );
     revalidatePath("/admin/rbac");
     return { success: true };

@@ -4,6 +4,8 @@ import { getSpecialty } from "@/app/actions/app-owner/specialties";
 import { SpecialtyEditor } from "@/components/app-owner/specialty-editor";
 import type { SpecialtyFormData } from "@/types/specialty.types";
 
+import { getTranslations } from "next-intl/server";
+
 export default async function EditSpecialtyPage({
   params,
 }: {
@@ -11,6 +13,7 @@ export default async function EditSpecialtyPage({
 }) {
   await requireAppOwner();
   const { id } = await params;
+  const t = await getTranslations("appOwner.specialties");
 
   const specialty = await getSpecialty(id);
   if (!specialty) notFound();
@@ -27,7 +30,7 @@ export default async function EditSpecialtyPage({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Edit Specialty</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t("editSpecialtyTitle")}</h2>
         <p className="text-muted-foreground">{specialty.name}</p>
       </div>
       <SpecialtyEditor specialty={initial} />

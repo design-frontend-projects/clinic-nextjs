@@ -14,11 +14,14 @@ interface EditMedicationPageProps {
   params: Promise<{ id: string }>;
 }
 
+import { getTranslations } from "next-intl/server";
+
 export default async function EditMedicationPage({
   params,
 }: EditMedicationPageProps) {
   await requireAppOwner();
   const { id } = await params;
+  const t = await getTranslations("appOwner.medications");
 
   const medication = await getMedication(id);
   if (!medication) {
@@ -51,7 +54,7 @@ export default async function EditMedicationPage({
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h2 className="text-2xl font-bold tracking-tight">Edit Medication</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t("editMedication")}</h2>
       </div>
       <MedicationEditor clinics={clinics} medication={initial} />
     </div>

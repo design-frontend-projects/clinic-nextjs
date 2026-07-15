@@ -7,6 +7,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Plus, Eye } from "lucide-react";
 
+import { useTranslations } from "next-intl";
+
 type PurchaseOrder = {
   id: string;
   orderNumber: string;
@@ -16,29 +18,29 @@ type PurchaseOrder = {
   status: string; // 'draft', 'pending', 'received', 'cancelled'
 };
 
-const columns: ColumnDef<PurchaseOrder>[] = [
+const getColumns = (t: any): ColumnDef<PurchaseOrder>[] => [
   {
     accessorKey: "orderNumber",
-    header: "Order #",
+    header: t("table.orderNumber"),
     cell: ({ row }) => (
       <span className="font-mono text-xs">{row.original.orderNumber}</span>
     ),
   },
   {
     accessorKey: "supplier",
-    header: "Supplier",
+    header: t("table.supplier"),
     cell: ({ row }) => (
       <span className="font-medium">{row.original.supplier}</span>
     ),
   },
   {
     accessorKey: "orderDate",
-    header: "Date Issued",
+    header: t("table.dateIssued"),
     cell: ({ row }) => format(new Date(row.original.orderDate), "MMM d, yyyy"),
   },
   {
     accessorKey: "totalAmount",
-    header: "Amount",
+    header: t("table.amount"),
     cell: ({ row }) => (
       <span className="font-medium">
         ${row.original.totalAmount.toFixed(2)}
@@ -47,7 +49,7 @@ const columns: ColumnDef<PurchaseOrder>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: t("table.status"),
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
@@ -61,18 +63,21 @@ const columns: ColumnDef<PurchaseOrder>[] = [
 ];
 
 export default function PharmacyOrdersPage() {
+  const t = useTranslations("pharmacy.orders");
+  const columns = getColumns(t);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Purchase Orders</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Manage medication orders and track deliveries from suppliers
+            {t("subtitle")}
           </p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Create Order
+          {t("createOrder")}
         </Button>
       </div>
 
@@ -80,7 +85,7 @@ export default function PharmacyOrdersPage() {
         columns={columns}
         data={[]}
         searchKey="supplier"
-        searchPlaceholder="Search by supplier..."
+        searchPlaceholder={t("searchSupplier")}
       />
     </div>
   );

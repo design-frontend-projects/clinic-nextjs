@@ -2,144 +2,31 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardStats } from "@/app/actions/admin";
-import { fetchTenantInfoAction } from "@/app/actions/tenant";
-import { OwnerAppointmentsWidget } from "@/components/doctor/owner-appointments-widget";
-import { StatCard } from "@/components/ui/stat-card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Users,
-  Stethoscope,
-  CalendarDays,
-  CreditCard,
-  Clock,
-} from "lucide-react";
-import { format } from "date-fns";
-import { useTranslations } from "next-intl";
+import { AdminDashboardClient } from "./_components/admin-dashboard-client";
 
 const defaultStats = {
   totalPatients: 0,
   totalDoctors: 0,
   todayAppointments: 0,
+  totalAppointments: 0,
   pendingPayments: 0,
-  recentAppointments: [] as {
-    id: string;
-    patientName: string;
-    doctorName: string;
-    date: string;
-    status: string;
-  }[],
+  totalInsurances: 0,
+  recentAppointments: [],
 };
 
 export default function AdminDashboard() {
-  const t = useTranslations("pages.admin");
-  const { data: stats = defaultStats } = useQuery({
+  const { data: stats = defaultStats, isLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: () => getDashboardStats(),
   });
 
-  const { data: tenant } = useQuery({
-    queryKey: ["tenant-info"],
-    queryFn: () => fetchTenantInfoAction(),
-  });
-  const isOwner = tenant?.role === "owner";
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">
-          {t("subtitle")}
-        </p>
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
       </div>
+    );
+  }
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title={t("totalPatients")}
-          value={stats.totalPatients}
-          icon={Users}
-          trend={{ value: 12, positive: true }}
-          description="Registered patients"
-        />
-        <StatCard
-          title={t("activeDoctors")}
-          value={stats.totalDoctors}
-          icon={Stethoscope}
-          description="On staff"
-        />
-        <StatCard
-          title={t("todaysAppointments")}
-          value={stats.todayAppointments}
-          icon={CalendarDays}
-          description={format(new Date(), "EEEE, MMM d")}
-        />
-        <StatCard
-          title={t("pendingPayments")}
-          value={stats.pendingPayments}
-          icon={CreditCard}
-          trend={{ value: 3, positive: false }}
-          description="Awaiting collection"
-        />
-      </div>
-
-      {isOwner && <OwnerAppointmentsWidget />}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            {t("recentAppointments")}
-          </CardTitle>
-          <CardDescription>{t("noAppointments")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {stats.recentAppointments.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              {t("noAppointments")}
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {(stats.recentAppointments || []).map((apt) => (
-                <div
-                  key={apt.id}
-                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent/50"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">
-                        {apt.patientName || t("unknownPatient")}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {t("doctor")}{apt.doctorName}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
-                        {format(new Date(apt.date), "MMM d, yyyy")}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(apt.date), "h:mm a")}
-                      </p>
-                    </div>
-                    <StatusBadge status={apt.status} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <AdminDashboardClient stats={stats} />;
 }

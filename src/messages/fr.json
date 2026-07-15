@@ -108,35 +108,12 @@
     }
   },
   "appOwner": {
-    "plans": {
-      "title": "Forfaits d'Abonnement",
-      "subtitle": "Gérer les forfaits, les tarifs et l'accès aux fonctionnalités.",
-      "newButton": "Nouveau Forfait",
-      "planName": "Nom du Forfait",
-      "price": "Prix",
-      "billingPeriod": "Période de Facturation",
-      "status": "Statut",
-      "activeSubs": "Abonnements Actifs",
-      "actions": "Actions",
-      "noPlansFound": "Aucun forfait d'abonnement trouvé. Créez-en un pour commencer.",
-      "active": "actif",
-      "inactive": "inactif"
-    },
-    "specialties": {
-      "title": "Spécialités",
-      "subtitle": "Définir les spécialités médicales parmi lesquelles les cliniques peuvent choisir.",
-      "newButton": "Nouvelle Spécialité",
-      "name": "Nom",
-      "nameAr": "Nom (Arabe)",
-      "order": "Ordre",
-      "status": "Statut",
-      "doctors": "Médecins",
-      "actions": "Actions",
-      "active": "Actif",
-      "inactive": "Inactif",
-      "empty": "Aucune spécialité trouvée. Créez-en une pour commencer."
+    "layout": {
+      "platformAdmin": "Administration de la plateforme"
     },
     "medications": {
+      "newMedication": "Nouveau Médicament",
+      "editMedication": "Modifier le Médicament",
       "title": "Médicaments",
       "subtitle": "Gérer le catalogue de médicaments de chaque clinique.",
       "newButton": "Ajouter un Médicament",
@@ -154,6 +131,58 @@
       "deactivate": "Désactiver",
       "empty": "Aucun médicament trouvé pour cette clinique. Ajoutez-en un pour commencer.",
       "noClinics": "Aucune clinique disponible. Créez d'abord une clinique."
+    },
+    "plans": {
+      "newPlanTitle": "Nouveau Plan d'Abonnement",
+      "newPlanSubtitle": "Définir un nouveau plan et ses fonctionnalités.",
+      "editPlanTitle": "Modifier le Plan",
+      "title": "Forfaits d'Abonnement",
+      "subtitle": "Gérer les forfaits, les tarifs et l'accès aux fonctionnalités.",
+      "newButton": "Nouveau Forfait",
+      "planName": "Nom du Forfait",
+      "price": "Prix",
+      "billingPeriod": "Période de Facturation",
+      "status": "Statut",
+      "activeSubs": "Abonnements Actifs",
+      "actions": "Actions",
+      "noPlansFound": "Aucun forfait d'abonnement trouvé. Créez-en un pour commencer.",
+      "active": "actif",
+      "inactive": "inactif"
+    },
+    "specialties": {
+      "newSpecialtyTitle": "Nouvelle Spécialité",
+      "newSpecialtySubtitle": "Ajouter une spécialité médicale au catalogue partagé.",
+      "editSpecialtyTitle": "Modifier la Spécialité",
+      "title": "Spécialités",
+      "subtitle": "Définir les spécialités médicales parmi lesquelles les cliniques peuvent choisir.",
+      "newButton": "Nouvelle Spécialité",
+      "name": "Nom",
+      "nameAr": "Nom (Arabe)",
+      "order": "Ordre",
+      "status": "Statut",
+      "doctors": "Médecins",
+      "actions": "Actions",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "empty": "Aucune spécialité trouvée. Créez-en une pour commencer."
+    },
+    "tenants": {
+      "title": "Locataires",
+      "subtitle": "Gérer toutes les cliniques et leurs abonnements actifs.",
+      "createTenant": "Créer un Locataire",
+      "noActivePlan": "Aucun plan actif",
+      "noTenants": "Aucun locataire trouvé.",
+      "newTenantTitle": "Nouveau Locataire",
+      "newTenantSubtitle": "Fournir une clinique et son compte propriétaire en une seule étape — aucun assistant d'intégration requis.",
+      "table": {
+        "clinicName": "Nom de la Clinique",
+        "status": "Statut",
+        "subscription": "Abonnement",
+        "users": "Utilisateurs",
+        "patients": "Patients",
+        "created": "Créé",
+        "actions": "Actions"
+      }
     },
     "dashboard": {
       "overviewTitle": "Aperçu de la Plateforme",
@@ -809,6 +838,176 @@
       "female": "Femme",
       "other": "Autre",
       "unknown": "Inconnu"
+    }
+  },
+  "admin": {
+    "patients": {
+      "portalActive": "Portail actif",
+      "noEmail": "Ce patient n'a pas d'adresse e-mail pour l'inviter.",
+      "invitePortal": "Inviter au portail",
+      "insurance": "Assurance",
+      "patientAdded": "Patient ajouté.",
+      "failedToAdd": "Échec de l'ajout du patient.",
+      "title": "Patients",
+      "subtitle": "Gérer les dossiers des patients de votre clinique",
+      "addPatient": "Ajouter un Patient",
+      "addNewPatient": "Ajouter un Nouveau Patient",
+      "registerDesc": "Enregistrer un nouveau patient dans le système.",
+      "cancel": "Annuler",
+      "saving": "Enregistrement...",
+      "savePatient": "Enregistrer le Patient",
+      "searchPatients": "Rechercher des patients...",
+      "table": {
+        "name": "Nom",
+        "noEmail": "Pas d'e-mail",
+        "phone": "Téléphone",
+        "gender": "Genre",
+        "dob": "Date de Naissance",
+        "registered": "Inscrit le",
+        "portal": "Portail"
+      },
+      "form": {
+        "firstName": "Prénom *",
+        "firstNamePlaceholder": "Jean",
+        "lastName": "Nom *",
+        "lastNamePlaceholder": "Dupont",
+        "email": "Email",
+        "emailPlaceholder": "jean@example.com",
+        "phone": "Téléphone",
+        "phonePlaceholder": "+33 1 23 45 67 89",
+        "gender": "Genre",
+        "genderSelect": "Sélectionner le genre",
+        "male": "Homme",
+        "female": "Femme",
+        "other": "Autre",
+        "dob": "Date de Naissance",
+        "address": "Adresse",
+        "addressPlaceholder": "123 Rue Principale..."
+      }
+    },
+    "clinics": {
+      "successCreated": "Clinique créée avec succès",
+      "errorCreated": "Échec de la création de la clinique",
+      "loading": "Chargement des cliniques...",
+      "title": "Définition de la Clinique",
+      "subtitle": "Gérez vos cliniques, succursales et plans d'abonnement.",
+      "addClinic": "Ajouter une Clinique",
+      "createClinic": "Créer une Nouvelle Clinique",
+      "createDescription": "Ajoutez une nouvelle clinique à votre organisation. Une succursale principale sera créée automatiquement.",
+      "creating": "Création en cours...",
+      "createClinicSubmit": "Créer la Clinique",
+      "regNo": "No d'Enregistrement",
+      "plan": "Plan",
+      "na": "N/A",
+      "noClinics": "Aucune clinique définie",
+      "noClinicsDesc": "Commencez par créer votre première clinique. Chaque clinique peut avoir plusieurs succursales.",
+      "addFirstClinic": "Ajoutez votre première clinique",
+      "radiologyCenter": "Centre de Radiologie",
+      "form": {
+        "name": "Nom de la Clinique",
+        "namePlaceholder": "ex. Centre de Santé",
+        "registrationNumber": "Numéro d'Enregistrement",
+        "registrationPlaceholder": "ex. REG-12345",
+        "email": "Email",
+        "phone": "Téléphone",
+        "pharmacy": "Pharmacie",
+        "lab": "Laboratoire",
+        "radiology": "Radiologie"
+      }
+    },
+    "billing": {
+      "title": "Facturation & Factures",
+      "subtitle": "Suivre les factures et les paiements",
+      "createInvoice": "Cr�er une facture",
+      "searchInvoices": "Rechercher des factures...",
+      "table": {
+        "invoice": "Facture",
+        "general": "G�n�ral",
+        "patient": "Patient",
+        "walkIn": "Sans rendez-vous",
+        "amount": "Montant",
+        "insurance": "Assurance",
+        "patientPays": "Le patient paie",
+        "status": "Statut",
+        "paid": "Pay�",
+        "date": "Date"
+      }
+    },
+    "appointments": {
+      "title": "Rendez-vous",
+      "subtitle": "G�rer tous les rendez-vous de la clinique",
+      "newAppointment": "Nouveau Rendez-vous",
+      "filterByStatus": "Filtrer par statut",
+      "allStatuses": "Tous les statuts",
+      "statusScheduled": "Planifi�",
+      "statusCheckedIn": "Enregistr�",
+      "statusCompleted": "Termin�",
+      "statusCancelled": "Annul�",
+      "statusNoShow": "Non pr�sent�",
+      "checkIn": "S'enregistrer",
+      "complete": "Terminer",
+      "cancel": "Annuler",
+      "table": {
+        "patient": "Patient",
+        "doctor": "M�decin",
+        "dateTime": "Date & Heure",
+        "status": "Statut",
+        "unassigned": "Non assign�",
+        "noPhone": "Pas de t�l�phone"
+      }
+    }
+  },
+  "pharmacy": {
+    "dispensing": {
+      "title": "Délivrance d'ordonnances",
+      "subtitle": "Examiner les ordonnances des médecins et délivrer les médicaments",
+      "searchPatient": "Recherche par patient...",
+      "table": {
+        "patient": "Patient",
+        "prescribedBy": "Prescrit Par",
+        "date": "Date",
+        "status": "Statut",
+        "dispense": "Délivrer",
+        "drPrefix": "Dr. "
+      }
+    },
+    "inventory": {
+      "title": "Inventaire des Stocks",
+      "subtitle": "Gérer les lots de médicaments et les niveaux de stock",
+      "searchStock": "Rechercher dans les stocks...",
+      "table": {
+        "medication": "Médicament",
+        "batchNumber": "Lot n°",
+        "quantity": "Quantité",
+        "units": " unités",
+        "status": "Statut",
+        "transfer": "Transférer"
+      }
+    },
+    "medications": {
+      "title": "Catalogue des Médicaments",
+      "subtitle": "Liste principale de tous les médicaments de la clinique",
+      "addMedication": "Ajouter un Médicament",
+      "searchMedications": "Rechercher des médicaments...",
+      "table": {
+        "medicationName": "Nom du Médicament",
+        "category": "Catégorie",
+        "form": "Forme",
+        "strength": "Dosage"
+      }
+    },
+    "orders": {
+      "title": "Bons de Commande",
+      "subtitle": "Gérer les commandes de médicaments et suivre les livraisons des fournisseurs",
+      "createOrder": "Créer une Commande",
+      "searchSupplier": "Recherche par fournisseur...",
+      "table": {
+        "orderNumber": "Commande n°",
+        "supplier": "Fournisseur",
+        "dateIssued": "Date d'émission",
+        "amount": "Montant",
+        "status": "Statut"
+      }
     }
   }
 }

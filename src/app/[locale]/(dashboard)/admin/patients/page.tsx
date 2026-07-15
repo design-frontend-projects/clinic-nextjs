@@ -37,6 +37,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -62,20 +63,20 @@ type Patient = {
   profile_id: string | null;
 };
 
-function InviteToPortalCell({ patient }: { patient: Patient }) {
+function InviteToPortalCell({ patient, t }: { patient: Patient, t: any }) {
   const [isPending, startTransition] = useTransition();
   const [tempPasswordInfo, setTempPasswordInfo] =
     useState<TempPasswordInfo | null>(null);
 
   if (patient.profile_id) {
     return (
-      <span className="text-xs text-muted-foreground">Portal active</span>
+      <span className="text-xs text-muted-foreground">{t("portalActive")}</span>
     );
   }
 
   const handleInvite = () => {
     if (!patient.email) {
-      toast.error("This patient has no email address to invite.");
+      toast.error(t("noEmail"));
       return;
     }
     startTransition(async () => {
@@ -107,7 +108,7 @@ function InviteToPortalCell({ patient }: { patient: Patient }) {
         ) : (
           <Mail className="mr-2 h-3.5 w-3.5" />
         )}
-        Invite to portal
+        {t("invitePortal")}
       </Button>
       <TempPasswordDialog
         info={tempPasswordInfo}
@@ -117,14 +118,14 @@ function InviteToPortalCell({ patient }: { patient: Patient }) {
   );
 }
 
-function InsuranceCell({ patient }: { patient: Patient }) {
+function InsuranceCell({ patient, t }: { patient: Patient, t: any }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <ShieldCheck className="mr-2 h-3.5 w-3.5" />
-        Insurance
+        {t("insurance")}
       </Button>
       {open && (
         <PatientInsuranceDialog
@@ -138,64 +139,8 @@ function InsuranceCell({ patient }: { patient: Patient }) {
   );
 }
 
-const columns: ColumnDef<Patient>[] = [
-  {
-    accessorKey: "first_name",
-    header: "Name",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-          <Users className="h-4 w-4 text-primary" />
-        </div>
-        <div>
-          <p className="font-medium">
-            {row.original.first_name} {row.original.last_name}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {row.original.email || "No email"}
-          </p>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "phone",
-    header: "Phone",
-    cell: ({ row }) => row.original.phone || "—",
-  },
-  {
-    accessorKey: "gender",
-    header: "Gender",
-    cell: ({ row }) => (
-      <span className="capitalize">{row.original.gender || "—"}</span>
-    ),
-  },
-  {
-    accessorKey: "date_of_birth",
-    header: "Date of Birth",
-    cell: ({ row }) =>
-      row.original.date_of_birth
-        ? format(new Date(row.original.date_of_birth), "MMM d, yyyy")
-        : "—",
-  },
-  {
-    accessorKey: "created_at",
-    header: "Registered",
-    cell: ({ row }) => format(new Date(row.original.created_at), "MMM d, yyyy"),
-  },
-  {
-    id: "insurance",
-    header: "Insurance",
-    cell: ({ row }) => <InsuranceCell patient={row.original} />,
-  },
-  {
-    id: "portal",
-    header: "Portal",
-    cell: ({ row }) => <InviteToPortalCell patient={row.original} />,
-  },
-];
-
 export default function PatientsPage() {
+  const t = useTranslations("admin.patients");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -221,13 +166,13 @@ export default function PatientsPage() {
     startTransition(async () => {
       try {
         await createPatient(data);
-        toast.success("Patient added.");
+        toast.success(t("patientAdded"));
         setOpen(false);
         form.reset();
         refetch();
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : "Failed to add patient.",
+          error instanceof Error ? error.message : t("failedToAdd"),
         );
       }
     });
@@ -237,33 +182,33 @@ export default function PatientsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Patients</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Manage your clinic&apos;s patient records
+            {t("subtitle")}
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Patient
+              {t("addPatient")}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Add New Patient</DialogTitle>
+              <DialogTitle>{t("addNewPatient")}</DialogTitle>
               <DialogDescription>
-                Register a new patient in the system.
+                {t("registerDesc")}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">First Name *</Label>
+                  <Label htmlFor="first_name">{t("form.firstName")}</Label>
                   <Input
                     id="first_name"
                     {...form.register("first_name")}
-                    placeholder="John"
+                    placeholder={t("form.firstNamePlaceholder")}
                   />
                   {form.formState.errors.first_name && (
                     <p className="text-xs text-destructive">
@@ -272,11 +217,11 @@ export default function PatientsPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Last Name *</Label>
+                  <Label htmlFor="last_name">{t("form.lastName")}</Label>
                   <Input
                     id="last_name"
                     {...form.register("last_name")}
-                    placeholder="Doe"
+                    placeholder={t("form.lastNamePlaceholder")}
                   />
                   {form.formState.errors.last_name && (
                     <p className="text-xs text-destructive">
@@ -287,43 +232,43 @@ export default function PatientsPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t("form.email")}</Label>
                   <Input
                     id="email"
                     type="email"
                     {...form.register("email")}
-                    placeholder="john@example.com"
+                    placeholder={t("form.emailPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t("form.phone")}</Label>
                   <Input
                     id="phone"
                     {...form.register("phone")}
-                    placeholder="+1 234 567 890"
+                    placeholder={t("form.phonePlaceholder")}
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Gender</Label>
+                  <Label>{t("form.gender")}</Label>
                   <Select
                     onValueChange={(v) =>
                       form.setValue("gender", v as "male" | "female" | "other")
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
+                      <SelectValue placeholder={t("form.genderSelect")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="male">{t("form.male")}</SelectItem>
+                      <SelectItem value="female">{t("form.female")}</SelectItem>
+                      <SelectItem value="other">{t("form.other")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Label htmlFor="dob">{t("form.dob")}</Label>
                   <Input
                     id="dob"
                     type="date"
@@ -332,11 +277,11 @@ export default function PatientsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">{t("form.address")}</Label>
                 <Input
                   id="address"
                   {...form.register("address")}
-                  placeholder="123 Main St..."
+                  placeholder={t("form.addressPlaceholder")}
                 />
               </div>
               <DialogFooter>
@@ -345,10 +290,10 @@ export default function PatientsPage() {
                   variant="outline"
                   onClick={() => setOpen(false)}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button type="submit" disabled={isPending}>
-                  {isPending ? "Saving..." : "Save Patient"}
+                  {isPending ? t("saving") : t("savePatient")}
                 </Button>
               </DialogFooter>
             </form>
@@ -360,7 +305,7 @@ export default function PatientsPage() {
         columns={columns}
         data={patients as Patient[]}
         searchKey="first_name"
-        searchPlaceholder="Search patients..."
+        searchPlaceholder={t("searchPatients")}
       />
     </div>
   );
