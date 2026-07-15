@@ -103,6 +103,7 @@ model appointments {
   profiles         profiles?            @relation(fields: [doctor_id], references: [id])
   patients         patients             @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   encounters       encounters[]
+  lab_orders       lab_orders[]
 
   @@index([appointment_date])
   @@index([clinic_id])
@@ -172,6 +173,7 @@ model lab_orders {
   id                    String        @id @default(uuid()) @db.Uuid
   clinic_id             String        @db.Uuid
   encounter_id          String?       @db.Uuid
+  appointment_id        String?       @db.Uuid
   patient_id            String        @db.Uuid
   branch_id             String?       @db.Uuid
   doctor_id             String?       @db.Uuid
@@ -182,12 +184,15 @@ model lab_orders {
   created_at            DateTime      @default(now())
   deleted_at            DateTime?
   updated_at            DateTime      @default(now()) @updatedAt
+  appointments          appointments? @relation(fields: [appointment_id], references: [id], onDelete: SetNull)
   branches              branches?     @relation(fields: [branch_id], references: [id])
   clinics               clinics       @relation(fields: [clinic_id], references: [id])
   profiles              profiles?     @relation(fields: [doctor_id], references: [id])
   encounters            encounters?   @relation(fields: [encounter_id], references: [id])
   patients              patients      @relation(fields: [patient_id], references: [id])
   lab_results           lab_results[]
+
+  @@index([appointment_id])
 }
 
 model lab_results {

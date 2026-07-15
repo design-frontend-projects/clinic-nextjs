@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAppointments, updateAppointmentStatus } from "@/app/actions/admin";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +50,14 @@ export default function AppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  const { data: tenant } = useQuery({
+    queryKey: ["tenant-info"],
+    queryFn: () => fetchTenantInfoAction(),
+  });
+  const role = tenant?.role;
+
+  useAppointmentsRealtime(tenant?.clinicId);
 
   const { data: appointments = [] } = useQuery({
     queryKey: ["appointments", statusFilter],
@@ -121,7 +131,15 @@ export default function AppointmentsPage() {
     },
     {
       id: "actions",
-      cell: ({ row }) => (
+      cell: ({ row }) => {
+        // A completed appointment is locked for non-admin tenant users (e.g. owner):
+        // they cannot check in / complete / cancel it. Admins keep full control.
+        const isCompleted = row.original.status === "completed";
+        if (isCompleted && role !== "admin") {
+          return <span className="text-muted-foreground">—</span>;
+        }
+
+        return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -165,7 +183,8 @@ export default function AppointmentsPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      ),
+        );
+      },
     },
   ];
 

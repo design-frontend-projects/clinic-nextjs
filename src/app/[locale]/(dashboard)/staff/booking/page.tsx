@@ -10,6 +10,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { LiveBadge } from "@/components/ui/live-badge";
 import {
   Select,
   SelectContent,
@@ -19,10 +20,17 @@ import {
 } from "@/components/ui/select";
 import { NewAppointmentDialog } from "@/components/appointments/new-appointment-dialog";
 import {
+  AppointmentDateFilter,
+  DEFAULT_APPT_FILTER,
+  type ApptDateFilter,
+} from "@/components/appointments/appointment-date-filter";
+import {
   getStaffAppointments,
   createStaffAppointment,
   registerPatientAndCreateStaffAppointment,
 } from "@/app/actions/staff";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
 import type {
   AppointmentStatus,
   StaffAppointmentRow,
@@ -47,12 +55,23 @@ export default function StaffBookingPage() {
   const t = useTranslations("pages.staff");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] =
+    useState<ApptDateFilter>(DEFAULT_APPT_FILTER);
+
+  const { data: tenant } = useQuery({
+    queryKey: ["tenant-info"],
+    queryFn: () => fetchTenantInfoAction(),
+  });
+
+  useAppointmentsRealtime(tenant?.clinicId);
 
   const { data: appointments = [], isLoading } = useQuery({
-    queryKey: ["staff-appointments", statusFilter],
+    queryKey: ["staff-appointments", { statusFilter, dateFilter }],
     queryFn: () =>
       getStaffAppointments({
         status: statusFilter === "all" ? undefined : statusFilter,
+        range: dateFilter.mode,
+        date: dateFilter.date,
       }),
   });
 
@@ -101,9 +120,12 @@ export default function StaffBookingPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {t("bookingTitle")}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t("bookingTitle")}
+            </h1>
+            <LiveBadge />
+          </div>
           <p className="text-muted-foreground">{t("bookingSubtitle")}</p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)}>
@@ -133,6 +155,11 @@ export default function StaffBookingPage() {
               ))}
             </SelectContent>
           </Select>
+
+          <label className="mt-4 mb-1.5 block text-sm text-muted-foreground">
+            {t("dateFilter")}
+          </label>
+          <AppointmentDateFilter value={dateFilter} onChange={setDateFilter} />
         </div>
 
         <div className="min-w-0 flex-1">

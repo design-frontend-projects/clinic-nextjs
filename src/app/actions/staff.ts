@@ -52,6 +52,15 @@ function todayRange(): { start: Date; end: Date } {
   return { start, end };
 }
 
+/** Local-day [start, end] window for a specific calendar date (ISO string). */
+function dayRange(dateIso: string): { start: Date; end: Date } {
+  const start = new Date(dateIso);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(dateIso);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
 function fullName(
   first: string | null,
   last: string | null,
@@ -279,19 +288,55 @@ export async function getStaffDashboardStats(): Promise<StaffDashboardStats> {
   };
 }
 
+/** Date scope for the staff appointment list: a whole day, today, or today+future. */
+export type StaffAppointmentRange = "all" | "today" | "upcoming";
+
+/**
+ * Resolve the `appointment_date` filter. A specific `date` (a picked calendar
+ * day) takes precedence over `range`. `upcoming` means today + future
+ * (`appointment_date >= now`); `today` is the current local day.
+ */
+function appointmentDateWhere(
+  range: StaffAppointmentRange,
+  date?: string,
+): { gte?: Date; lt?: Date; lte?: Date } | undefined {
+  if (date) {
+    const { start, end } = dayRange(date);
+    return { gte: start, lte: end };
+  }
+  if (range === "today") {
+    const { start, end } = todayRange();
+    return { gte: start, lte: end };
+  }
+  if (range === "upcoming") {
+    return { gte: new Date() };
+  }
+  return undefined;
+}
+
 /** Branch-scoped appointment list for the staff booking-central page. */
 export async function getStaffAppointments(filters?: {
   status?: string;
+  range?: StaffAppointmentRange;
+  date?: string;
 }): Promise<StaffAppointmentRow[]> {
   const tenant = await requireTenantInfo();
   await requirePermission("appointment.read");
+
+  const range = filters?.range ?? "all";
+  const dateWhere = appointmentDateWhere(range, filters?.date);
 
   const where = {
     ...scopedWhere(tenant),
     ...(filters?.status && filters.status !== "all"
       ? { status: filters.status as AppointmentStatus }
       : {}),
+    ...(dateWhere ? { appointment_date: dateWhere } : {}),
   };
+
+  // Chronological (soonest first) when scoped to a date/today/upcoming;
+  // newest first when browsing the full history.
+  const orderDir = filters?.date || range !== "all" ? "asc" : "desc";
 
   const rows = await prisma.appointments.findMany({
     where,
@@ -299,7 +344,7 @@ export async function getStaffAppointments(filters?: {
       patients: { select: { first_name: true, last_name: true } },
       profiles: { select: { full_name: true } },
     },
-    orderBy: { appointment_date: "desc" },
+    orderBy: { appointment_date: orderDir },
     take: 100,
   });
 
@@ -353,10 +398,8 @@ export async function createStaffAppointment(data: {
   notes?: string;
 }) {
   const tenant = await requireTenantInfo();
-  console.log('tenant data create booking: ', tenant);
   await requirePermission("appointment.create");
   const appointment = await createAppointmentForScope(tenant, data);
-  console.log('appointment data create booking: ', appointment);
   revalidateStaffRoutes();
   return appointment;
 }

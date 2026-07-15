@@ -6,9 +6,11 @@ import { differenceInMinutes, format } from "date-fns";
 import { Users, CalendarDays, ClipboardList, Wallet, Plus } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, XAxis } from "recharts";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { LiveBadge } from "@/components/ui/live-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,10 +27,19 @@ import {
 } from "@/components/ui/chart";
 import { NewAppointmentDialog } from "@/components/appointments/new-appointment-dialog";
 import {
+  AppointmentDateFilter,
+  DEFAULT_APPT_FILTER,
+  type ApptDateFilter,
+} from "@/components/appointments/appointment-date-filter";
+import {
   getStaffDashboardStats,
+  getStaffAppointments,
   createStaffAppointment,
   registerPatientAndCreateStaffAppointment,
 } from "@/app/actions/staff";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
+import { cn } from "@/lib/utils";
 import type {
   AppointmentStatus,
   StaffDashboardStats,
@@ -66,11 +77,34 @@ const INVALIDATE_KEYS = ["staff-dashboard", "staff-queue"];
 export default function StaffDashboard() {
   const t = useTranslations("pages.staff");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [apptFilter, setApptFilter] =
+    useState<ApptDateFilter>(DEFAULT_APPT_FILTER);
 
   const { data: stats = defaultStats } = useQuery({
     queryKey: ["staff-dashboard"],
     queryFn: () => getStaffDashboardStats(),
   });
+
+  // Tenant context (cached — also used by the header/bell) drives the realtime
+  // subscription that keeps the queue and appointments panel live.
+  const { data: tenant } = useQuery({
+    queryKey: ["tenant-info"],
+    queryFn: () => fetchTenantInfoAction(),
+  });
+
+  useAppointmentsRealtime(tenant?.clinicId, {
+    onCheckIn: () => toast.success(t("checkedInLive")),
+  });
+
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["staff-appointments", apptFilter],
+    queryFn: () =>
+      getStaffAppointments({ range: apptFilter.mode, date: apptFilter.date }),
+  });
+
+  const checkedInCount = stats.queue.filter(
+    (item) => item.status === "checked_in",
+  ).length;
 
   const chartConfig: ChartConfig = { count: { label: t("appointments") } };
   const chartData = stats.throughput.map((point) => ({
@@ -126,7 +160,17 @@ export default function StaffDashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>{t("currentQueue")}</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle>{t("currentQueue")}</CardTitle>
+              <div className="flex items-center gap-2">
+                {checkedInCount > 0 && (
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                    {t("checkedInPatients", { count: checkedInCount })}
+                  </span>
+                )}
+                <LiveBadge />
+              </div>
+            </div>
             <CardDescription>{t("patientsWaiting")}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -149,10 +193,15 @@ export default function StaffDashboard() {
                           0,
                         )
                       : null;
+                  const isCheckedIn = item.status === "checked_in";
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between rounded-lg border p-4"
+                      className={cn(
+                        "flex items-center justify-between rounded-lg border p-4",
+                        isCheckedIn &&
+                          "border-l-4 border-l-amber-500 bg-amber-500/5",
+                      )}
                     >
                       <div>
                         <p className="font-medium">{item.patientName}</p>
@@ -213,6 +262,52 @@ export default function StaffDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <CardTitle>{t("appointmentsPanel")}</CardTitle>
+              <CardDescription>
+                {t("appointmentsPanelSubtitle")}
+              </CardDescription>
+            </div>
+            <LiveBadge />
+          </div>
+          <AppointmentDateFilter
+            value={apptFilter}
+            onChange={setApptFilter}
+            className="pt-2"
+          />
+        </CardHeader>
+        <CardContent>
+          {appointments.length === 0 ? (
+            <div className="flex h-40 items-center justify-center rounded-lg border border-dashed">
+              <p className="text-sm text-muted-foreground">
+                {t("noAppointments")}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {appointments.map((appt) => (
+                <div
+                  key={appt.id}
+                  className="flex items-center justify-between rounded-lg border p-4"
+                >
+                  <div>
+                    <p className="font-medium">{appt.patientName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {appt.doctorName} •{" "}
+                      {format(new Date(appt.appointmentDate), "MMM d, h:mm a")}
+                    </p>
+                  </div>
+                  <StatusBadge status={appt.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <NewAppointmentDialog
         open={isDialogOpen}

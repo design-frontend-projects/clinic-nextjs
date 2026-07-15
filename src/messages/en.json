@@ -314,7 +314,18 @@
       "colInvoiceNumber": "Invoice #",
       "colAmount": "Amount",
       "colDateIssued": "Date Issued",
-      "searchInvoices": "Search invoices by patient..."
+      "searchInvoices": "Search invoices by patient...",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "allDates": "All",
+      "dateFilter": "Date",
+      "pickDate": "Pick a date",
+      "appointmentsPanel": "Appointments",
+      "appointmentsPanelSubtitle": "Filter by date to see scheduled visits",
+      "noAppointments": "No appointments for this filter",
+      "live": "Live",
+      "checkedInLive": "A patient just checked in",
+      "checkedInPatients": "{count} checked in"
     }
   },
   "landing": {

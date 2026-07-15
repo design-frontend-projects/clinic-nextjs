@@ -314,7 +314,18 @@
       "colInvoiceNumber": "رقم الفاتورة",
       "colAmount": "المبلغ",
       "colDateIssued": "تاريخ الإصدار",
-      "searchInvoices": "بحث في الفواتير باسم المريض..."
+      "searchInvoices": "بحث في الفواتير باسم المريض...",
+      "today": "اليوم",
+      "upcoming": "القادمة",
+      "allDates": "الكل",
+      "dateFilter": "التاريخ",
+      "pickDate": "اختر تاريخاً",
+      "appointmentsPanel": "المواعيد",
+      "appointmentsPanelSubtitle": "صفِّ حسب التاريخ لعرض الزيارات المجدولة",
+      "noAppointments": "لا توجد مواعيد لهذا الفلتر",
+      "live": "مباشر",
+      "checkedInLive": "سجّل أحد المرضى الحضور للتو",
+      "checkedInPatients": "{count} تم تسجيل حضورهم"
     }
   },
   "landing": {

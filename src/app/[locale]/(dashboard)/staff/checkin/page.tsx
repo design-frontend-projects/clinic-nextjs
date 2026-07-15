@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { LiveBadge } from "@/components/ui/live-badge";
 import { NewAppointmentDialog } from "@/components/appointments/new-appointment-dialog";
 import {
   getStaffQueue,
@@ -19,6 +20,8 @@ import {
   createStaffAppointment,
   registerPatientAndCreateStaffAppointment,
 } from "@/app/actions/staff";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
 import type { StaffQueueItem } from "@/types/staff.types";
 
 const INVALIDATE_KEYS = ["staff-queue", "staff-dashboard"];
@@ -31,6 +34,17 @@ export default function CheckinQueuePage() {
   const t = useTranslations("pages.staff");
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const { data: tenant } = useQuery({
+    queryKey: ["tenant-info"],
+    queryFn: () => fetchTenantInfoAction(),
+  });
+
+  // Live check-ins/creations from any client update the queue instantly; the
+  // 60s interval below remains a fallback that also keeps wait-times fresh.
+  useAppointmentsRealtime(tenant?.clinicId, {
+    onCheckIn: () => toast.success(t("checkedInLive")),
+  });
 
   const { data: queue = [], isLoading } = useQuery({
     queryKey: ["staff-queue"],
@@ -156,9 +170,12 @@ export default function CheckinQueuePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {t("checkInTitle")}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t("checkInTitle")}
+            </h1>
+            <LiveBadge />
+          </div>
           <p className="text-muted-foreground">{t("checkInSubtitle")}</p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)}>
