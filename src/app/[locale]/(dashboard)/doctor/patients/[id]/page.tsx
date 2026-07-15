@@ -17,10 +17,13 @@ import {
 
 export default async function PatientConsultationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ appointmentId?: string }>;
 }) {
   const resolvedParams = await params;
+  const { appointmentId } = await searchParams;
   const { patient, history, prescriptions, labOrders } =
     await getPatientDetails(resolvedParams.id);
 
@@ -51,7 +54,10 @@ export default async function PatientConsultationPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <EncounterForm patientId={patient.id} />
+              <EncounterForm
+                patientId={patient.id}
+                appointmentId={appointmentId}
+              />
             </CardContent>
           </Card>
         </div>

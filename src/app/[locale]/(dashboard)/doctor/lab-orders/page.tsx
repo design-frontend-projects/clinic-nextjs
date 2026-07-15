@@ -4,9 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { getDoctorLabOrders } from "@/app/actions/doctor";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
-import { FlaskConical } from "lucide-react";
+import { FlaskConical, X } from "lucide-react";
 import { format } from "date-fns";
+import { useSearchParams } from "next/navigation";
+import { Link } from "@/i18n/routing";
 
 type LabOrderRow = {
   id: string;
@@ -52,9 +55,12 @@ const columns: ColumnDef<LabOrderRow>[] = [
 ];
 
 export default function DoctorLabOrdersPage() {
+  const searchParams = useSearchParams();
+  const appointmentId = searchParams.get("appointmentId") ?? undefined;
+
   const { data: labOrders = [] } = useQuery({
-    queryKey: ["doctor-lab-orders"],
-    queryFn: () => getDoctorLabOrders(),
+    queryKey: ["doctor-lab-orders", appointmentId ?? "all"],
+    queryFn: () => getDoctorLabOrders(appointmentId),
   });
 
   const rows: LabOrderRow[] = labOrders.map((order) => ({
@@ -78,6 +84,20 @@ export default function DoctorLabOrdersPage() {
           </p>
         </div>
       </div>
+
+      {appointmentId && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed bg-muted/40 px-4 py-2 text-sm">
+          <span className="text-muted-foreground">
+            Showing labs for the selected appointment.
+          </span>
+          <Link href="/doctor/lab-orders">
+            <Button variant="ghost" size="sm">
+              <X className="mr-2 h-4 w-4" />
+              Clear filter
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <DataTable
         columns={columns}

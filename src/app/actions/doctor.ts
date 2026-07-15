@@ -2,14 +2,24 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
+import { DOCTOR_PAGE_ROLES } from "@/types/clinic.types";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+
+/**
+ * A practitioner is a role that sees appointments assigned to them personally
+ * (`appointments.doctor_id === profileId`): doctors and clinic owners who also
+ * practice. Kept in sync with `DOCTOR_PAGE_ROLES`.
+ */
+function isPractitioner(role: string): boolean {
+  return (DOCTOR_PAGE_ROLES as readonly string[]).includes(role);
+}
 
 export async function getDoctorDashboardStats() {
   const tenant = await requireTenantInfo();
 
-  if (tenant.role !== "doctor") {
-    throw new Error("Unauthorized: Only doctors can access this data");
+  if (!isPractitioner(tenant.role)) {
+    throw new Error("Unauthorized: Only practitioners can access this data");
   }
 
   const today = new Date();
@@ -29,7 +39,7 @@ export async function getDoctorDashboardStats() {
           },
         },
         include: {
-          patients: { select: { first_name: true, last_name: true } },
+          patients: { select: { id: true, first_name: true, last_name: true } },
         },
         orderBy: { appointment_date: "asc" },
       }),
@@ -67,6 +77,7 @@ export async function getDoctorDashboardStats() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     todayAppointments: todayAppointments.map((a: any) => ({
       id: a.id,
+      patientId: a.patients?.id ?? null,
       patientName:
         `${a.patients?.first_name || ""} ${a.patients?.last_name || ""}`.trim(),
       date: a.appointment_date.toISOString(),
@@ -92,10 +103,19 @@ export async function getDoctorDashboardStats() {
   };
 }
 
-export async function getDoctorAppointments(date?: string) {
+export interface DoctorAppointmentsFilter {
+  /** Quick date scope. Ignored when a specific `date` is provided. */
+  mode?: "today" | "upcoming" | "all";
+  /** A specific calendar day (ISO string); overrides `mode`. */
+  date?: string;
+  /** Concrete appointment status; omit or "all" for no status filter. */
+  status?: string;
+}
+
+export async function getDoctorAppointments(filter?: DoctorAppointmentsFilter) {
   const tenant = await requireTenantInfo();
 
-  if (tenant.role !== "doctor") {
+  if (!isPractitioner(tenant.role)) {
     throw new Error("Unauthorized");
   }
 
@@ -104,12 +124,28 @@ export async function getDoctorAppointments(date?: string) {
     doctor_id: tenant.profileId,
   };
 
+  const { mode = "all", date, status } = filter ?? {};
+
   if (date) {
-    const targetDate = new Date(date);
-    where.appointment_date = {
-      gte: new Date(targetDate.setHours(0, 0, 0, 0)),
-      lt: new Date(targetDate.setHours(23, 59, 59, 999)),
-    };
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+    where.appointment_date = { gte: start, lt: end };
+  } else if (mode === "today") {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    where.appointment_date = { gte: start, lt: end };
+  } else if (mode === "upcoming") {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    where.appointment_date = { gte: start };
+  }
+
+  if (status && status !== "all") {
+    where.status = status;
   }
 
   return prisma.appointments.findMany({
@@ -125,7 +161,7 @@ export async function getDoctorAppointments(date?: string) {
         },
       },
     },
-    orderBy: { appointment_date: "desc" },
+    orderBy: { appointment_date: "asc" },
     take: 50,
   });
 }
@@ -181,7 +217,7 @@ export async function createEncounter(
 ) {
   const tenant = await requireTenantInfo();
 
-  if (tenant.role !== "doctor") {
+  if (!isPractitioner(tenant.role)) {
     throw new Error("Unauthorized");
   }
 
@@ -226,7 +262,7 @@ export type CreateLabOrderInput = z.infer<typeof createLabOrderSchema>;
 export async function createLabOrder(input: CreateLabOrderInput) {
   const tenant = await requireTenantInfo();
 
-  if (tenant.role !== "doctor") {
+  if (!isPractitioner(tenant.role)) {
     return { error: "Unauthorized" };
   }
 
@@ -272,11 +308,15 @@ export async function createLabOrder(input: CreateLabOrderInput) {
   return { success: true, labOrder };
 }
 
-/** Lab orders raised by the current doctor, newest first, for the lab-orders list. */
-export async function getDoctorLabOrders() {
+/**
+ * Lab orders raised by the current practitioner, newest first, for the
+ * lab-orders list. Pass `appointmentId` to scope the list to a single
+ * appointment (used by the "View Labs" deep-link from the appointments table).
+ */
+export async function getDoctorLabOrders(appointmentId?: string) {
   const tenant = await requireTenantInfo();
 
-  if (tenant.role !== "doctor") {
+  if (!isPractitioner(tenant.role)) {
     throw new Error("Unauthorized");
   }
 
@@ -284,6 +324,7 @@ export async function getDoctorLabOrders() {
     where: {
       clinic_id: tenant.clinicId,
       doctor_id: tenant.profileId,
+      ...(appointmentId ? { appointment_id: appointmentId } : {}),
     },
     include: {
       patients: { select: { first_name: true, last_name: true } },

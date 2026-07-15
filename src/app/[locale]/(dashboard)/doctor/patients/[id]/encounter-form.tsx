@@ -27,7 +27,16 @@ const encounterSchema = z.object({
 
 type EncounterFormValues = z.infer<typeof encounterSchema>;
 
-export function EncounterForm({ patientId }: { patientId: string }) {
+interface EncounterFormProps {
+  patientId: string;
+  /**
+   * When present, the saved encounter is tied to this appointment and the
+   * appointment is auto-completed server-side (see `createEncounter`).
+   */
+  appointmentId?: string;
+}
+
+export function EncounterForm({ patientId, appointmentId }: EncounterFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<EncounterFormValues>({
@@ -42,8 +51,12 @@ export function EncounterForm({ patientId }: { patientId: string }) {
   function onSubmit(data: EncounterFormValues) {
     startTransition(async () => {
       try {
-        await createEncounter(patientId, data);
-        toast.success("Encounter saved successfully!");
+        await createEncounter(patientId, { ...data, appointment_id: appointmentId });
+        toast.success(
+          appointmentId
+            ? "Encounter saved and appointment completed!"
+            : "Encounter saved successfully!",
+        );
         form.reset();
       } catch {
         toast.error("Failed to save encounter. Please try again.");

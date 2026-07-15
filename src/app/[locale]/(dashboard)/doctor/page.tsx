@@ -18,7 +18,6 @@ import {
 import { format } from "date-fns";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
-import { useTranslations } from "next-intl";
 
 export default async function DoctorDashboard() {
   let stats;
@@ -88,7 +87,7 @@ export default async function DoctorDashboard() {
               </p>
             ) : (
               <div className="space-y-4">
-                {stats.todayAppointments.map((apt: any) => (
+                {stats.todayAppointments.map((apt) => (
                   <div
                     key={apt.id}
                     className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent/50"
@@ -112,11 +111,32 @@ export default async function DoctorDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={apt.status} />
-                      <Link href={`/doctor/patients/${apt.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </Link>
+                      {apt.patientId && apt.status !== "completed" ? (
+                        <Link
+                          href={`/doctor/patients/${apt.patientId}?appointmentId=${apt.id}`}
+                          title="Start consultation"
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      ) : (
+                        apt.patientId && (
+                          <Link href={`/doctor/patients/${apt.patientId}`}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )
+                      )}
                     </div>
                   </div>
                 ))}

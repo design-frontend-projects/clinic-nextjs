@@ -18,7 +18,13 @@ export default async function DoctorLayout({
   }
 
   const { tenant } = result;
-  if (tenant.role !== "doctor" && tenant.role !== "admin") {
+  // Doctors own these pages; admins may view them; owners who practise reach
+  // them via their admin sidebar ("My Appointments"/"Lab Orders").
+  if (
+    tenant.role !== "doctor" &&
+    tenant.role !== "admin" &&
+    tenant.role !== "owner"
+  ) {
     return redirect({ href: "/", locale: await getLocale() });
   }
 

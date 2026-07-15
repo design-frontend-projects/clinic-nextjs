@@ -2,6 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardStats } from "@/app/actions/admin";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import { OwnerAppointmentsWidget } from "@/components/doctor/owner-appointments-widget";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -42,6 +44,12 @@ export default function AdminDashboard() {
     queryFn: () => getDashboardStats(),
   });
 
+  const { data: tenant } = useQuery({
+    queryKey: ["tenant-info"],
+    queryFn: () => fetchTenantInfoAction(),
+  });
+  const isOwner = tenant?.role === "owner";
+
   return (
     <div className="space-y-8">
       <div>
@@ -80,6 +88,8 @@ export default function AdminDashboard() {
         />
       </div>
 
+      {isOwner && <OwnerAppointmentsWidget />}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -95,7 +105,7 @@ export default function AdminDashboard() {
             </p>
           ) : (
             <div className="space-y-4">
-              {(stats.recentAppointments || []).map((apt: any) => (
+              {(stats.recentAppointments || []).map((apt) => (
                 <div
                   key={apt.id}
                   className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent/50"

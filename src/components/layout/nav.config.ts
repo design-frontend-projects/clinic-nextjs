@@ -27,6 +27,12 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.clinicDefinition", href: "/admin/clinics", iconKey: "clinic", roles: ["admin", "owner"] },
   { titleKey: "sidebar.reviews", href: "/admin/reviews", iconKey: "reviews", roles: ["admin", "owner"] },
 
+  // Owner-as-practitioner: personal appointments/labs assigned to the owner
+  // (owners may practise as doctors). These deep-link into the shared /doctor
+  // pages while the owner keeps their /admin sidebar.
+  { titleKey: "sidebar.myAppointments", href: "/doctor/appointments", iconKey: "appointments", roles: ["owner"] },
+  { titleKey: "sidebar.labOrders", href: "/doctor/lab-orders", iconKey: "labOrders", roles: ["owner"] },
+
   // Settings group (RBAC) — gated by settings permissions
   { titleKey: "sidebar.roles", href: "/settings/roles", iconKey: "roles", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
   { titleKey: "sidebar.users", href: "/settings/user-roles", iconKey: "users", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },

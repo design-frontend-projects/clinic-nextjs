@@ -9,11 +9,22 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Users, FlaskConical } from "lucide-react";
+import { ChevronRight, Users, FlaskConical, TestTube } from "lucide-react";
 import { Link } from "@/i18n/routing";
-import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { AddLabRequestDialog } from "@/components/doctor/add-lab-request-dialog";
+import {
+  AppointmentDateFilter,
+  DEFAULT_APPT_FILTER,
+  type ApptDateFilter,
+} from "@/components/appointments/appointment-date-filter";
 
 type Patient = {
   id: string;
@@ -32,7 +43,9 @@ type Appointment = {
 };
 
 export default function DoctorAppointmentsPage() {
-  const [dateFilter, setDateFilter] = useState<string>("");
+  const [dateFilter, setDateFilter] =
+    useState<ApptDateFilter>(DEFAULT_APPT_FILTER);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [labRequestFor, setLabRequestFor] = useState<{
     appointmentId: string;
     patientName: string;
@@ -46,8 +59,13 @@ export default function DoctorAppointmentsPage() {
   useAppointmentsRealtime(tenant?.clinicId);
 
   const { data: appointments = [] } = useQuery({
-    queryKey: ["doctor-appointments", dateFilter],
-    queryFn: () => getDoctorAppointments(dateFilter),
+    queryKey: ["doctor-appointments", dateFilter, statusFilter],
+    queryFn: () =>
+      getDoctorAppointments({
+        mode: dateFilter.mode,
+        date: dateFilter.date,
+        status: statusFilter,
+      }),
   });
 
   const columns = useMemo<ColumnDef<Appointment>[]>(
@@ -124,6 +142,17 @@ export default function DoctorAppointmentsPage() {
 
           return (
             <div className="flex items-center justify-end gap-1">
+              <Link href={`/doctor/lab-orders?appointmentId=${row.original.id}`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  title="View this appointment's labs"
+                >
+                  <TestTube className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">View Labs</span>
+                </Button>
+              </Link>
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -155,7 +184,9 @@ export default function DoctorAppointmentsPage() {
                   <ChevronRight className="h-4 w-4 md:ml-2" />
                 </Button>
               ) : (
-                <Link href={`/doctor/patients/${row.original.patients?.id}`}>
+                <Link
+                  href={`/doctor/patients/${row.original.patients?.id}?appointmentId=${row.original.id}`}
+                >
                   <Button variant="ghost" size="sm" className="hidden md:flex">
                     Consultation <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -181,16 +212,21 @@ export default function DoctorAppointmentsPage() {
             Manage your daily schedule and consultations
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="w-auto"
-          />
-          <Button variant="outline" onClick={() => setDateFilter("")}>
-            Clear
-          </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <AppointmentDateFilter value={dateFilter} onChange={setDateFilter} />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="checked_in">Checked In</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="no_show">No Show</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
