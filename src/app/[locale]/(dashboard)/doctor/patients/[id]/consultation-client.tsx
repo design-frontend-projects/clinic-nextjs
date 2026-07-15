@@ -2,13 +2,14 @@
 
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { Activity, Pill, History, Calendar, CheckCircle2, ChevronRight, FileText, ClipboardList } from "lucide-react";
+import { Activity, Pill, History, Calendar, CheckCircle2, ChevronRight, FileText, ClipboardList, ShieldCheck } from "lucide-react";
+import { PatientInsurancePanel } from "@/components/insurance/patient-insurance-panel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EncounterForm } from "./encounter-form";
 import { PatientPrescriptions, type PatientPrescription } from "./patient-prescriptions";
 import { StatusBadge } from "@/components/ui/status-badge";
-
+import { useTranslations } from "next-intl";
 
 interface Patient {
   id: string;
@@ -44,8 +45,8 @@ interface ConsultationClientProps {
   appointmentId?: string;
 }
 
-function calculateAge(dob: Date | string | null | undefined): string {
-  if (!dob) return "N/A";
+function calculateAge(dob: Date | string | null | undefined): number | null {
+  if (!dob) return null;
   const birth = new Date(dob);
   const today = new Date();
   let age = today.getFullYear() - birth.getFullYear();
@@ -53,7 +54,7 @@ function calculateAge(dob: Date | string | null | undefined): string {
   if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
     age--;
   }
-  return `${age} years old`;
+  return age;
 }
 
 // Animation variants
@@ -78,7 +79,11 @@ export function ConsultationClient({
   labOrders,
   appointmentId,
 }: ConsultationClientProps) {
+  const t = useTranslations("pages.doctor.consultation");
+  const tGender = useTranslations("enums.gender");
+  
   const patientInitials = `${patient.first_name?.charAt(0) ?? ""}${patient.last_name?.charAt(0) ?? ""}`.toUpperCase();
+  const ageVal = calculateAge(patient.date_of_birth);
 
   return (
     <motion.div
@@ -104,12 +109,12 @@ export function ConsultationClient({
               </h1>
               <div className="flex flex-wrap items-center gap-2 mt-1.5 text-sm text-muted-foreground font-medium">
                 <span className="capitalize px-2.5 py-0.5 rounded-lg bg-muted text-foreground border border-border/20 text-xs font-semibold">
-                  {patient.gender?.toLowerCase() || "unknown"}
+                  {patient.gender ? tGender(patient.gender.toLowerCase()) : tGender("unknown")}
                 </span>
                 <span>•</span>
                 <span>DOB: {patient.date_of_birth ? format(new Date(patient.date_of_birth), "MMM d, yyyy") : "N/A"}</span>
                 <span>•</span>
-                <span>{calculateAge(patient.date_of_birth)}</span>
+                <span>{ageVal !== null ? t("yearsOld", { age: ageVal }) : "N/A"}</span>
               </div>
             </div>
           </div>
@@ -117,15 +122,15 @@ export function ConsultationClient({
           {/* Quick Metrics */}
           <div className="flex items-center gap-4 border-t border-border/30 pt-4 md:border-t-0 md:pt-0">
             <div className="text-center px-4 py-1 border-r border-border/30">
-              <p className="text-xs text-muted-foreground font-semibold">Visits</p>
+              <p className="text-xs text-muted-foreground font-semibold">{t("metricVisits")}</p>
               <p className="text-lg font-bold text-foreground mt-0.5">{history.length}</p>
             </div>
             <div className="text-center px-4 py-1 border-r border-border/30">
-              <p className="text-xs text-muted-foreground font-semibold">Prescriptions</p>
+              <p className="text-xs text-muted-foreground font-semibold">{t("metricPrescriptions")}</p>
               <p className="text-lg font-bold text-foreground mt-0.5">{prescriptions.length}</p>
             </div>
             <div className="text-center px-4 py-1">
-              <p className="text-xs text-muted-foreground font-semibold">Labs Ordered</p>
+              <p className="text-xs text-muted-foreground font-semibold">{t("metricLabs")}</p>
               <p className="text-lg font-bold text-foreground mt-0.5">{labOrders.length}</p>
             </div>
           </div>
@@ -140,10 +145,10 @@ export function ConsultationClient({
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-accent-blue" />
-                New Encounter Notes
+                {t("newEncounterTitle")}
               </CardTitle>
               <CardDescription>
-                Record the clinical diagnosis, consultation findings, and treatment plan.
+                {t("newEncounterDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -158,10 +163,11 @@ export function ConsultationClient({
         {/* Right Column: History & Context (Tabs) */}
         <motion.div variants={itemVariants} className="space-y-6">
           <Tabs defaultValue="history">
-            <TabsList className="grid w-full grid-cols-3 rounded-xl bg-muted/60 p-1 border border-border/30">
-              <TabsTrigger value="history" className="rounded-lg text-xs font-semibold py-2">History</TabsTrigger>
-              <TabsTrigger value="meds" className="rounded-lg text-xs font-semibold py-2">Meds</TabsTrigger>
-              <TabsTrigger value="labs" className="rounded-lg text-xs font-semibold py-2">Labs</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 rounded-xl bg-muted/60 p-1 border border-border/30">
+              <TabsTrigger value="history" className="rounded-lg text-xs font-semibold py-2">{t("tabHistory")}</TabsTrigger>
+              <TabsTrigger value="meds" className="rounded-lg text-xs font-semibold py-2">{t("tabMeds")}</TabsTrigger>
+              <TabsTrigger value="labs" className="rounded-lg text-xs font-semibold py-2">{t("tabLabs")}</TabsTrigger>
+              <TabsTrigger value="insurance" className="rounded-lg text-xs font-semibold py-2">{t("tabInsurance")}</TabsTrigger>
             </TabsList>
 
             {/* Past Encounters Tab */}
@@ -169,12 +175,12 @@ export function ConsultationClient({
               <Card className="border border-border/40 bg-card/60 backdrop-blur-md shadow-sm max-h-[500px] overflow-y-auto">
                 <CardHeader className="pb-3 flex flex-row items-center gap-2">
                   <History className="h-4.5 w-4.5 text-accent-blue" />
-                  <CardTitle className="text-sm font-bold">Past Encounters</CardTitle>
+                  <CardTitle className="text-sm font-bold">{t("pastEncounters")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {history.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">
-                      No past encounters on file.
+                      {t("noPastEncounters")}
                     </p>
                   ) : (
                     history.slice(0, 10).map((enc) => (
@@ -187,11 +193,11 @@ export function ConsultationClient({
                             {format(new Date(enc.encounter_date), "MMM d, yyyy")}
                           </p>
                           <p className="text-[10px] font-medium text-muted-foreground">
-                            By {enc.profiles?.full_name || "Practitioner"}
+                            {t("byPractitioner", { name: enc.profiles?.full_name || "Practitioner" })}
                           </p>
                         </div>
                         <p className="font-semibold text-foreground mt-1 text-xs">
-                          Diagnosis: <span className="font-normal text-muted-foreground">{enc.diagnosis || "N/A"}</span>
+                          {t("diagnosisLabel")} <span className="font-normal text-muted-foreground">{enc.diagnosis || "N/A"}</span>
                         </p>
                         <p className="text-muted-foreground mt-1 text-xs leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all">
                           {enc.notes}
@@ -208,7 +214,7 @@ export function ConsultationClient({
               <Card className="border border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
                 <CardHeader className="pb-3 flex flex-row items-center gap-2">
                   <Pill className="h-4.5 w-4.5 text-accent-green" />
-                  <CardTitle className="text-sm font-bold">Active Prescriptions</CardTitle>
+                  <CardTitle className="text-sm font-bold">{t("activePrescriptions")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <PatientPrescriptions
@@ -224,12 +230,12 @@ export function ConsultationClient({
               <Card className="border border-border/40 bg-card/60 backdrop-blur-md shadow-sm max-h-[500px] overflow-y-auto">
                 <CardHeader className="pb-3 flex flex-row items-center gap-2">
                   <ClipboardList className="h-4.5 w-4.5 text-accent-yellow" />
-                  <CardTitle className="text-sm font-bold">Recent Lab Requests</CardTitle>
+                  <CardTitle className="text-sm font-bold">{t("recentLabs")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {labOrders.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">
-                      No lab requests ordered.
+                      {t("noLabs")}
                     </p>
                   ) : (
                     labOrders.slice(0, 10).map((lab) => (
@@ -239,7 +245,7 @@ export function ConsultationClient({
                       >
                         <div className="flex items-center justify-between">
                           <p className="font-semibold text-foreground text-xs">
-                            {lab.test_name || "Routine Lab"}
+                            {lab.test_name || t("routineLab")}
                           </p>
                           <span className="text-[10px] text-muted-foreground">
                             {format(new Date(lab.created_at), "MMM d, yyyy")}
@@ -251,6 +257,24 @@ export function ConsultationClient({
                       </div>
                     ))
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Insurance Tab */}
+            <TabsContent value="insurance" className="mt-4">
+              <Card className="border border-border/40 bg-card/60 backdrop-blur-md shadow-sm max-h-[500px] overflow-y-auto">
+                <CardHeader className="pb-3 flex flex-row items-center gap-2">
+                  <ShieldCheck className="h-4.5 w-4.5 text-emerald-600" />
+                  <CardTitle className="text-sm font-bold">{t("insuranceTitle")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PatientInsurancePanel
+                    patientId={patient.id}
+                    patientName={`${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim()}
+                    emptyLabel={t("noInsurance")}
+                    manageLabel={t("manageInsurance")}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

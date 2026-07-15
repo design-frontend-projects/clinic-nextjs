@@ -539,11 +539,13 @@ model clinics {
   encounters               encounters[]
   file_storage             file_storage[]
   insurance_claims         insurance_claims[]
+  insurance_providers      insurance_providers[]
   invoices                 invoices[]
   lab_orders               lab_orders[]
   medical_records          medical_records[]
   medication_batches       medication_batches[]
   medications              medications[]
+  patient_insurances       patient_insurances[]
   patients                 patients[]
   pharmacy_inventory       pharmacy_inventory[]
   pharmacy_sales           pharmacy_sales[]
@@ -583,7 +585,7 @@ model file_storage {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model insurance_claims {
-  id                 String              @id @db.Uuid
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clinic_id          String              @db.Uuid
   patient_id         String?             @db.Uuid
   encounter_id       String?             @db.Uuid
@@ -600,13 +602,27 @@ model insurance_claims {
   patients           patients?           @relation(fields: [patient_id], references: [id])
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// Insurance company defined per clinic, with its deduction rule (fixed amount
+/// or percentage of the invoice gross) and optional covered-visits limit
+/// (NULL = unlimited). RLS + tenant scoping in 21_patient_insurance.sql
+/// (applied manually in Supabase).
 model insurance_providers {
-  id                 String               @id @db.Uuid
+  id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinic_id          String                 @db.Uuid
   name               String
   contact_email      String?
   contact_phone      String?
+  deduction_type     InsuranceDeductionType @default(fixed)
+  deduction_value    Decimal                @default(0) @db.Decimal(12, 2)
+  covered_visits     Int?
+  is_active          Boolean                @default(true)
+  created_at         DateTime               @default(now())
+  updated_at         DateTime               @default(now()) @updatedAt
+  deleted_at         DateTime?
+  clinics            clinics                @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patient_insurances patient_insurances[]
+
+  @@index([clinic_id])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -714,17 +730,29 @@ model medications {
   @@index([generic_name])
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// A patient's policy with one insurance provider. visits_used counts insured
+/// invoices against the provider's covered_visits limit. RLS + tenant scoping
+/// in 21_patient_insurance.sql (applied manually in Supabase).
 model patient_insurances {
-  id                  String              @id @db.Uuid
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinic_id           String              @db.Uuid
   patient_id          String              @db.Uuid
   provider_id         String              @db.Uuid
   policy_number       String?
   valid_from          DateTime?           @db.Date
   valid_to            DateTime?           @db.Date
+  visits_used         Int                 @default(0)
+  is_active           Boolean             @default(true)
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @default(now()) @updatedAt
+  deleted_at          DateTime?
   insurance_claims    insurance_claims[]
+  clinics             clinics             @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patients            patients            @relation(fields: [patient_id], references: [id])
   insurance_providers insurance_providers @relation(fields: [provider_id], references: [id])
+
+  @@index([clinic_id])
+  @@index([patient_id])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -1169,6 +1197,11 @@ enum PrescriptionStatus {
   active
   completed
   cancelled
+}
+
+enum InsuranceDeductionType {
+  fixed
+  percentage
 }
 
 enum InvoiceStatus {

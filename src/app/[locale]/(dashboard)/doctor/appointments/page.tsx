@@ -26,6 +26,7 @@ import {
   DEFAULT_APPT_FILTER,
   type ApptDateFilter,
 } from "@/components/appointments/appointment-date-filter";
+import { useTranslations } from "next-intl";
 
 
 type Patient = {
@@ -45,6 +46,9 @@ type Appointment = {
 };
 
 export default function DoctorAppointmentsPage() {
+  const t = useTranslations("pages.doctor.appointments");
+  const tGender = useTranslations("enums.gender");
+
   const [dateFilter, setDateFilter] =
     useState<ApptDateFilter>(DEFAULT_APPT_FILTER);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -74,7 +78,7 @@ export default function DoctorAppointmentsPage() {
     () => [
       {
         accessorKey: "appointment_date",
-        header: "Time",
+        header: t("colTime"),
         cell: ({ row }) => (
           <div>
             <p className="text-sm font-bold">
@@ -88,7 +92,7 @@ export default function DoctorAppointmentsPage() {
       },
       {
         accessorKey: "patients",
-        header: "Patient",
+        header: t("colPatient"),
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
@@ -101,13 +105,13 @@ export default function DoctorAppointmentsPage() {
               </p>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span className="capitalize">
-                  {row.original.patients?.gender || "Unknown"}
+                  {row.original.patients?.gender ? tGender(row.original.patients.gender.toLowerCase()) : tGender("unknown")}
                 </span>
                 {row.original.patients?.date_of_birth && (
                   <>
                     <span>•</span>
                     <span>
-                      DOB:{" "}
+                      {t("colDob") || "DOB:"}{" "}
                       {format(
                         new Date(row.original.patients.date_of_birth),
                         "yyyy-MM-dd",
@@ -122,12 +126,12 @@ export default function DoctorAppointmentsPage() {
       },
       {
         accessorKey: "status",
-        header: "Status",
+        header: t("colStatus"),
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
         accessorKey: "notes",
-        header: "Notes",
+        header: t("colNotes"),
         cell: ({ row }) => (
           <p className="text-sm text-muted-foreground truncate max-w-[200px]">
             {row.original.notes || "—"}
@@ -149,10 +153,10 @@ export default function DoctorAppointmentsPage() {
                   variant="ghost"
                   size="sm"
                   className="rounded-lg hover:bg-accent-blue-soft hover:text-accent-blue transition-all"
-                  title="View this appointment's labs"
+                  title={t("tipViewLabs")}
                 >
                   <TestTube className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline font-semibold">View Labs</span>
+                  <span className="hidden md:inline font-semibold">{t("actionViewLabs")}</span>
                 </Button>
               </Link>
 
@@ -163,8 +167,8 @@ export default function DoctorAppointmentsPage() {
                 disabled={isCompleted}
                 title={
                   isCompleted
-                    ? "Appointment completed"
-                    : "Add a lab request"
+                    ? t("tipCompleted")
+                    : t("tipAddLabRequest")
                 }
                 onClick={() =>
                   setLabRequestFor({
@@ -174,7 +178,7 @@ export default function DoctorAppointmentsPage() {
                 }
               >
                 <FlaskConical className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline font-semibold">Lab Request</span>
+                <span className="hidden md:inline font-semibold">{t("actionLabRequest")}</span>
               </Button>
 
               {isCompleted ? (
@@ -183,9 +187,9 @@ export default function DoctorAppointmentsPage() {
                   size="sm"
                   disabled
                   className="rounded-lg opacity-40 cursor-not-allowed"
-                  title="Appointment completed"
+                  title={t("tipCompleted")}
                 >
-                  <span className="hidden md:inline font-semibold">Consultation</span>
+                  <span className="hidden md:inline font-semibold">{t("actionConsultation")}</span>
                   <ChevronRight className="h-4 w-4 md:ml-2" />
                 </Button>
               ) : (
@@ -197,7 +201,7 @@ export default function DoctorAppointmentsPage() {
                     size="sm"
                     className="hidden md:flex rounded-lg hover:bg-accent-green-soft hover:text-accent-green font-semibold transition-all"
                   >
-                    Consultation <ChevronRight className="ml-2 h-4 w-4" />
+                    {t("actionConsultation")} <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -213,7 +217,7 @@ export default function DoctorAppointmentsPage() {
         },
       },
     ],
-    [],
+    [t, tGender],
   );
 
   return (
@@ -226,25 +230,25 @@ export default function DoctorAppointmentsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent">
-            My Appointments
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Manage your daily schedule and consultations
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <AppointmentDateFilter value={dateFilter} onChange={setDateFilter} />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-40 rounded-xl bg-card/50 border-border/50 shadow-sm backdrop-blur-md">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t("filterPlaceholder")} />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="checked_in">Checked In</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="no_show">No Show</SelectItem>
+              <SelectItem value="all">{t("statusAll")}</SelectItem>
+              <SelectItem value="scheduled">{t("statusScheduled")}</SelectItem>
+              <SelectItem value="checked_in">{t("statusCheckedIn")}</SelectItem>
+              <SelectItem value="completed">{t("statusCompleted")}</SelectItem>
+              <SelectItem value="cancelled">{t("statusCancelled")}</SelectItem>
+              <SelectItem value="no_show">{t("statusNoShow")}</SelectItem>
             </SelectContent>
           </Select>
         </div>

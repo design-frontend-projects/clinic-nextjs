@@ -20,8 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTranslations } from "next-intl";
 
 export default function DoctorReviewsPage() {
+  const t = useTranslations("pages.doctor.reviews");
+
   const { data: stats } = useQuery({
     queryKey: ["doctor-review-stats"],
     queryFn: () => getDoctorReviewStats(),
@@ -41,9 +44,9 @@ export default function DoctorReviewsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Reviews</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">
-          Approved feedback from your patients
+          {t("subtitle")}
         </p>
       </div>
 
@@ -51,9 +54,9 @@ export default function DoctorReviewsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Star className="h-5 w-5" />
-            Average Rating
+            {t("avgRating")}
           </CardTitle>
-          <CardDescription>Across all approved reviews</CardDescription>
+          <CardDescription>{t("avgRatingDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
@@ -63,7 +66,7 @@ export default function DoctorReviewsPage() {
             <div className="space-y-1">
               <StarRating rating={Math.round(average)} />
               <p className="text-sm text-muted-foreground">
-                {count} approved review{count === 1 ? "" : "s"}
+                {t("approvedReviewsCount", { count })}
               </p>
             </div>
           </div>
@@ -72,17 +75,17 @@ export default function DoctorReviewsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Previous Reviews</CardTitle>
-          <CardDescription>Most recently approved first</CardDescription>
+          <CardTitle>{t("previousReviews")}</CardTitle>
+          <CardDescription>{t("previousReviewsDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Rating</TableHead>
-                <TableHead>Comment</TableHead>
-                <TableHead>Patient</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>{t("colRating")}</TableHead>
+                <TableHead>{t("colComment")}</TableHead>
+                <TableHead>{t("colPatient")}</TableHead>
+                <TableHead>{t("colDate")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -98,7 +101,7 @@ export default function DoctorReviewsPage() {
                     colSpan={4}
                     className="py-8 text-center text-muted-foreground"
                   >
-                    No approved reviews yet.
+                    {t("noReviews")}
                   </TableCell>
                 </TableRow>
               ) : (

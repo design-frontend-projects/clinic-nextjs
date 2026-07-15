@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deletePrescription } from "@/app/actions/prescription";
 import type { PrescriptionRecord } from "./prescription-form";
+import { useTranslations } from "next-intl";
 
 export interface PrescriptionListItem {
   medication_name: string;
@@ -77,6 +78,7 @@ interface RowActionsProps {
 }
 
 function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
+  const t = useTranslations("pages.doctor.prescriptions");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -87,7 +89,7 @@ function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
         toast.error(result.error);
         return;
       }
-      toast.success("Prescription deleted");
+      toast.success(t("toastDeleted"));
       setConfirmOpen(false);
       onDeleted();
     });
@@ -104,14 +106,14 @@ function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onEdit(row)}>
             <Pencil className="mr-2 h-4 w-4" />
-            Edit
+            {t("btnEdit")}
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
             onClick={() => setConfirmOpen(true)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete
+            {t("btnDelete")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -119,14 +121,13 @@ function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this prescription?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the prescription for {row.patient_name}. This action
-              cannot be undone.
+              {t("deleteDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>{t("btnCancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -136,7 +137,7 @@ function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
               className="bg-destructive text-white hover:bg-destructive/90"
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
+              {t("btnDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -146,13 +147,16 @@ function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
 }
 
 /** Summarize a prescription's drugs for the table's primary column. */
-function medicationSummary(items: PrescriptionListItem[]): {
+function medicationSummary(
+  items: PrescriptionListItem[],
+  fallbackText: string,
+): {
   primary: string;
   extra: number;
   dosage: string | null;
 } {
   if (items.length === 0) {
-    return { primary: "No medications", extra: 0, dosage: null };
+    return { primary: fallbackText, extra: 0, dosage: null };
   }
   const [first, ...rest] = items;
   return { primary: first.medication_name, extra: rest.length, dosage: first.dosage };
@@ -163,17 +167,18 @@ interface ColumnHandlers {
   onDeleted: () => void;
 }
 
-export function createPrescriptionColumns({
-  onEdit,
-  onDeleted,
-}: ColumnHandlers): ColumnDef<PrescriptionRow>[] {
+export function createPrescriptionColumns(
+  { onEdit, onDeleted }: ColumnHandlers,
+  t: (key: string, values?: any) => string,
+): ColumnDef<PrescriptionRow>[] {
   return [
     {
       accessorKey: "medications",
-      header: "Medications",
+      header: t("colMedications"),
       cell: ({ row }) => {
         const { primary, extra, dosage } = medicationSummary(
           row.original.prescription_items,
+          t("noMedications"),
         );
         return (
           <div className="flex items-center gap-3">
@@ -185,7 +190,7 @@ export function createPrescriptionColumns({
                 {primary}
                 {extra > 0 && (
                   <span className="ml-1 text-xs text-muted-foreground">
-                    +{extra} more
+                    {t("moreCount", { count: extra })}
                   </span>
                 )}
               </p>
@@ -199,21 +204,21 @@ export function createPrescriptionColumns({
     },
     {
       accessorKey: "patient_name",
-      header: "Patient",
+      header: t("colPatient"),
     },
     {
       accessorKey: "diagnosis",
-      header: "Diagnosis",
+      header: t("colDiagnosis"),
       cell: ({ row }) => row.original.diagnosis || "—",
     },
     {
       accessorKey: "issued_at",
-      header: "Date Issued",
+      header: t("colDateIssued"),
       cell: ({ row }) => format(new Date(row.original.issued_at), "MMM d, yyyy"),
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: t("colStatus"),
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {

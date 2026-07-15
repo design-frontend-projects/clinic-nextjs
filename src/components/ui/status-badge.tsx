@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 type StatusVariant =
   | "scheduled"
@@ -114,10 +115,21 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const t = useTranslations("enums.status");
   const config = statusConfig[status as StatusVariant] || {
     label: status,
     className: "bg-surface-elevated text-mute",
   };
+
+  let label = config.label;
+  try {
+    const translated = t(status);
+    if (translated && translated !== `enums.status.${status}`) {
+      label = translated;
+    }
+  } catch {
+    // Fallback if useTranslations throws (e.g. context is missing)
+  }
 
   return (
     <Badge
@@ -128,7 +140,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         className,
       )}
     >
-      {config.label}
+      {label}
     </Badge>
   );
 }

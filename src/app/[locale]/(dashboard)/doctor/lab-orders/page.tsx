@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/routing";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 
 type LabOrderRow = {
   id: string;
@@ -21,48 +23,8 @@ type LabOrderRow = {
   status: string;
 };
 
-const columns: ColumnDef<LabOrderRow>[] = [
-  {
-    accessorKey: "test_name",
-    header: "Test",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-yellow-soft text-accent-yellow font-semibold">
-          <FlaskConical className="h-4.5 w-4.5" />
-        </div>
-        <div>
-          <p className="font-semibold text-sm text-foreground">{row.original.test_name}</p>
-          <p className="text-xs text-muted-foreground">
-            {row.original.external_lab_provider || "In-house"}
-          </p>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "patient_name",
-    header: "Patient",
-    cell: ({ row }) => (
-      <span className="font-semibold text-sm text-foreground">{row.original.patient_name}</span>
-    ),
-  },
-  {
-    accessorKey: "created_at",
-    header: "Order Date",
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {format(new Date(row.original.created_at), "MMM d, yyyy")}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-];
-
 export default function DoctorLabOrdersPage() {
+  const t = useTranslations("pages.doctor.labs");
   const searchParams = useSearchParams();
   const appointmentId = searchParams.get("appointmentId") ?? undefined;
 
@@ -71,13 +33,57 @@ export default function DoctorLabOrdersPage() {
     queryFn: () => getDoctorLabOrders(appointmentId),
   });
 
+  const columns = useMemo<ColumnDef<LabOrderRow>[]>(
+    () => [
+      {
+        accessorKey: "test_name",
+        header: t("colTest"),
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-yellow-soft text-accent-yellow font-semibold">
+              <FlaskConical className="h-4.5 w-4.5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground">{row.original.test_name}</p>
+              <p className="text-xs text-muted-foreground">
+                {row.original.external_lab_provider || t("inHouse")}
+              </p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "patient_name",
+        header: t("colPatient"),
+        cell: ({ row }) => (
+          <span className="font-semibold text-sm text-foreground">{row.original.patient_name}</span>
+        ),
+      },
+      {
+        accessorKey: "created_at",
+        header: t("colOrderDate"),
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {format(new Date(row.original.created_at), "MMM d, yyyy")}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: t("colStatus"),
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+    ],
+    [t],
+  );
+
   const rows: LabOrderRow[] = labOrders.map((order) => ({
     id: order.id,
     test_name: order.test_name || "—",
     external_lab_provider: order.external_lab_provider || "",
     patient_name: `${order.patients?.first_name ?? ""} ${
       order.patients?.last_name ?? ""
-    }`.trim() || "Unknown patient",
+    }`.trim() || t("unknownPatient"),
     created_at: order.created_at.toISOString(),
     status: order.status,
   }));
@@ -92,10 +98,10 @@ export default function DoctorLabOrdersPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent">
-            Lab Orders
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Lab requests you raised from appointments, and their results
+            {t("subtitle")}
           </p>
         </div>
       </div>
@@ -103,12 +109,12 @@ export default function DoctorLabOrdersPage() {
       {appointmentId && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-border/60 bg-muted/40 px-4 py-2.5 text-sm backdrop-blur-md">
           <span className="text-muted-foreground font-medium">
-            Showing labs for the selected appointment.
+            {t("showingForAppt")}
           </span>
           <Link href="/doctor/lab-orders">
             <Button variant="ghost" size="sm" className="rounded-lg hover:bg-muted text-xs font-semibold">
               <X className="mr-1.5 h-4 w-4" />
-              Clear filter
+              {t("clearFilter")}
             </Button>
           </Link>
         </div>
@@ -117,7 +123,7 @@ export default function DoctorLabOrdersPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-accent-yellow" />
-          <span className="text-sm font-medium">Loading lab orders...</span>
+          <span className="text-sm font-medium">{t("loading")}</span>
         </div>
       ) : (
         <div className="rounded-2xl border border-border/40 bg-card/30 p-4 backdrop-blur-md shadow-sm">
@@ -125,7 +131,7 @@ export default function DoctorLabOrdersPage() {
             columns={columns}
             data={rows}
             searchKey="patient_name"
-            searchPlaceholder="Search by patient name..."
+            searchPlaceholder={t("searchPlaceholder")}
           />
         </div>
       )}

@@ -24,6 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.appointments", href: "/admin/appointments", iconKey: "appointments", roles: ["admin", "owner"], requiredPermission: "appointment.read" },
   { titleKey: "sidebar.prescriptions", href: "/admin/prescriptions", iconKey: "prescriptions", roles: ["admin", "owner"] },
   { titleKey: "sidebar.billing", href: "/admin/billing", iconKey: "billing", roles: ["admin", "owner"] },
+  { titleKey: "sidebar.insurance", href: "/admin/insurance", iconKey: "insurance", roles: ["admin", "owner"] },
   { titleKey: "sidebar.clinicDefinition", href: "/admin/clinics", iconKey: "clinic", roles: ["admin", "owner"] },
   { titleKey: "sidebar.reviews", href: "/admin/reviews", iconKey: "reviews", roles: ["admin", "owner"] },
 
@@ -47,6 +48,7 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.myPatients", href: "/doctor/patients", iconKey: "patients", roles: ["doctor"] },
   { titleKey: "sidebar.prescriptions", href: "/doctor/prescriptions", iconKey: "prescriptions", roles: ["doctor"] },
   { titleKey: "sidebar.labOrders", href: "/doctor/lab-orders", iconKey: "labOrders", roles: ["doctor"] },
+  { titleKey: "sidebar.insurance", href: "/doctor/insurance", iconKey: "insurance", roles: ["doctor"] },
   { titleKey: "sidebar.myReviews", href: "/doctor/reviews", iconKey: "reviews", roles: ["doctor"] },
 
   // Staff

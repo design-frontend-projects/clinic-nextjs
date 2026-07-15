@@ -20,6 +20,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { DoctorReview, DoctorReviewStats } from "@/types/review.types";
+import { useTranslations } from "next-intl";
 
 interface Appointment {
   id: string;
@@ -72,6 +73,7 @@ export function DoctorDashboardClient({
   reviewStats,
   recentReviews,
 }: DoctorDashboardClientProps) {
+  const t = useTranslations("pages.doctor");
   const todayDateStr = format(new Date(), "EEEE, MMM d, yyyy");
 
   // Calculate schedule completion stats
@@ -92,10 +94,10 @@ export function DoctorDashboardClient({
       <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-display-md font-bold tracking-tight bg-gradient-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent">
-            Doctor Dashboard
+            {t("title")}
           </h1>
           <p className="text-muted-foreground font-medium mt-1">
-            Welcome back. Here is your practice summary for today.
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-card/60 backdrop-blur-md border border-border/40 shadow-sm">
@@ -115,15 +117,15 @@ export function DoctorDashboardClient({
               <div className="space-y-1">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <Activity className="h-5 w-5 text-accent-green animate-pulse" />
-                  Today&apos;s Schedule Progress
+                  {t("scheduleProgress")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  You have completed {completedAppts} out of {totalAppts} appointments scheduled for today.
+                  {t("scheduleProgressDesc", { completed: completedAppts, total: totalAppts })}
                 </p>
               </div>
               <div className="w-full md:w-64 space-y-2">
                 <div className="flex items-center justify-between text-sm font-medium">
-                  <span>Completion Rate</span>
+                  <span>{t("completionRate")}</span>
                   <span className="text-accent-green font-bold">{completionPercentage}%</span>
                 </div>
                 <div className="h-2 w-full bg-muted/60 rounded-full overflow-hidden">
@@ -157,9 +159,9 @@ export function DoctorDashboardClient({
           </div>
           <div className="flex items-start justify-between">
             <div className="space-y-2">
-              <span className="text-sm font-semibold text-muted-foreground">Today&apos;s Appointments</span>
+              <span className="text-sm font-semibold text-muted-foreground">{t("todaysAppointments")}</span>
               <h2 className="text-4xl font-extrabold tracking-tight">{stats.todayCount}</h2>
-              <p className="text-xs text-muted-foreground mt-1">Scheduled for consultation</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("scheduledForConsultation")}</p>
             </div>
             <div className="rounded-xl p-3 bg-accent-blue-soft text-accent-blue">
               <CalendarDays className="h-6 w-6" />
@@ -179,9 +181,9 @@ export function DoctorDashboardClient({
           </div>
           <div className="flex items-start justify-between">
             <div className="space-y-2">
-              <span className="text-sm font-semibold text-muted-foreground">Pending Labs</span>
+              <span className="text-sm font-semibold text-muted-foreground">{t("pendingLabs")}</span>
               <h2 className="text-4xl font-extrabold tracking-tight">{stats.pendingLabCount}</h2>
-              <p className="text-xs text-muted-foreground mt-1">Awaiting your diagnostic review</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("pendingLabsDesc")}</p>
             </div>
             <div className="rounded-xl p-3 bg-accent-yellow-soft text-accent-yellow">
               <FlaskConical className="h-6 w-6" />
@@ -201,9 +203,9 @@ export function DoctorDashboardClient({
           </div>
           <div className="flex items-start justify-between">
             <div className="space-y-2">
-              <span className="text-sm font-semibold text-muted-foreground">Recent Patients</span>
+              <span className="text-sm font-semibold text-muted-foreground">{t("recentPatients")}</span>
               <h2 className="text-4xl font-extrabold tracking-tight">{stats.recentPatients.length}</h2>
-              <p className="text-xs text-muted-foreground mt-1">Consulted during the last week</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("recentPatientsDesc")}</p>
             </div>
             <div className="rounded-xl p-3 bg-accent-green-soft text-accent-green">
               <Users className="h-6 w-6" />
@@ -223,12 +225,12 @@ export function DoctorDashboardClient({
           </div>
           <div className="flex items-start justify-between">
             <div className="space-y-2">
-              <span className="text-sm font-semibold text-muted-foreground">Average Rating</span>
+              <span className="text-sm font-semibold text-muted-foreground">{t("averageRating")}</span>
               <h2 className="text-4xl font-extrabold tracking-tight">
                 {reviewStats.count ? reviewStats.average : "—"}
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                {reviewStats.count} approved review{reviewStats.count === 1 ? "" : "s"}
+                {t("approvedReviewsCount", { count: reviewStats.count })}
               </p>
             </div>
             <div className="rounded-xl p-3 bg-accent-yellow-soft text-accent-yellow">
@@ -247,13 +249,13 @@ export function DoctorDashboardClient({
               <div>
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                   <Clock className="h-5 w-5 text-accent-blue" />
-                  Today&apos;s Schedule
+                  {t("todaysSchedule")}
                 </CardTitle>
-                <CardDescription>Appointments for the current day</CardDescription>
+                <CardDescription>{t("appointmentsForToday")}</CardDescription>
               </div>
               <Link href="/doctor/appointments">
                 <Button variant="outline" size="sm" className="rounded-xl font-medium border-border hover:bg-muted/80">
-                  View Schedule
+                  {t("viewSchedule")}
                 </Button>
               </Link>
             </CardHeader>
@@ -261,7 +263,7 @@ export function DoctorDashboardClient({
               {stats.todayAppointments.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">No appointments scheduled for today.</p>
+                  <p className="text-sm text-muted-foreground">{t("noAppointments")}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -278,7 +280,7 @@ export function DoctorDashboardClient({
                         </div>
                         <div>
                           <p className="font-semibold text-sm group-hover:text-accent-blue transition-colors">
-                            {apt.patientName || "Unknown Patient"}
+                            {apt.patientName || t("unknownPatient")}
                           </p>
                           {apt.notes && (
                             <p className="text-xs text-muted-foreground truncate w-40 md:w-56 mt-0.5">
@@ -301,7 +303,7 @@ export function DoctorDashboardClient({
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-lg text-muted-foreground hover:text-accent-blue hover:bg-accent-blue-soft transition-colors"
-                              title={apt.status !== "completed" ? "Start Consultation" : "View File"}
+                              title={apt.status !== "completed" ? t("startConsultation") : t("viewFile")}
                             >
                               <ChevronRight className="h-4 w-4" />
                             </Button>
@@ -323,13 +325,13 @@ export function DoctorDashboardClient({
               <div>
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                   <Users className="h-5 w-5 text-accent-green" />
-                  Recently Consulted
+                  {t("recentPatients")}
                 </CardTitle>
-                <CardDescription>Quick access to recent patient files</CardDescription>
+                <CardDescription>{t("quickAccess")}</CardDescription>
               </div>
               <Link href="/doctor/patients">
                 <Button variant="outline" size="sm" className="rounded-xl font-medium border-border hover:bg-muted/80">
-                  View All
+                  {t("viewAll")}
                 </Button>
               </Link>
             </CardHeader>
@@ -337,7 +339,7 @@ export function DoctorDashboardClient({
               {stats.recentPatients.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">No recent patients found.</p>
+                  <p className="text-sm text-muted-foreground">{t("noRecentPatients")}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -355,10 +357,10 @@ export function DoctorDashboardClient({
                             {patient.name}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Last visit:{" "}
+                            {t("lastVisit")}:{" "}
                             {patient.lastVisit
                               ? format(new Date(patient.lastVisit), "MMM d, yyyy")
-                              : "Unknown"}
+                              : t("unknown")}
                           </p>
                         </div>
                       </div>
@@ -369,7 +371,7 @@ export function DoctorDashboardClient({
                             size="sm"
                             className="rounded-lg text-accent-green font-semibold hover:bg-accent-green-soft hover:text-accent-green flex items-center gap-1"
                           >
-                            File
+                            {t("file")}
                             <ArrowUpRight className="h-3.5 w-3.5" />
                           </Button>
                         </Link>
@@ -390,13 +392,13 @@ export function DoctorDashboardClient({
             <div>
               <CardTitle className="text-lg font-bold flex items-center gap-2">
                 <Star className="h-5 w-5 text-accent-yellow" />
-                Patient Reviews
+                {t("patientReviews")}
               </CardTitle>
-              <CardDescription>What your patients said</CardDescription>
+              <CardDescription>{t("patientReviewsDesc")}</CardDescription>
             </div>
             <Link href="/doctor/reviews">
               <Button variant="outline" size="sm" className="rounded-xl font-medium border-border hover:bg-muted/80">
-                View All
+                {t("viewAll")}
               </Button>
             </Link>
           </CardHeader>
@@ -404,7 +406,7 @@ export function DoctorDashboardClient({
             {recentReviews.length === 0 ? (
               <div className="text-center py-12">
                 <Star className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No approved reviews yet.</p>
+                <p className="text-sm text-muted-foreground">{t("noReviews")}</p>
               </div>
             ) : (
               <div className="space-y-3">

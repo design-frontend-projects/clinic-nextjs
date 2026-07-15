@@ -29,8 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PatientInsuranceDialog } from "@/components/insurance/patient-insurance-dialog";
 import { ColumnDef } from "@tanstack/react-table";
-import { Plus, Users, Mail, Loader2 } from "lucide-react";
+import { Plus, Users, Mail, Loader2, ShieldCheck } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -116,6 +117,27 @@ function InviteToPortalCell({ patient }: { patient: Patient }) {
   );
 }
 
+function InsuranceCell({ patient }: { patient: Patient }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <ShieldCheck className="mr-2 h-3.5 w-3.5" />
+        Insurance
+      </Button>
+      {open && (
+        <PatientInsuranceDialog
+          patientId={patient.id}
+          patientName={`${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim()}
+          open={open}
+          onOpenChange={setOpen}
+        />
+      )}
+    </>
+  );
+}
+
 const columns: ColumnDef<Patient>[] = [
   {
     accessorKey: "first_name",
@@ -160,6 +182,11 @@ const columns: ColumnDef<Patient>[] = [
     accessorKey: "created_at",
     header: "Registered",
     cell: ({ row }) => format(new Date(row.original.created_at), "MMM d, yyyy"),
+  },
+  {
+    id: "insurance",
+    header: "Insurance",
+    cell: ({ row }) => <InsuranceCell patient={row.original} />,
   },
   {
     id: "portal",

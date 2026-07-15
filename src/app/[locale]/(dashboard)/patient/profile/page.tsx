@@ -1,28 +1,46 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { z } from "zod";
 
 import { getMyPatientRecord, updateMyProfile } from "@/app/actions/patient";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import {
-  patientProfileUpdateSchema,
-  passwordChangeSchema,
-  type PatientProfileUpdateData,
-  type PasswordChangeData,
-} from "@/types/patient.types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTranslations } from "next-intl";
 
 export default function PatientProfilePage() {
+  const t = useTranslations("pages.patient.profile");
   const queryClient = useQueryClient();
   const supabase = createSupabaseClient();
+
+  const profileSchema = useMemo(() => z.object({
+    phone: z
+      .string()
+      .trim()
+      .min(6, t("errPhoneMin"))
+      .max(30, t("errPhoneMax")),
+  }), [t]);
+
+  const passwordSchema = useMemo(() => z
+    .object({
+      password: z.string().min(6, t("errPasswordMin")),
+      confirmPassword: z.string().min(6, t("errConfirmPassword")),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t("errPasswordMismatch"),
+      path: ["confirmPassword"],
+    }), [t]);
+
+  type PatientProfileUpdateData = z.infer<typeof profileSchema>;
+  type PasswordChangeData = z.infer<typeof passwordSchema>;
 
   const { data: record } = useQuery({
     queryKey: ["my-patient-record"],
@@ -30,7 +48,7 @@ export default function PatientProfilePage() {
   });
 
   const profileForm = useForm<PatientProfileUpdateData>({
-    resolver: zodResolver(patientProfileUpdateSchema),
+    resolver: zodResolver(profileSchema),
     defaultValues: { phone: "" },
   });
 
@@ -47,40 +65,40 @@ export default function PatientProfilePage() {
         toast.error(result.error);
         return;
       }
-      toast.success("Profile updated.");
+      toast.success(t("toastProfileUpdated"));
       queryClient.invalidateQueries({ queryKey: ["my-patient-record"] });
     },
-    onError: () => toast.error("Failed to update profile."),
+    onError: () => toast.error(t("toastProfileFailed")),
   });
 
   const passwordForm = useForm<PasswordChangeData>({
-    resolver: zodResolver(passwordChangeSchema),
+    resolver: zodResolver(passwordSchema),
     defaultValues: { password: "", confirmPassword: "" },
   });
 
   const onChangePassword = async (data: PasswordChangeData) => {
     const { error } = await supabase.auth.updateUser({ password: data.password });
     if (error) {
-      toast.error(error.message || "Failed to update password.");
+      toast.error(error.message || t("toastPasswordFailed"));
       return;
     }
-    toast.success("Password updated.");
+    toast.success(t("toastPasswordUpdated"));
     passwordForm.reset();
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">
-          Update your contact number and password.
+          {t("subtitle")}
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Contact Details</CardTitle>
+            <CardTitle>{t("contactDetails")}</CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -88,15 +106,15 @@ export default function PatientProfilePage() {
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label>Full Name</Label>
+                <Label>{t("lblFullName")}</Label>
                 <Input value={record?.profile?.full_name ?? ""} disabled />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>{t("lblEmail")}</Label>
                 <Input value={record?.profile?.email ?? ""} disabled />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{t("lblPhone")}</Label>
                 <Input id="phone" {...profileForm.register("phone")} placeholder="+1 234 567 890" />
                 {profileForm.formState.errors.phone && (
                   <p className="text-xs text-destructive">
@@ -108,7 +126,7 @@ export default function PatientProfilePage() {
                 {profileMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Save Changes
+                {t("btnSave")}
               </Button>
             </form>
           </CardContent>
@@ -116,7 +134,7 @@ export default function PatientProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Change Password</CardTitle>
+            <CardTitle>{t("changePassword")}</CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -124,7 +142,7 @@ export default function PatientProfilePage() {
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
+                <Label htmlFor="password">{t("lblNewPassword")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -138,7 +156,7 @@ export default function PatientProfilePage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">{t("lblConfirmPassword")}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -155,7 +173,7 @@ export default function PatientProfilePage() {
                 {passwordForm.formState.isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Update Password
+                {t("btnUpdatePassword")}
               </Button>
             </form>
           </CardContent>

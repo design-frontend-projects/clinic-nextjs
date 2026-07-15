@@ -21,10 +21,7 @@ import {
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { RateAppointmentDialog } from "@/components/patient/rate-appointment-dialog";
-
-function doctorName(profiles?: { full_name: string | null } | null): string {
-  return profiles?.full_name ? `Dr. ${profiles.full_name}` : "—";
-}
+import { useTranslations } from "next-intl";
 
 function ReviewStars({ rating }: { rating: number }) {
   return (
@@ -44,6 +41,7 @@ function ReviewStars({ rating }: { rating: number }) {
 }
 
 export default function PatientAppointmentsPage() {
+  const t = useTranslations("pages.patient.appointments");
   const [ratingAppointmentId, setRatingAppointmentId] = useState<string | null>(null);
 
   const { data: upcoming = [] } = useQuery({
@@ -65,35 +63,39 @@ export default function PatientAppointmentsPage() {
     myReviews.map((review) => [review.appointment_id, review]),
   );
 
+  function getDoctorName(profiles?: { full_name: string | null } | null): string {
+    return profiles?.full_name ? t("doctorPrefix", { name: profiles.full_name }) : "—";
+  }
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Appointments</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">
-          Upcoming appointments and your visit history.
+          {t("subtitle")}
         </p>
       </div>
 
       <Tabs defaultValue="upcoming" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="history">Visit History</TabsTrigger>
+          <TabsTrigger value="upcoming">{t("tabUpcoming")}</TabsTrigger>
+          <TabsTrigger value="history">{t("tabHistory")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="upcoming" className="mt-4">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date &amp; Time</TableHead>
-                <TableHead>Doctor</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t("colDateTime")}</TableHead>
+                <TableHead>{t("colDoctor")}</TableHead>
+                <TableHead>{t("colStatus")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {upcoming.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center text-muted-foreground">
-                    No upcoming appointments.
+                    {t("noUpcoming")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -102,7 +104,7 @@ export default function PatientAppointmentsPage() {
                     <TableCell>
                       {format(new Date(a.appointment_date), "PPp")}
                     </TableCell>
-                    <TableCell>{doctorName(a.profiles)}</TableCell>
+                    <TableCell>{getDoctorName(a.profiles)}</TableCell>
                     <TableCell>
                       <StatusBadge status={a.status} />
                     </TableCell>
@@ -116,22 +118,22 @@ export default function PatientAppointmentsPage() {
         <TabsContent value="history" className="mt-4 space-y-8">
           <div>
             <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Encounters
+              {t("encounters")}
             </h2>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Doctor</TableHead>
-                  <TableHead>Diagnosis</TableHead>
+                  <TableHead>{t("colDate")}</TableHead>
+                  <TableHead>{t("colType")}</TableHead>
+                  <TableHead>{t("colDoctor")}</TableHead>
+                  <TableHead>{t("colDiagnosis")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {!history || history.encounters.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      No past visits recorded.
+                      {t("noPastVisits")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -143,7 +145,7 @@ export default function PatientAppointmentsPage() {
                       <TableCell className="capitalize">
                         {e.encounter_type || "—"}
                       </TableCell>
-                      <TableCell>{doctorName(e.profiles)}</TableCell>
+                      <TableCell>{getDoctorName(e.profiles)}</TableCell>
                       <TableCell>{e.diagnosis || "—"}</TableCell>
                     </TableRow>
                   ))
@@ -154,22 +156,22 @@ export default function PatientAppointmentsPage() {
 
           <div>
             <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Past Appointments
+              {t("pastAppointments")}
             </h2>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date &amp; Time</TableHead>
-                  <TableHead>Doctor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Rating</TableHead>
+                  <TableHead>{t("colDateTime")}</TableHead>
+                  <TableHead>{t("colDoctor")}</TableHead>
+                  <TableHead>{t("colStatus")}</TableHead>
+                  <TableHead>{t("colRating")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {!history || history.pastAppointments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      No past appointments.
+                      {t("noPastAppointments")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -180,7 +182,7 @@ export default function PatientAppointmentsPage() {
                         <TableCell>
                           {format(new Date(a.appointment_date), "PPp")}
                         </TableCell>
-                        <TableCell>{doctorName(a.profiles)}</TableCell>
+                        <TableCell>{getDoctorName(a.profiles)}</TableCell>
                         <TableCell>
                           <StatusBadge status={a.status} />
                         </TableCell>
@@ -197,7 +199,7 @@ export default function PatientAppointmentsPage() {
                               onClick={() => setRatingAppointmentId(a.id)}
                             >
                               <Star className="me-1.5 h-3.5 w-3.5" />
-                              Rate
+                              {t("rateButton")}
                             </Button>
                           ) : (
                             <span className="text-muted-foreground">—</span>

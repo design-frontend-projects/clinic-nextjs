@@ -255,6 +255,16 @@ export async function getInvoices() {
     include: {
       patients: { select: { first_name: true, last_name: true } },
       payments: true,
+      insurance_claims: {
+        select: {
+          id: true,
+          claim_amount: true,
+          status: true,
+          patient_insurances: {
+            select: { insurance_providers: { select: { name: true } } },
+          },
+        },
+      },
     },
     orderBy: { created_at: "desc" },
     take: 100,

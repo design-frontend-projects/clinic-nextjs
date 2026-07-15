@@ -22,6 +22,7 @@ import {
 import { PrescriptionDialog } from "@/components/prescriptions/prescription-dialog";
 import type { PrescriptionRecord } from "@/components/prescriptions/prescription-form";
 import { deletePrescription } from "@/app/actions/prescription";
+import { useTranslations } from "next-intl";
 
 interface PatientPrescriptionItem {
   medication_id: string | null;
@@ -59,6 +60,7 @@ export function PatientPrescriptions({
   patientId,
   prescriptions,
 }: PatientPrescriptionsProps) {
+  const t = useTranslations("pages.doctor.prescriptions");
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PrescriptionRecord | null>(null);
@@ -90,7 +92,7 @@ export function PatientPrescriptions({
         toast.error(result.error);
         return;
       }
-      toast.success("Prescription deleted");
+      toast.success(t("toastDeleted"));
       setDeleteId(null);
       router.refresh();
     });
@@ -101,13 +103,13 @@ export function PatientPrescriptions({
       <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
         <Button size="sm" className="w-full rounded-xl font-semibold bg-accent-blue text-white hover:opacity-95" onClick={openNew}>
           <Plus className="mr-2 h-4 w-4" />
-          New Prescription
+          {t("btnNew")}
         </Button>
       </motion.div>
 
       {prescriptions.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-4">
-          No prescriptions on file.
+          {t("empty")}
         </p>
       ) : (
         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
@@ -149,7 +151,7 @@ export function PatientPrescriptions({
                 </div>
                 {rx.diagnosis && (
                   <p className="text-xs font-semibold text-muted-foreground">
-                    Dx: <span className="font-normal text-foreground">{rx.diagnosis}</span>
+                    {t("dxLabel")} <span className="font-normal text-foreground">{rx.diagnosis}</span>
                   </p>
                 )}
                 <ul className="space-y-1.5 pt-1.5 border-t border-border/20">
@@ -180,13 +182,13 @@ export function PatientPrescriptions({
       >
         <AlertDialogContent className="rounded-2xl border border-border/40">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-bold">Delete this prescription?</AlertDialogTitle>
+            <AlertDialogTitle className="font-bold">{t("deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. It will remove the patient record permanently.
+              {t("deleteDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl font-medium" disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl font-medium" disabled={isPending}>{t("btnCancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -196,7 +198,7 @@ export function PatientPrescriptions({
               className="bg-destructive text-white hover:bg-destructive/95 rounded-xl font-medium"
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
+              {t("btnDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

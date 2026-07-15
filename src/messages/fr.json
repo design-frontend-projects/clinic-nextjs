@@ -1,0 +1,796 @@
+{
+  "brand": {
+    "name": "Clinique Bluewave"
+  },
+  "offline": {
+    "title": "Vous êtes hors ligne",
+    "description": "Vous avez perdu votre connexion. Vous pouvez continuer à consulter les données récemment chargées, et toutes les modifications que vous apporterez seront enregistrées et synchronisées automatiquement une fois que vous serez de nouveau en ligne.",
+    "banner": "Hors ligne — les modifications sont enregistrées localement et seront synchronisées lorsque vous vous reconnecterez.",
+    "syncing": "Synchronisation…",
+    "conflictKept": "Une version plus récente du serveur a été conservée."
+  },
+  "auth": {
+    "signIn": {
+      "title": "Bon retour",
+      "subtitle": "Connectez-vous à votre tableau de bord",
+      "noAccount": "Vous n'avez pas de compte ?",
+      "signUp": "S'inscrire",
+      "emailLabel": "Adresse e-mail",
+      "emailPlaceholder": "docteur@clinique.com",
+      "passwordLabel": "Mot de passe",
+      "passwordPlaceholder": "••••••••",
+      "forgotPassword": "Mot de passe oublié ?",
+      "rememberMe": "Se souvenir de moi",
+      "signInButton": "Se connecter",
+      "invalidEmail": "Veuillez entrer une adresse e-mail valide",
+      "invalidPassword": "Le mot de passe doit contenir au moins 6 caractères"
+    },
+    "signUp": {
+      "title": "Créer un compte",
+      "subtitle": "Entrez vos coordonnées ci-dessous pour commencer",
+      "alreadyHaveAccount": "Vous avez déjà un compte ?",
+      "signUpButton": "Se connecter",
+      "fullNameLabel": "Nom complet",
+      "fullNamePlaceholder": "Dr. Jean Dupont",
+      "emailLabel": "Adresse e-mail",
+      "emailPlaceholder": "docteur@clinique.com",
+      "passwordLabel": "Mot de passe",
+      "passwordPlaceholder": "••••••••",
+      "createAccountButton": "Créer un compte",
+      "fullNameRequired": "Le nom complet doit contenir au moins 2 caractères",
+      "invalidEmail": "Veuillez entrer une adresse e-mail valide",
+      "invalidPassword": "Le mot de passe doit contenir au moins 6 caractères",
+      "accountCreated": "Compte créé ! Veuillez vérifier vos e-mails pour confirmer.",
+      "accountCreatedRedirect": "Compte créé ! Redirection vers l'intégration..."
+    },
+    "common": {
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe"
+    },
+    "forgotPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "subtitle": "Entrez votre e-mail et nous vous enverrons un lien de réinitialisation",
+      "emailLabel": "Adresse e-mail",
+      "emailPlaceholder": "docteur@clinique.com",
+      "invalidEmail": "Veuillez entrer une adresse e-mail valide",
+      "sendButton": "Envoyer le lien de réinitialisation",
+      "sentToast": "E-mail de réinitialisation envoyé ! Vérifiez votre boîte de réception.",
+      "sentMessage": "Nous avons envoyé un lien de réinitialisation de mot de passe à votre e-mail. Veuillez vérifier votre boîte de réception et cliquer sur le lien pour continuer.",
+      "sentSpamHint": "Si vous ne le recevez pas dans quelques minutes, vérifiez votre dossier de courrier indésirable.",
+      "rememberPassword": "Vous vous souvenez de votre mot de passe ?",
+      "backToSignIn": "Se connecter",
+      "error": "Échec de l'envoi du lien de réinitialisation"
+    },
+    "resetPassword": {
+      "title": "Définir un nouveau mot de passe",
+      "subtitle": "Choisissez un nouveau mot de passe pour votre compte",
+      "passwordLabel": "Nouveau mot de passe",
+      "confirmPasswordLabel": "Confirmer le nouveau mot de passe",
+      "passwordPlaceholder": "••••••••",
+      "passwordMin": "Le mot de passe doit contenir au moins 6 caractères",
+      "confirmPasswordMin": "La confirmation doit contenir au moins 6 caractères",
+      "passwordsMismatch": "Les mots de passe ne correspondent pas",
+      "submitButton": "Réinitialiser le mot de passe",
+      "success": "Mot de passe mis à jour avec succès. Veuillez vous connecter.",
+      "invalidLinkTitle": "Lien invalide ou expiré",
+      "invalidLinkMessage": "Ce lien de réinitialisation de mot de passe est invalide ou a expiré. Veuillez en demander un nouveau.",
+      "requestNewLink": "Demander un nouveau lien",
+      "checking": "Vérification de votre lien de réinitialisation...",
+      "rememberPassword": "Vous vous souvenez de votre mot de passe ?",
+      "backToSignIn": "Se connecter",
+      "error": "Échec de la mise à jour du mot de passe"
+    },
+    "onboarding": {
+      "title": "Bienvenue sur Clinic Pro",
+      "subtitle": "Configurons votre profil et l'espace de travail de votre clinique",
+      "step1": "Étape 1 sur 4 : Forfait",
+      "step2": "Étape 2 sur 4 : Clinique",
+      "step3": "Étape 3 sur 4 : Spécialités",
+      "step4": "Étape 4 sur 4 : Succursale",
+      "plan": "Forfait",
+      "clinic": "Clinique",
+      "branch": "Succursale",
+      "specialtiesTitle": "Vos spécialités",
+      "specialtiesSubtitle": "Sélectionnez une ou plusieurs spécialités que vous pratiquez. Vous pourrez les modifier plus tard.",
+      "specialtiesEmpty": "Aucune spécialité n'est encore disponible. Vous pouvez sauter cette étape.",
+      "continue": "Continuer",
+      "continueToSetup": "Continuer vers la configuration",
+      "initializeClinic": "Initialiser la clinique",
+      "completeSetup": "Terminer la configuration",
+      "back": "Retour",
+      "skipForNow": "Sauter pour l'instant",
+      "failedToLoad": "Échec du chargement de la progression de l'intégration",
+      "anErrorOccurred": "Une erreur est survenue",
+      "failedToSaveClinic": "Échec de la sauvegarde de la clinique",
+      "somethingWentWrong": "Quelque chose s'est mal passé. Veuillez réessayer.",
+      "missingClinicId": "L'ID de la clinique est manquant. Veuillez réessayer.",
+      "setupCompleted": "Clinique initialisée avec succès !"
+    }
+  },
+  "appOwner": {
+    "plans": {
+      "title": "Forfaits d'Abonnement",
+      "subtitle": "Gérer les forfaits, les tarifs et l'accès aux fonctionnalités.",
+      "newButton": "Nouveau Forfait",
+      "planName": "Nom du Forfait",
+      "price": "Prix",
+      "billingPeriod": "Période de Facturation",
+      "status": "Statut",
+      "activeSubs": "Abonnements Actifs",
+      "actions": "Actions",
+      "noPlansFound": "Aucun forfait d'abonnement trouvé. Créez-en un pour commencer.",
+      "active": "actif",
+      "inactive": "inactif"
+    },
+    "specialties": {
+      "title": "Spécialités",
+      "subtitle": "Définir les spécialités médicales parmi lesquelles les cliniques peuvent choisir.",
+      "newButton": "Nouvelle Spécialité",
+      "name": "Nom",
+      "nameAr": "Nom (Arabe)",
+      "order": "Ordre",
+      "status": "Statut",
+      "doctors": "Médecins",
+      "actions": "Actions",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "empty": "Aucune spécialité trouvée. Créez-en une pour commencer."
+    },
+    "medications": {
+      "title": "Médicaments",
+      "subtitle": "Gérer le catalogue de médicaments de chaque clinique.",
+      "newButton": "Ajouter un Médicament",
+      "clinic": "Clinique",
+      "generic": "Nom Générique",
+      "brand": "Marque",
+      "strength": "Dosage",
+      "form": "Forme",
+      "price": "Prix",
+      "status": "Statut",
+      "actions": "Actions",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "activate": "Activer",
+      "deactivate": "Désactiver",
+      "empty": "Aucun médicament trouvé pour cette clinique. Ajoutez-en un pour commencer.",
+      "noClinics": "Aucune clinique disponible. Créez d'abord une clinique."
+    },
+    "dashboard": {
+      "overviewTitle": "Aperçu de la Plateforme",
+      "overviewSubtitle": "Mesures globales et état du système.",
+      "totalTenants": "Total Locataires",
+      "totalUsers": "Total Utilisateurs",
+      "activeSubscriptions": "Abonnements Actifs",
+      "activePlans": "Forfaits Actifs",
+      "dashboard": "Tableau de Bord",
+      "tenants": "Locataires",
+      "plans": "Forfaits d'Abonnement",
+      "settings": "Paramètres Globaux"
+    },
+    "sidebar": {
+      "dashboard": "Tableau de Bord",
+      "tenants": "Locataires",
+      "plans": "Forfaits d'Abonnement",
+      "specialties": "Spécialités",
+      "settings": "Paramètres Globaux"
+    }
+  },
+  "patients": {
+    "title": "Patients",
+    "subtitle": "Gérer les dossiers des patients et leurs historiques médicaux.",
+    "newButton": "Nouveau Patient",
+    "dashboard": {
+      "overviewTitle": "Aperçu de la Plateforme",
+      "overviewSubtitle": "Mesures globales et état du système.",
+      "totalTenants": "Total Locataires",
+      "totalUsers": "Total Utilisateurs",
+      "activeSubscriptions": "Abonnements Actifs",
+      "activePlans": "Forfaits Actifs"
+    },
+    "sidebar": {
+      "dashboard": "Tableau de bord",
+      "tenants": "Locataires",
+      "plans": "Forfaits",
+      "settings": "Paramètres"
+    }
+  },
+  "header": {
+    "welcomeBack": "Bon retour",
+    "manageClinic": "Gérez les opérations de votre clinique",
+    "clinic": "Clinique",
+    "branch": "Succursale",
+    "noBranchAssigned": "Aucune succursale assignée",
+    "notifications": "Notifications",
+    "userMenu": "Menu Utilisateur",
+    "logout": "Se déconnecter",
+    "language": "Langue",
+    "english": "Anglais",
+    "arabic": "Arabe",
+    "french": "Français"
+  },
+  "sidebar": {
+    "dashboard": "Tableau de Bord",
+    "doctors": "Médecins",
+    "staff": "Personnel",
+    "patients": "Patients",
+    "appointments": "Rendez-vous",
+    "billing": "Facturation",
+    "insurance": "Assurance",
+    "pharmacy": "Pharmacie",
+    "labOrders": "Analyses Lab",
+    "inventory": "Inventaire",
+    "reports": "Rapports",
+    "clinicDefinition": "Définition Clinique",
+    "myAppointments": "Mes Rendez-vous",
+    "myPatients": "Mes Patients",
+    "prescriptions": "Ordonnances",
+    "profile": "Profil",
+    "checkinQueue": "File d'attente d'enregistrement",
+    "tenants": "Locataires",
+    "myProfile": "Mon Profil",
+    "visitHistory": "Rendez-vous & Visites",
+    "roles": "Rôles",
+    "users": "Utilisateurs",
+    "permissions": "Permissions",
+    "audit": "Journal d'Audit",
+    "reviews": "Avis",
+    "myReviews": "Mes Avis",
+    "notifications": "Notifications"
+  },
+  "pages": {
+    "doctor": {
+      "title": "Tableau de Bord du Médecin",
+      "subtitle": "Bon retour. Voici le résumé de votre activité pour aujourd'hui.",
+      "scheduleProgress": "Progression de l'agenda du jour",
+      "scheduleProgressDesc": "Vous avez effectué {completed} des {total} rendez-vous programmés aujourd'hui.",
+      "completionRate": "Taux de complétion",
+      "todaysAppointments": "Rendez-vous du jour",
+      "scheduledForConsultation": "Prévus pour consultation",
+      "pendingLabs": "Analyses en attente",
+      "pendingLabsDesc": "En attente de votre avis diagnostique",
+      "recentPatients": "Patients récents",
+      "recentPatientsDesc": "Consultés au cours de la semaine dernière",
+      "averageRating": "Note moyenne",
+      "approvedReviewsCount": "{count} avis approuvé{count, plural, =1 {} other {s}}",
+      "todaysSchedule": "Agenda du jour",
+      "appointmentsForToday": "Rendez-vous pour la journée en cours",
+      "viewSchedule": "Voir l'agenda",
+      "noAppointments": "Aucun rendez-vous programmé aujourd'hui.",
+      "unknownPatient": "Patient inconnu",
+      "startConsultation": "Commencer la consultation",
+      "viewFile": "Voir le dossier",
+      "quickAccess": "Accès rapide aux dossiers des patients récents",
+      "viewAll": "Voir tout",
+      "noRecentPatients": "Aucun patient récent trouvé.",
+      "lastVisit": "Dernière visite",
+      "unknown": "Inconnu",
+      "file": "Dossier",
+      "patientReviews": "Avis des patients",
+      "patientReviewsDesc": "Ce que vos patients ont dit",
+      "noReviews": "Aucun avis approuvé pour le moment.",
+      "appointments": {
+        "title": "Mes Rendez-vous",
+        "subtitle": "Gérer votre agenda quotidien et vos consultations",
+        "filterPlaceholder": "Filtrer par statut",
+        "statusAll": "Tous les statuts",
+        "statusScheduled": "Programmé",
+        "statusCheckedIn": "Présent",
+        "statusCompleted": "Terminé",
+        "statusCancelled": "Annulé",
+        "statusNoShow": "Non présenté",
+        "colTime": "Heure",
+        "colPatient": "Patient",
+        "colDob": "Date de naiss. :",
+        "colStatus": "Statut",
+        "colNotes": "Notes",
+        "tipViewLabs": "Voir les analyses de ce rendez-vous",
+        "actionViewLabs": "Voir Analyses",
+        "tipCompleted": "Rendez-vous terminé",
+        "tipAddLabRequest": "Ajouter une demande d'analyse",
+        "actionLabRequest": "Demande d'analyse",
+        "actionConsultation": "Consultation"
+      },
+      "labs": {
+        "title": "Demandes d'Analyses",
+        "subtitle": "Analyses prescrites lors des consultations et leurs résultats",
+        "showingForAppt": "Affichage des analyses pour le rendez-vous sélectionné.",
+        "clearFilter": "Effacer le filtre",
+        "loading": "Chargement des demandes d'analyses...",
+        "searchPlaceholder": "Rechercher par nom de patient...",
+        "colTest": "Analyse",
+        "colPatient": "Patient",
+        "colOrderDate": "Date de commande",
+        "colStatus": "Statut",
+        "inHouse": "Interne",
+        "unknownPatient": "Patient inconnu"
+      },
+      "patients": {
+        "title": "Mes Patients",
+        "subtitle": "Annuaire des patients sous votre responsabilité",
+        "bookFollowUp": "Prendre un rendez-up de suivi",
+        "loading": "Chargement de l'annuaire des patients...",
+        "searchPlaceholder": "Rechercher un patient par nom...",
+        "colPatient": "Patient",
+        "colCondition": "Pathologie principale",
+        "colLastVisit": "Dernière visite",
+        "actionFile": "Dossier"
+      },
+      "consultation": {
+        "yearsOld": "{age} ans",
+        "metricVisits": "Visites",
+        "metricPrescriptions": "Ordonnances",
+        "metricLabs": "Analyses demandées",
+        "newEncounterTitle": "Nouvelles Notes de Consultation",
+        "newEncounterDesc": "Saisir le diagnostic clinique, les constatations de la consultation et le plan de traitement.",
+        "tabHistory": "Historique",
+        "tabMeds": "Médicaments",
+        "tabLabs": "Analyses",
+        "pastEncounters": "Consultations passées",
+        "noPastEncounters": "Aucune consultation passée enregistrée.",
+        "byPractitioner": "Par {name}",
+        "diagnosisLabel": "Diagnostic :",
+        "activePrescriptions": "Ordonnances en cours",
+        "recentLabs": "Analyses récentes",
+        "noLabs": "Aucune analyse demandée.",
+        "routineLab": "Analyse de routine"
+      },
+      "encounter": {
+        "errDiagnosisRequired": "Le diagnostic est requis",
+        "errNotesRequired": "Les notes de visite sont requises",
+        "toastSavedAndCompleted": "Consultation enregistrée et rendez-vous complété !",
+        "toastSaved": "Consultation enregistrée avec succès !",
+        "toastFailed": "Échec de l'enregistrement de la consultation. Veuillez réessayer.",
+        "lblDiagnosis": "Diagnostic",
+        "phDiagnosis": "Diagnostic principal (ex. Pharyngite aiguë)",
+        "lblNotes": "Notes de consultation",
+        "phNotes": "Enregistrer les symptômes, observations et constatations...",
+        "lblTreatment": "Plan de traitement",
+        "phTreatment": "Consignes, repos, ordonnances, suivi...",
+        "btnSubmit": "Enregistrer la consultation"
+      },
+      "prescriptions": {
+        "toastDeleted": "Ordonnance supprimée",
+        "btnNew": "Nouvelle Ordonnance",
+        "empty": "Aucune ordonnance enregistrée.",
+        "dxLabel": "Diag :",
+        "deleteTitle": "Supprimer cette ordonnance ?",
+        "deleteDesc": "Cette action ne peut pas être annulée. Elle supprimera définitivement l'ordonnance.",
+        "btnCancel": "Annuler",
+        "btnDelete": "Supprimer",
+        "btnEdit": "Modifier",
+        "colMedications": "Médicaments",
+        "colPatient": "Patient",
+        "colDiagnosis": "Diagnostic",
+        "colDateIssued": "Date d'émission",
+        "colStatus": "Statut",
+        "moreCount": "+{count} de plus",
+        "noMedications": "Aucun médicament",
+        "unknownPatient": "Patient inconnu",
+        "title": "Ordonnances",
+        "subtitle": "Gérer vos ordonnances de patients émises",
+        "loading": "Chargement des ordonnances...",
+        "searchPlaceholder": "Rechercher par nom de patient..."
+      },
+      "reviews": {
+        "title": "Mes Avis",
+        "subtitle": "Retours approuvés de vos patients",
+        "avgRating": "Note moyenne",
+        "avgRatingDesc": "Sur l'ensemble des avis approuvés",
+        "approvedReviewsCount": "{count} avis approuvé{count, plural, =1 {} other {s}}",
+        "previousReviews": "Avis précédents",
+        "previousReviewsDesc": "Du plus récent au plus ancien",
+        "colRating": "Note",
+        "colComment": "Commentaire",
+        "colPatient": "Patient",
+        "colDate": "Date",
+        "noReviews": "Aucun avis approuvé pour le moment."
+      }
+    },
+    "patient": {
+      "dashboard": {
+        "welcome": "Bienvenue",
+        "welcomeWithName": "Bienvenue, {name}",
+        "subtitle": "Vos rendez-vous et l'historique de vos visites en un coup d'œil.",
+        "nextAppointment": "Prochain Rendez-vous",
+        "loading": "Chargement...",
+        "doctorUnassigned": "Médecin à attribuer",
+        "noUpcomingAppointments": "Aucun rendez-vous à venir.",
+        "quickLinks": "Liens rapides",
+        "linkAppointments": "Rendez-vous & Historique des visites",
+        "linkProfile": "Mon Profil"
+      },
+      "appointments": {
+        "title": "Mes Rendez-vous",
+        "subtitle": "Votre historique de rendez-vous et vos créneaux à venir",
+        "bookAppointment": "Prendre un rendez-vous",
+        "loading": "Chargement des rendez-vous...",
+        "colDateTime": "Date & Heure",
+        "colDate": "Date",
+        "colDoctor": "Médecin",
+        "colStatus": "Statut",
+        "colNotes": "Notes",
+        "colRating": "Évaluation",
+        "colDiagnosis": "Diagnostic",
+        "colType": "Type",
+        "noUpcoming": "Aucun rendez-vous à venir trouvé.",
+        "pastAppointments": "Rendez-vous passés",
+        "noPastAppointments": "Aucun rendez-vous passé trouvé.",
+        "doctorPrefix": "Dr {name}",
+        "tabUpcoming": "À venir",
+        "tabHistory": "Historique des visites",
+        "encounters": "Consultations",
+        "noPastVisits": "Aucune visite passée enregistrée.",
+        "rateButton": "Évaluer"
+      },
+      "profile": {
+        "title": "Mon Profil",
+        "subtitle": "Mettre à jour votre numéro de téléphone et votre mot de passe.",
+        "contactDetails": "Coordonnées",
+        "lblFullName": "Nom complet",
+        "lblEmail": "Adresse e-mail",
+        "lblPhone": "Téléphone",
+        "btnSave": "Enregistrer les modifications",
+        "changePassword": "Modifier le mot de passe",
+        "lblNewPassword": "Nouveau mot de passe",
+        "lblConfirmPassword": "Confirmer le mot de passe",
+        "btnUpdatePassword": "Mettre à jour le mot de passe",
+        "toastProfileUpdated": "Profil mis à jour.",
+        "toastProfileFailed": "Échec de la mise à jour du profil.",
+        "toastPasswordUpdated": "Mot de passe mis à jour.",
+        "toastPasswordFailed": "Échec de la mise à jour du mot de passe.",
+        "errPhoneMin": "Veuillez entrer un numéro de téléphone valide",
+        "errPhoneMax": "Le numéro de téléphone est trop long",
+        "errPasswordMin": "Le mot de passe doit comporter au moins 6 caractères",
+        "errConfirmPassword": "Veuillez confirmer votre mot de passe",
+        "errPasswordMismatch": "Les mots de passe ne correspondent pas"
+      }
+    },
+    "staff": {
+      "patients": {
+        "title": "Annuaire des Patients",
+        "subtitle": "Gérer les patients, enregistrer les constantes vitales et prendre des rendez-vous",
+        "btnAddPatient": "Ajouter un Patient",
+        "dialogTitle": "Ajouter un Nouveau Patient",
+        "dialogDesc": "Enregistrer un nouveau patient dans le système.",
+        "lblFirstName": "Prénom",
+        "lblLastName": "Nom",
+        "lblEmail": "Adresse e-mail",
+        "lblPhone": "Téléphone",
+        "lblGender": "Genre",
+        "genderPlaceholder": "Sélectionner le genre",
+        "lblDob": "Date de naissance",
+        "lblAddress": "Adresse",
+        "btnCancel": "Annuler",
+        "btnSaving": "Enregistrement...",
+        "btnSavePatient": "Enregistrer le patient",
+        "searchPlaceholder": "Rechercher des patients...",
+        "colName": "Nom",
+        "colPhone": "Téléphone",
+        "colGender": "Genre",
+        "colDob": "Date de naissance",
+        "colRegistered": "Inscrit",
+        "colPortal": "Portail",
+        "noEmail": "Pas d'e-mail",
+        "portalActive": "Portail actif",
+        "inviteToPortal": "Inviter au portail",
+        "toastNoEmail": "Ce patient n'a pas d'adresse e-mail pour l'invitation.",
+        "toastPatientAdded": "Patient ajouté.",
+        "toastPatientFailed": "Échec de l'ajout du patient.",
+        "errFirstNameRequired": "Le prénom est requis",
+        "errLastNameRequired": "Le nom est requis",
+        "errEmailInvalid": "Veuillez entrer une adresse e-mail valide"
+      }
+    }
+  },
+  "landing": {
+    "hero": {
+      "aiDriven": "Infrastructure Médicale Pilotée par l'IA",
+      "title": "Clinique Moderne",
+      "subtitle": "Système de Gestion",
+      "description": "Une plateforme SaaS orientée API pour les rendez-vous, les dossiers médicaux électroniques, la facturation et les flux de patients automatisés — alimentée par des intégrations d'agents intelligents.",
+      "getStartedFree": "Commencer Gratuitement",
+      "goToDashboard": "Aller au Tableau de Bord",
+      "watchDemo": "Regarder la Démo Développeur"
+    },
+    "features": {
+      "title": "Conçu pour les équipes médicales modernes",
+      "subtitle": "Des modules performants pensés pour les développeurs afin de gérer la clinique sans aucune friction.",
+      "appointmentManagement": "Gestion des Rendez-vous",
+      "appointmentDesc": "Planification intelligente avec détection de conflits, flux de statuts et vues calendrier.",
+      "patientRecords": "Dossiers des Patients",
+      "patientDesc": "Profils complets de patients avec historiques médicaux, documents et suivi des visites.",
+      "staffManagement": "Gestion du Personnel",
+      "staffDesc": "Accès basé sur les rôles pour les médecins, infirmiers et réceptionnistes avec gestion des plannings.",
+      "billing": "Facturation & Paiements",
+      "billingDesc": "Création de factures, suivi des paiements, gestion des réclamations d'assurance et rapports.",
+      "analytics": "Analyses & Rapports",
+      "analyticsDesc": "Indicateurs clés de performance en temps réel, suivi des revenus, performance des médecins et croissance des patients.",
+      "pharmacy": "Pharmacie & Inventaire",
+      "pharmacyDesc": "Gestion des médicaments, suivi des lots, commandes d'achat et alertes de stock."
+    },
+    "pricing": {
+      "title": "Tarification simple pour les développeurs",
+      "subtitle": "Commencez gratuitement, puis évoluez au rythme de votre cabinet.",
+      "starter": "Starter",
+      "starterPrice": "Gratuit",
+      "starterDesc": "Idéal pour les petites cliniques",
+      "starterFeatures": [
+        "Jusqu'à 100 patients",
+        "2 membres du personnel",
+        "Rendez-vous de base",
+        "Assistance par e-mail"
+      ],
+      "professional": "Professionnel",
+      "professionalPrice": "49 $",
+      "professionalPeriod": "/mois",
+      "professionalDesc": "Pour les cabinets en croissance",
+      "professionalFeatures": [
+        "Patients illimités",
+        "10 membres du personnel",
+        "Planification avancée",
+        "Facturation & paiement",
+        "Gestion du laboratoire",
+        "Assistance prioritaire"
+      ],
+      "enterprise": "Entreprise",
+      "enterprisePrice": "149 $",
+      "enterprisePeriod": "/mois",
+      "enterpriseDesc": "Pour les cliniques multi-succursales",
+      "enterpriseFeatures": [
+        "Tout ce qui est dans Pro",
+        "Personnel illimité",
+        "Multi-succursales",
+        "Intégrations personnalisées",
+        "Support dédié",
+        "Garantie de SLA"
+      ],
+      "mostPopular": "Le Plus Populaire",
+      "getStarted": "Commencer"
+    },
+    "footer": {
+      "copyright": "© 2026 ClinicPro. Tous droits réservés. Construit avec le système de conception Composio Inspired.",
+      "apiDocs": "Docs API",
+      "github": "GitHub",
+      "status": "Statut"
+    },
+    "nav": {
+      "features": "Fonctionnalités",
+      "pricing": "Tarifs",
+      "specialties": "Spécialités",
+      "testimonials": "Témoignages",
+      "signIn": "Se Connecter",
+      "startFreeTrial": "Essai Gratuit"
+    },
+    "stats": {
+      "eyebrow": "Fait confiance par les cliniques",
+      "title": "Une plateforme qui grandit avec de vrais cabinets",
+      "doctors": "Médecins actifs",
+      "clinics": "Cliniques à bord",
+      "specialties": "Spécialités médicales",
+      "patients": "Patients servis"
+    },
+    "specialties": {
+      "eyebrow": "Spécialités",
+      "title": "Des soins dans chaque spécialité",
+      "subtitle": "Les cliniques sur ClinicPro couvrent toute la gamme des spécialités médicales.",
+      "doctorCount": "{count, plural, =0 {Aucun médecin} =1 {1 médecin} other {# médecins}}"
+    },
+    "pricingExtra": {
+      "popular": "Le plus populaire",
+      "getStarted": "Commencer",
+      "freeTrial": "Essai gratuit de {days} jours",
+      "maxUsers": "Jusqu'à {count} utilisateurs",
+      "maxBranches": "Jusqu'à {count} succursales",
+      "maxDoctors": "Jusqu'à {count} médecins",
+      "perMonth": "/mois",
+      "perQuarter": "/trimestre",
+      "perSemiAnnual": "/6 mois",
+      "perYear": "/an",
+      "lifetime": "à vie",
+      "free": "Gratuit"
+    },
+    "testimonials": {
+      "eyebrow": "Témoignages",
+      "title": "Aimé par les patients et les cliniques",
+      "subtitle": "De vrais avis laissés par les patients après leurs rendez-vous.",
+      "fallback": [
+        {
+          "quote": "La réservation et le suivi sont maintenant faciles. Les rappels ont réduit nos absences de moitié.",
+          "name": "Sarah M.",
+          "clinic": "Cabinet Dentaire Bright Smile"
+        },
+        {
+          "quote": "Je peux voir mon historique de visites et mes ordonnances au même endroit. C'est moderne et simple.",
+          "name": "Omar K.",
+          "clinic": "Clinique Familiale du Nil"
+        },
+        {
+          "quote": "Notre accueil fonctionne enfin de manière fluide — planification, facturation et dossiers dans un seul système.",
+          "name": "Laila H.",
+          "clinic": "CarePoint Médical"
+        }
+      ]
+    },
+    "cta": {
+      "title": "Prêt à moderniser votre clinique ?",
+      "subtitle": "Commencez votre essai gratuit aujourd'hui. Aucune carte de crédit requise.",
+      "button": "Commencer l'Essai Gratuit"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "viewAll": "Voir toutes les notifications",
+    "tabs": {
+      "all": "Toutes",
+      "unread": "Non lues",
+      "read": "Lues"
+    },
+    "empty": {
+      "all": "Vous n'avez pas encore de notifications.",
+      "unread": "Aucune notification non lue.",
+      "read": "Aucune notification lue."
+    },
+    "priority": {
+      "normal": "Normale",
+      "important": "Importante"
+    },
+    "category": {
+      "announcement": "Annonce",
+      "billing": "Facturation",
+      "account_status": "Statut du compte",
+      "policy": "Règlement",
+      "shift_change": "Changement d'équipe",
+      "handoff": "Transmission de patient",
+      "general": "Général"
+    },
+    "roles": {
+      "owner": "Propriétaire",
+      "admin": "Administrateur",
+      "doctor": "Docteur",
+      "staff": "Personnel",
+      "pharmacist": "Pharmacien",
+      "app_owner": "Propriétaire App",
+      "super_admin": "Super Admin",
+      "receptionist": "Réceptionniste",
+      "patient": "Patient"
+    },
+    "audience": {
+      "role_group": "Groupe destinataire",
+      "individual": "Personnes spécifiques"
+    },
+    "toast": {
+      "sent": "Notification envoyée à {count} destinataire(s).",
+      "failed": "Quelque chose s'est mal passé. Veuillez réessayer."
+    },
+    "compose": {
+      "title": "Nouvelle notification",
+      "description": "Composez un message et choisissez les destinataires.",
+      "send": "Envoyer",
+      "cancel": "Annuler",
+      "noRecipients": "Aucun destinataire correspondant.",
+      "selectedCount": "{count} sélectionné(s)",
+      "fields": {
+        "title": "Titre",
+        "body": "Message",
+        "priority": "Priorité",
+        "category": "Catégorie",
+        "deepLink": "Lien (optionnel)",
+        "audience": "Envoyer à",
+        "recipientGroup": "Groupe de destinataires",
+        "recipients": "Destinataires"
+      },
+      "placeholders": {
+        "title": "Titre court",
+        "body": "Écrivez votre message…",
+        "category": "Optionnel",
+        "recipientGroup": "Sélectionnez un groupe",
+        "searchRecipients": "Rechercher des personnes…"
+      }
+    },
+    "center": {
+      "title": "Notifications",
+      "description": "Votre historique de notifications. Filtrez par état de lecture ou envoyez-en une nouvelle.",
+      "newNotification": "Nouvelle notification",
+      "open": "Ouvrir",
+      "columns": {
+        "title": "Notification",
+        "sender": "De",
+        "priority": "Priorité",
+        "status": "Statut",
+        "received": "Reçue"
+      }
+    }
+  },
+  "plans": {
+    "basic": "Basique",
+    "basicPrice": "29 $/mois",
+    "basicFeatures": [
+      "1 Succursale",
+      "Jusqu'à 3 utilisateurs",
+      "Rapports de base"
+    ],
+    "pro": "Pro",
+    "proPrice": "99 $/mois",
+    "proFeatures": [
+      "Plusieurs succursales",
+      "Utilisateurs illimités",
+      "Rapports avancés",
+      "Accès API"
+    ]
+  },
+  "subscriptionPlans": {
+    "free": "Gratuit — Fonctionnalités de base",
+    "starter": "Starter — Petite clinique",
+    "professional": "Professionnel — Cabinet en croissance",
+    "enterprise": "Entreprise — Multi-succursales"
+  },
+  "onboardingPlans": {
+    "free": "Gratuit",
+    "starter": "Starter",
+    "professional": "Professionnel",
+    "enterprise": "Entreprise"
+  },
+  "branch": {
+    "name": "Nom de succursale",
+    "namePlaceholder": "ex : Succursale principale",
+    "address": "Adresse (optionnelle)",
+    "addressPlaceholder": "ex : 123 Health Ave, NY",
+    "phone": "Téléphone succursale (optionnel)",
+    "phonePlaceholder": "+1 (555) 000-0000"
+  },
+  "clinic": {
+    "name": "Nom de la clinique",
+    "namePlaceholder": "ex : Centre de santé Acme",
+    "registrationNumber": "Numéro d'enregistrement (optionnel)",
+    "regNumberPlaceholder": "ex : MED-2024-001",
+    "email": "E-mail",
+    "emailPlaceholder": "info@clinique.com",
+    "phone": "Téléphone",
+    "phonePlaceholder": "+1 (555) 000-0000",
+    "subscriptionPlan": "Forfait d'Abonnement",
+    "free": "Gratuit",
+    "starter": "Starter",
+    "professional": "Professionnel",
+    "enterprise": "Entreprise"
+  },
+  "dashboard": {
+    "noClinic": {
+      "title": "Aucune clinique associée",
+      "description": "Votre compte n'est pas encore associé à une clinique. Veuillez contacter votre administrateur pour être ajouté.",
+      "backToSignIn": "Retour à la connexion"
+    },
+    "error": {
+      "title": "Quelque chose s'est mal passé",
+      "description": "Nous n'avons pas pu charger cette page. Veuillez réessayer ou contacter votre administrateur si le problème persiste.",
+      "retry": "Réessayer"
+    }
+  },
+  "enums": {
+    "status": {
+      "scheduled": "Prévu",
+      "checked_in": "Présent",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "no_show": "Non présenté",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "blocked": "Bloqué",
+      "draft": "Brouillon",
+      "issued": "Délivré",
+      "paid": "Payé",
+      "pending": "En attente",
+      "refunded": "Remboursé",
+      "trial": "Essai",
+      "suspended": "Suspendu",
+      "approved": "Approuvé",
+      "rejected": "Rejeté"
+    },
+    "gender": {
+      "male": "Homme",
+      "female": "Femme",
+      "other": "Autre",
+      "unknown": "Inconnu"
+    }
+  }
+}
