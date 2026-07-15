@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building, Plus, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { BranchManagement } from "@/components/admin/branch-management";
+import { Switch } from "@/components/ui/switch";
 
 export default function ClinicAdminPage() {
   const queryClient = useQueryClient();
@@ -55,12 +56,17 @@ export default function ClinicAdminPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<Clinic>({
     resolver: zodResolver(clinicSchema),
     defaultValues: {
       subscription_plan: "trial",
       status: "trial",
+      have_pharmacy: false,
+      have_lab: false,
+      have_radio_center: false,
     },
   });
 
@@ -130,6 +136,38 @@ export default function ClinicAdminPage() {
                   <Input id="phone" {...register("phone")} />
                 </div>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t pt-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="have_pharmacy" className="cursor-pointer text-sm font-medium">Pharmacy</Label>
+                  <div className="flex h-9 items-center">
+                    <Switch
+                      id="have_pharmacy"
+                      checked={!!watch("have_pharmacy")}
+                      onCheckedChange={(v) => setValue("have_pharmacy", v)}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="have_lab" className="cursor-pointer text-sm font-medium">Laboratory</Label>
+                  <div className="flex h-9 items-center">
+                    <Switch
+                      id="have_lab"
+                      checked={!!watch("have_lab")}
+                      onCheckedChange={(v) => setValue("have_lab", v)}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="have_radio_center" className="cursor-pointer text-sm font-medium">Radiology</Label>
+                  <div className="flex h-9 items-center">
+                    <Switch
+                      id="have_radio_center"
+                      checked={!!watch("have_radio_center")}
+                      onCheckedChange={(v) => setValue("have_radio_center", v)}
+                    />
+                  </div>
+                </div>
+              </div>
               <Button
                 type="submit"
                 className="w-full"
@@ -164,6 +202,23 @@ export default function ClinicAdminPage() {
                   Reg No: {clinic.registration_number || "N/A"} • Plan:{" "}
                   {clinic.subscription_plan}
                 </CardDescription>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {clinic.have_pharmacy && (
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400">
+                      Pharmacy
+                    </Badge>
+                  )}
+                  {clinic.have_lab && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400">
+                      Laboratory
+                    </Badge>
+                  )}
+                  {clinic.have_radio_center && (
+                    <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400">
+                      Radiology Center
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge

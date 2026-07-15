@@ -9,10 +9,13 @@ export const clinicSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(2, "Clinic name must be at least 2 characters"),
   registration_number: z.string().optional().nullable(),
-  email: z.email("Invalid email address").optional().nullable(),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")).nullable(),
   phone: z.string().optional().nullable(),
   subscription_plan: z.string().optional().nullable(),
   status: clinicStatusEnum,
+  have_pharmacy: z.boolean(),
+  have_lab: z.boolean(),
+  have_radio_center: z.boolean(),
 });
 
 export const branchSchema = z.object({

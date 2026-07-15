@@ -173,7 +173,6 @@ model lab_orders {
   id                    String        @id @default(uuid()) @db.Uuid
   clinic_id             String        @db.Uuid
   encounter_id          String?       @db.Uuid
-  appointment_id        String?       @db.Uuid
   patient_id            String        @db.Uuid
   branch_id             String?       @db.Uuid
   doctor_id             String?       @db.Uuid
@@ -184,7 +183,8 @@ model lab_orders {
   created_at            DateTime      @default(now())
   deleted_at            DateTime?
   updated_at            DateTime      @default(now()) @updatedAt
-  appointments          appointments? @relation(fields: [appointment_id], references: [id], onDelete: SetNull)
+  appointment_id        String?       @db.Uuid
+  appointments          appointments? @relation(fields: [appointment_id], references: [id])
   branches              branches?     @relation(fields: [branch_id], references: [id])
   clinics               clinics       @relation(fields: [clinic_id], references: [id])
   profiles              profiles?     @relation(fields: [doctor_id], references: [id])
@@ -228,7 +228,7 @@ model prescription_dispenses {
 }
 
 model roles {
-  id                    String             @id @default(uuid()) @db.Uuid
+  id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                  String
   created_at            DateTime           @default(now())
   created_by            String?            @db.Uuid
@@ -251,7 +251,7 @@ model roles {
 }
 
 model permissions {
-  id                    String                 @id @default(uuid()) @db.Uuid
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                  String                 @unique
   category_id           String?                @db.Uuid
   created_at            DateTime               @default(now())
@@ -322,7 +322,7 @@ model role_permissions {
   created_at    DateTime    @default(now())
   created_by    String?     @db.Uuid
   deleted_at    DateTime?
-  id            String      @id @default(uuid()) @db.Uuid
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   is_active     Boolean     @default(true)
   is_deny       Boolean     @default(false)
   tenant_id     String      @db.Uuid
@@ -336,7 +336,7 @@ model role_permissions {
 }
 
 model user_permissions {
-  id            String      @id @default(uuid()) @db.Uuid
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_id     String      @db.Uuid
   profile_id    String      @db.Uuid
   permission_id String      @db.Uuid
@@ -517,56 +517,56 @@ model profile_branches {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model clinics {
-  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                     String
-  registration_number      String?
-  email                    String?
-  phone                    String?
-  subscription_plan        String?
-  status                   ClinicStatus               @default(trial)
-  created_at               DateTime                   @default(now())
-  updated_at               DateTime                   @default(now())
-  is_primary               Boolean?                   @default(false)
-  auth_user_id             String?                    @default(dbgenerated("auth.uid()")) @db.Uuid
-  onboarding_completed_at  DateTime?
-  have_pharmacy            Boolean?                   @default(false)
-  have_lab                 Boolean?                   @default(false)
-  have_radio_center        Boolean?                   @default(false)
-  appointment_reviews      appointment_reviews[]
-  appointments             appointments[]
-  audit_logs               audit_logs[]
-  branches                 branches[]
-  encounters               encounters[]
-  file_storage             file_storage[]
-  insurance_claims         insurance_claims[]
-  insurance_providers      insurance_providers[]
-  invoices                 invoices[]
-  lab_orders               lab_orders[]
-  medical_records          medical_records[]
-  medication_batches       medication_batches[]
-  medications              medications[]
-  patient_insurances       patient_insurances[]
-  patients                 patients[]
-  pharmacy_inventory       pharmacy_inventory[]
-  pharmacy_sales           pharmacy_sales[]
-  prescription_dispenses   prescription_dispenses[]
-  prescriptions            prescriptions[]
-  profile_branches         profile_branches[]
-  profiles                 profiles[]
-  staff_profiles           profiles[]                 @relation("profile_tenant")
-  purchase_orders          purchase_orders[]
-  role_group_roles         role_group_roles[]
-  role_groups              role_groups[]
-  role_hierarchy           role_hierarchy[]
-  role_permissions         role_permissions[]
-  roles                    roles[]
-  stock_movements          stock_movements[]
-  suppliers                suppliers[]
-  tenant_permissions       tenant_permissions[]
-  tenant_roles             tenant_roles[]
-  tenant_subscription      tenant_subscriptions?
-  user_permissions         user_permissions[]
-  user_roles               user_roles[]
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                    String
+  registration_number     String?
+  email                   String?
+  phone                   String?
+  subscription_plan       String?
+  status                  ClinicStatus             @default(trial)
+  created_at              DateTime                 @default(now())
+  updated_at              DateTime                 @default(now())
+  is_primary              Boolean?                 @default(false)
+  auth_user_id            String?                  @default(dbgenerated("auth.uid()")) @db.Uuid
+  onboarding_completed_at DateTime?
+  have_pharmacy           Boolean?                 @default(false)
+  have_lab                Boolean?                 @default(false)
+  have_radio_center       Boolean?                 @default(false)
+  appointment_reviews     appointment_reviews[]
+  appointments            appointments[]
+  audit_logs              audit_logs[]
+  branches                branches[]
+  encounters              encounters[]
+  file_storage            file_storage[]
+  insurance_claims        insurance_claims[]
+  insurance_providers     insurance_providers[]
+  invoices                invoices[]
+  lab_orders              lab_orders[]
+  medical_records         medical_records[]
+  medication_batches      medication_batches[]
+  medications             medications[]
+  patient_insurances      patient_insurances[]
+  patients                patients[]
+  pharmacy_inventory      pharmacy_inventory[]
+  pharmacy_sales          pharmacy_sales[]
+  prescription_dispenses  prescription_dispenses[]
+  prescriptions           prescriptions[]
+  profile_branches        profile_branches[]
+  profiles                profiles[]
+  staff_profiles          profiles[]               @relation("profile_tenant")
+  purchase_orders         purchase_orders[]
+  role_group_roles        role_group_roles[]
+  role_groups             role_groups[]
+  role_hierarchy          role_hierarchy[]
+  role_permissions        role_permissions[]
+  roles                   roles[]
+  stock_movements         stock_movements[]
+  suppliers               suppliers[]
+  tenant_permissions      tenant_permissions[]
+  tenant_roles            tenant_roles[]
+  tenant_subscription     tenant_subscriptions?
+  user_permissions        user_permissions[]
+  user_roles              user_roles[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -608,17 +608,17 @@ model insurance_claims {
 /// (applied manually in Supabase).
 model insurance_providers {
   id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clinic_id          String                 @db.Uuid
   name               String
   contact_email      String?
   contact_phone      String?
+  clinic_id          String                 @db.Uuid
+  covered_visits     Int?
+  created_at         DateTime               @default(now())
   deduction_type     InsuranceDeductionType @default(fixed)
   deduction_value    Decimal                @default(0) @db.Decimal(12, 2)
-  covered_visits     Int?
-  is_active          Boolean                @default(true)
-  created_at         DateTime               @default(now())
-  updated_at         DateTime               @default(now()) @updatedAt
   deleted_at         DateTime?
+  is_active          Boolean                @default(true)
+  updated_at         DateTime               @default(now()) @updatedAt
   clinics            clinics                @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patient_insurances patient_insurances[]
 
@@ -735,17 +735,17 @@ model medications {
 /// in 21_patient_insurance.sql (applied manually in Supabase).
 model patient_insurances {
   id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clinic_id           String              @db.Uuid
   patient_id          String              @db.Uuid
   provider_id         String              @db.Uuid
   policy_number       String?
   valid_from          DateTime?           @db.Date
   valid_to            DateTime?           @db.Date
-  visits_used         Int                 @default(0)
-  is_active           Boolean             @default(true)
+  clinic_id           String              @db.Uuid
   created_at          DateTime            @default(now())
-  updated_at          DateTime            @default(now()) @updatedAt
   deleted_at          DateTime?
+  is_active           Boolean             @default(true)
+  updated_at          DateTime            @default(now()) @updatedAt
+  visits_used         Int                 @default(0)
   insurance_claims    insurance_claims[]
   clinics             clinics             @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patients            patients            @relation(fields: [patient_id], references: [id])
@@ -1152,6 +1152,7 @@ model notifications {
   @@index([recipient_id, status])
   @@index([tenant_id])
   @@index([group_id])
+  @@index([sender_id, created_at])
 }
 
 enum AppointmentStatus {

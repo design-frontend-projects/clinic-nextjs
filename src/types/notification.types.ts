@@ -70,6 +70,13 @@ export const listNotificationsSchema = z.object({
 });
 export type ListNotificationsData = z.infer<typeof listNotificationsSchema>;
 
+/** Paginated "what I sent" query (sender-side history). */
+export const listSentNotificationsSchema = z.object({
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).max(100).default(20),
+});
+export type ListSentNotificationsData = z.infer<typeof listSentNotificationsSchema>;
+
 /** A notification row as rendered in the bell panel / center table. */
 export type MyNotification = {
   id: string;
@@ -99,6 +106,26 @@ export type RecipientCandidate = {
   id: string;
   full_name: string | null;
   role: string;
+};
+
+/** One send collapsed from its per-recipient fan-out rows (sender's history). */
+export type SentNotification = {
+  group_id: string;
+  title: string;
+  body: string;
+  category: NotificationCategory | null;
+  priority: NotificationPriority;
+  deep_link: string | null;
+  recipient_count: number;
+  created_at: string;
+};
+
+/** Paginated sent-history result. */
+export type SentNotificationsPage = {
+  items: SentNotification[];
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
 /** Result of a send fan-out. */

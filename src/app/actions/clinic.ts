@@ -37,6 +37,9 @@ export async function createClinic(data: z.infer<typeof clinicSchema>) {
         phone: validatedData.phone,
         subscription_plan: "trial", // Rule: Trial plan auto-assign
         status: "trial",
+        have_pharmacy: validatedData.have_pharmacy ?? false,
+        have_lab: validatedData.have_lab ?? false,
+        have_radio_center: validatedData.have_radio_center ?? false,
       },
     });
 
@@ -113,6 +116,8 @@ export async function getOwnerClinics() {
 
 export async function getBranches(clinicId: string) {
   const tenant = await requireTenantInfo();
+  console.log("request tenant info *****");
+  console.log(tenant);
   // Only ever list branches for the caller's own clinic — ignore any other id
   // passed from the client (prevents cross-tenant branch enumeration).
   if (clinicId !== tenant.clinicId) {
@@ -161,6 +166,9 @@ export async function getOwnerClinicsWithBranches() {
 
 export async function upsertBranch(data: z.infer<typeof branchSchema>) {
   const tenant = await requireTenantInfo();
+  console.log("requestsetd in unsert clinic branch");
+  console.info(tenant);
+
   await requirePermission("clinic.manage");
   const validatedData = branchSchema.parse(data);
 

@@ -31,6 +31,8 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   getUnreadCount,
+  getSentNotifications,
+  resendNotification,
 } from "@/app/actions/notifications";
 
 const mockSender = vi.mocked(requireAuthenticatedTenant);
@@ -255,5 +257,99 @@ describe("read-state actions scope to the caller", () => {
       recipient_id: "u-9",
       status: "unread",
     });
+  });
+});
+
+// --- Sent history --------------------------------------------------------
+describe("getSentNotifications", () => {
+  it("collapses each fan-out into one row scoped to the sender", async () => {
+    mockSender.mockResolvedValue(asSender({ role: "doctor", profileId: "doc-1" }));
+    prismaMock.notifications.groupBy
+      .mockResolvedValueOnce([
+        {
+          group_id: "g1",
+          _count: { recipient_id: 3 },
+          _max: {
+            title: "Heads up",
+            body: "Shift starts at 9",
+            category: "shift_change",
+            priority: "normal",
+            deep_link: null,
+            created_at: new Date("2026-07-15T09:00:00Z"),
+          },
+        },
+      ])
+      .mockResolvedValueOnce([{ group_id: "g1" }]);
+
+    const page = await getSentNotifications({ page: 1, pageSize: 20 });
+
+    expect(page.total).toBe(1);
+    expect(page.items).toEqual([
+      {
+        group_id: "g1",
+        title: "Heads up",
+        body: "Shift starts at 9",
+        category: "shift_change",
+        priority: "normal",
+        deep_link: null,
+        recipient_count: 3,
+        created_at: "2026-07-15T09:00:00.000Z",
+      },
+    ]);
+    // scoped to the sender
+    expect(prismaMock.notifications.groupBy.mock.calls[0][0].where).toMatchObject({
+      sender_id: "doc-1",
+      deleted_at: null,
+    });
+  });
+
+  it("returns an empty page for a non-sender", async () => {
+    mockSender.mockResolvedValue(asSender({ role: "staff" }));
+    const page = await getSentNotifications({ page: 1, pageSize: 20 });
+    expect(page).toEqual({ items: [], total: 0, page: 1, pageSize: 20 });
+    expect(prismaMock.notifications.groupBy).not.toHaveBeenCalled();
+  });
+});
+
+// --- Resend --------------------------------------------------------------
+describe("resendNotification", () => {
+  const S1 = "11111111-1111-4111-8111-111111111111";
+  const S2 = "22222222-2222-4222-8222-222222222222";
+
+  it("re-fans a past send out to its original recipients via sendNotification", async () => {
+    mockSender.mockResolvedValue(asSender({ role: "doctor", profileId: "doc-1" }));
+    // draft reconstruction — rows of the group owned by the caller
+    prismaMock.notifications.findMany.mockResolvedValue([
+      { recipient_id: S1, title: "Hi", body: "Body", category: null, priority: "normal", deep_link: null },
+      { recipient_id: S2, title: "Hi", body: "Body", category: null, priority: "normal", deep_link: null },
+    ]);
+    // resolveRecipients (individual) resolves the target profiles
+    prismaMock.profiles.findMany.mockResolvedValue([
+      { id: S1, role: "staff" },
+      { id: S2, role: "staff" },
+    ]);
+    prismaMock.notifications.createMany.mockResolvedValue({ count: 2 });
+
+    const res = await resendNotification("group-1");
+
+    expect(res).toEqual({ success: true, count: 2 });
+    // draft lookup is scoped to the caller (ownership guard)
+    expect(prismaMock.notifications.findMany.mock.calls[0][0].where).toMatchObject({
+      group_id: "group-1",
+      sender_id: "doc-1",
+    });
+    // resent as a fresh group to the same recipients
+    const call = prismaMock.notifications.createMany.mock.calls[0][0];
+    expect(call.data.map((r: { recipient_id: string }) => r.recipient_id)).toEqual([S1, S2]);
+    const groupIds = new Set(call.data.map((r: { group_id: string }) => r.group_id));
+    expect(groupIds.size).toBe(1);
+  });
+
+  it("rejects resending a group the caller does not own", async () => {
+    mockSender.mockResolvedValue(asSender({ role: "doctor", profileId: "doc-1" }));
+    prismaMock.notifications.findMany.mockResolvedValue([]); // nothing owned by caller
+    const res = await resendNotification("group-x");
+    expect(res).toEqual({ error: "Notification not found." });
+    expect(prismaMock.notifications.createMany).not.toHaveBeenCalled();
   });
 });

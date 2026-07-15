@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import { useRouter } from "@/i18n/routing";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import {
   getMyNotifications,
   markAllNotificationsRead,
@@ -19,10 +20,13 @@ import {
 } from "@/app/actions/notifications";
 import { NOTIFICATION_KEYS } from "@/lib/notifications/use-notifications-realtime";
 import type { MyNotification, NotificationFilter } from "@/types/notification.types";
-import { ComposeNotificationDialog } from "./compose-notification-dialog";
+import { ComposeNotificationDialog, allowedTargetRoles } from "./compose-notification-dialog";
+import { SentNotifications } from "./sent-notifications";
 
 const TABS: NotificationFilter[] = ["all", "unread", "read"];
 const CENTER_PAGE_SIZE = 100;
+
+type CenterView = "inbox" | "sent";
 
 /** Full-page notification history: filter tabs, table, compose, mark-all-read. */
 export function NotificationCenter() {
@@ -31,10 +35,18 @@ export function NotificationCenter() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [tab, setTab] = useState<NotificationFilter>("all");
+  const [view, setView] = useState<CenterView>("inbox");
+
+  const { data: tenant } = useQuery({
+    queryKey: ["tenant-info"],
+    queryFn: () => fetchTenantInfoAction(),
+  });
+  const canSend = useMemo(() => allowedTargetRoles(tenant?.role).length > 0, [tenant?.role]);
 
   const { data } = useQuery({
     queryKey: [...NOTIFICATION_KEYS.all, "center", tab],
     queryFn: () => getMyNotifications({ status: tab, page: 1, pageSize: CENTER_PAGE_SIZE }),
+    enabled: view === "inbox",
   });
 
   const markRead = useMutation({
@@ -120,25 +132,41 @@ export function NotificationCenter() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as NotificationFilter)}>
-          <TabsList>
-            {TABS.map((value) => (
-              <TabsTrigger key={value} value={value}>
-                {t(`tabs.${value}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1" onClick={() => markAll.mutate()}>
-            <CheckCheck className="h-4 w-4" />
-            {t("markAllRead")}
-          </Button>
-          <ComposeNotificationDialog />
-        </div>
+        {canSend ? (
+          <Tabs value={view} onValueChange={(v) => setView(v as CenterView)}>
+            <TabsList>
+              <TabsTrigger value="inbox">{t("center.views.inbox")}</TabsTrigger>
+              <TabsTrigger value="sent">{t("center.views.sent")}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        ) : (
+          <div />
+        )}
+        <ComposeNotificationDialog />
       </div>
 
-      <DataTable columns={columns} data={items} />
+      {view === "inbox" ? (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as NotificationFilter)}>
+              <TabsList>
+                {TABS.map((value) => (
+                  <TabsTrigger key={value} value={value}>
+                    {t(`tabs.${value}`)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => markAll.mutate()}>
+              <CheckCheck className="h-4 w-4" />
+              {t("markAllRead")}
+            </Button>
+          </div>
+          <DataTable columns={columns} data={items} />
+        </>
+      ) : (
+        <SentNotifications />
+      )}
     </div>
   );
 }

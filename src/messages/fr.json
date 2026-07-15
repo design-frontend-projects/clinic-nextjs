@@ -661,7 +661,21 @@
     },
     "toast": {
       "sent": "Notification envoyée à {count} destinataire(s).",
+      "resent": "Notification renvoyée à {count} destinataire(s).",
       "failed": "Quelque chose s'est mal passé. Veuillez réessayer."
+    },
+    "sent": {
+      "description": "Les messages que vous avez envoyés. Renvoyez-en n'importe lequel.",
+      "empty": "Vous n'avez encore envoyé aucune notification.",
+      "resend": "Renvoyer",
+      "editResend": "Modifier et renvoyer",
+      "columns": {
+        "message": "Message",
+        "recipients": "Destinataires",
+        "priority": "Priorité",
+        "category": "Catégorie",
+        "sent": "Envoyée"
+      }
     },
     "compose": {
       "title": "Nouvelle notification",
@@ -693,6 +707,10 @@
       "description": "Votre historique de notifications. Filtrez par état de lecture ou envoyez-en une nouvelle.",
       "newNotification": "Nouvelle notification",
       "open": "Ouvrir",
+      "views": {
+        "inbox": "Boîte de réception",
+        "sent": "Envoyées"
+      },
       "columns": {
         "title": "Notification",
         "sender": "De",

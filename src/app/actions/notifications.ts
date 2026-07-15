@@ -8,14 +8,17 @@ import { isBypassRole } from "@/lib/rbac";
 import {
   sendNotificationSchema,
   listNotificationsSchema,
+  listSentNotificationsSchema,
   type SendNotificationData,
   type ListNotificationsData,
+  type ListSentNotificationsData,
   type MyNotificationsPage,
   type NotificationCategory,
   type NotificationPriority,
   type NotificationStatus,
   type RecipientCandidate,
   type SendNotificationResult,
+  type SentNotificationsPage,
   type TargetRole,
 } from "@/types/notification.types";
 
@@ -336,4 +339,121 @@ export async function getRecipientCandidates(
     console.error("getRecipientCandidates error:", error);
     return [];
   }
+}
+
+/**
+ * The caller's sent history — each fan-out collapsed to one row per `group_id`.
+ * Display fields are shared across a group's rows, so `_max` returns that shared
+ * value; `_count.recipient_id` is the number of recipients the send reached.
+ * Returns an empty page for non-senders.
+ */
+export async function getSentNotifications(
+  data: ListSentNotificationsData,
+): Promise<SentNotificationsPage> {
+  const fallback = { items: [], total: 0, page: 1, pageSize: 20 };
+  try {
+    const parsed = listSentNotificationsSchema.safeParse(data);
+    if (!parsed.success) return fallback;
+    const { page, pageSize } = parsed.data;
+
+    const sender = await requireAuthenticatedTenant();
+    if (!resolveSenderCapability(sender)) return fallback;
+
+    const where = { sender_id: sender.profileId, deleted_at: null };
+
+    const [groups, allGroups] = await Promise.all([
+      prisma.notifications.groupBy({
+        by: ["group_id"],
+        where,
+        _count: { recipient_id: true },
+        _max: {
+          title: true,
+          body: true,
+          category: true,
+          priority: true,
+          deep_link: true,
+          created_at: true,
+        },
+        orderBy: { _max: { created_at: "desc" } },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      // Distinct-group total for pagination (one entry per send).
+      prisma.notifications.groupBy({ by: ["group_id"], where }),
+    ]);
+
+    return {
+      items: groups.map((g) => ({
+        group_id: g.group_id,
+        title: g._max.title ?? "",
+        body: g._max.body ?? "",
+        category: (g._max.category as NotificationCategory | null) ?? null,
+        priority: (g._max.priority as NotificationPriority | null) ?? "normal",
+        deep_link: g._max.deep_link ?? null,
+        recipient_count: g._count.recipient_id,
+        created_at: (g._max.created_at ?? new Date()).toISOString(),
+      })),
+      total: allGroups.length,
+      page,
+      pageSize,
+    } satisfies SentNotificationsPage;
+  } catch (error) {
+    console.error("getSentNotifications error:", error);
+    return fallback;
+  }
+}
+
+/**
+ * Reconstruct a resendable payload from one of the caller's past sends. The
+ * original audience/targetRole are not persisted, so the send is rebuilt as an
+ * `individual` send to the frozen recipient set of that group. Used by both the
+ * one-click resend and the "edit & resend" prefill.
+ */
+export async function getSentNotificationDraft(
+  groupId: string,
+): Promise<SendNotificationData | { error: string }> {
+  try {
+    const sender = await requireAuthenticatedTenant();
+
+    // Ownership guard: only the original sender may reuse the group.
+    const rows = await prisma.notifications.findMany({
+      where: { group_id: groupId, sender_id: sender.profileId, deleted_at: null },
+      select: {
+        recipient_id: true,
+        title: true,
+        body: true,
+        category: true,
+        priority: true,
+        deep_link: true,
+      },
+    });
+    if (rows.length === 0) return { error: "Notification not found." };
+
+    const first = rows[0];
+    return {
+      title: first.title,
+      body: first.body,
+      priority: (first.priority as NotificationPriority | null) ?? "normal",
+      category: (first.category as NotificationCategory | null) ?? undefined,
+      deep_link: first.deep_link ?? undefined,
+      audience: "individual",
+      targetProfileIds: [...new Set(rows.map((r) => r.recipient_id))],
+    };
+  } catch (error) {
+    console.error("getSentNotificationDraft error:", error);
+    return { error: "Failed to load the notification." };
+  }
+}
+
+/**
+ * Send one of the caller's past sends again. Delegates to `sendNotification`,
+ * which re-validates capability, applies the rate limit, drops recipients who
+ * are no longer active/in-scope, and assigns a fresh `group_id`.
+ */
+export async function resendNotification(
+  groupId: string,
+): Promise<SendNotificationResult> {
+  const draft = await getSentNotificationDraft(groupId);
+  if ("error" in draft) return draft;
+  return sendNotification(draft);
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Bell } from "lucide-react";
+import { Bell, Send } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ComposeNotificationDialog } from "@/components/notifications/compose-notification-dialog";
+import { SentNotifications } from "@/components/notifications/sent-notifications";
 
 /**
  * App-Owner announcements: platform operators compose notifications to tenant
@@ -30,6 +31,19 @@ export default function AppOwnerNotificationsPage() {
         </CardHeader>
         <CardContent>
           <ComposeNotificationDialog />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            {t("center.views.sent")}
+          </CardTitle>
+          <CardDescription>{t("sent.description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SentNotifications />
         </CardContent>
       </Card>
     </div>

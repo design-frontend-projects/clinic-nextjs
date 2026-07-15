@@ -660,7 +660,21 @@
     },
     "toast": {
       "sent": "Notification sent to {count} recipient(s).",
+      "resent": "Notification resent to {count} recipient(s).",
       "failed": "Something went wrong. Please try again."
+    },
+    "sent": {
+      "description": "Messages you have sent. Send any of them again.",
+      "empty": "You haven't sent any notifications yet.",
+      "resend": "Resend",
+      "editResend": "Edit & resend",
+      "columns": {
+        "message": "Message",
+        "recipients": "Recipients",
+        "priority": "Priority",
+        "category": "Category",
+        "sent": "Sent"
+      }
     },
     "compose": {
       "title": "New notification",
@@ -692,6 +706,10 @@
       "description": "Your notification history. Filter by read state or send a new one.",
       "newNotification": "New notification",
       "open": "Open",
+      "views": {
+        "inbox": "Inbox",
+        "sent": "Sent"
+      },
       "columns": {
         "title": "Notification",
         "sender": "From",

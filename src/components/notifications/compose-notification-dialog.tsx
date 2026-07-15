@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Loader2, Send } from "lucide-react";
@@ -42,7 +42,7 @@ import {
 } from "@/types/notification.types";
 
 /** Which recipient roles a sender may target (mirrors the server guard). */
-function allowedTargetRoles(role?: string): TargetRole[] {
+export function allowedTargetRoles(role?: string): TargetRole[] {
   if (role === "app_owner" || role === "super_admin") return ["owner"];
   if (role === "owner" || role === "admin") return ["owner", "doctor", "staff", "pharmacist"];
   if (role === "doctor") return ["doctor", "staff", "pharmacist"];
@@ -53,13 +53,29 @@ const CATEGORIES = notificationCategoryEnum.options;
 
 interface ComposeNotificationDialogProps {
   trigger?: React.ReactNode;
+  /** Seed the form (e.g. "edit & resend"). Applied each time the dialog opens. */
+  prefill?: SendNotificationData;
+  /** Controlled open state. When provided, the parent owns visibility. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /** Sender-only dialog to compose and fan out a notification. */
-export function ComposeNotificationDialog({ trigger }: ComposeNotificationDialogProps) {
+export function ComposeNotificationDialog({
+  trigger,
+  prefill,
+  open: controlledOpen,
+  onOpenChange,
+}: ComposeNotificationDialogProps) {
   const t = useTranslations("notifications");
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    onOpenChange?.(v);
+  };
 
   const { data: tenant } = useQuery({
     queryKey: ["tenant-info"],
@@ -95,6 +111,21 @@ export function ComposeNotificationDialog({ trigger }: ComposeNotificationDialog
     setSelectedIds([]);
     setSearch("");
   };
+
+  // Seed the form from `prefill` whenever the dialog opens (edit & resend).
+  useEffect(() => {
+    if (!open || !prefill) return;
+    setTitle(prefill.title);
+    setBody(prefill.body);
+    setPriority(prefill.priority);
+    setCategory(prefill.category ?? "");
+    setDeepLink(prefill.deep_link ?? "");
+    setAudience(prefill.audience);
+    setTargetRole(prefill.targetRole ?? "");
+    setSelectedIds(prefill.targetProfileIds ?? []);
+    setSearch("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, prefill]);
 
   const send = useMutation({
     mutationFn: (data: SendNotificationData) => sendNotification(data),
@@ -138,14 +169,16 @@ export function ComposeNotificationDialog({ trigger }: ComposeNotificationDialog
 
   return (
     <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : (setOpen(false), reset()))}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button size="sm" className="gap-2">
-            <Send className="h-4 w-4" />
-            {t("center.newNotification")}
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button size="sm" className="gap-2">
+              <Send className="h-4 w-4" />
+              {t("center.newNotification")}
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("compose.title")}</DialogTitle>
