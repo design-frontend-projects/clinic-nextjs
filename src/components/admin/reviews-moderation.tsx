@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Check, Loader2, Star, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { listClinicReviews, moderateReview } from "@/app/actions/reviews";
 import type { ClinicReview, ReviewStatus } from "@/types/review.types";
@@ -18,23 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
-
-function Stars({ rating }: { rating: number }) {
-  return (
-    <span className="inline-flex gap-0.5" aria-label={`${rating}/5`}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <Star
-          key={i}
-          className={
-            i < rating
-              ? "h-3.5 w-3.5 fill-fin text-fin"
-              : "h-3.5 w-3.5 text-muted-foreground/40"
-          }
-        />
-      ))}
-    </span>
-  );
-}
+import { StarRating } from "@/components/ui/star-rating";
 
 export function ReviewsModeration() {
   const queryClient = useQueryClient();
@@ -112,7 +96,7 @@ export function ReviewsModeration() {
             reviews.map((review) => (
               <TableRow key={review.id}>
                 <TableCell>
-                  <Stars rating={review.rating} />
+                  <StarRating rating={review.rating} />
                 </TableCell>
                 <TableCell className="max-w-xs">
                   <p className="truncate" title={review.comment ?? undefined}>

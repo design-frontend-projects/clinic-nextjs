@@ -38,3 +38,22 @@ export type ClinicReview = {
   patient_name: string;
   doctor_name: string | null;
 };
+
+/** An approved review shown to the doctor who received it. */
+export type DoctorReview = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  /** `approved_at` when available, otherwise `created_at`; ISO string. */
+  created_at: string;
+  appointment_date: string | null;
+  patient_name: string;
+};
+
+/** Aggregate rating summary for a doctor's approved reviews. */
+export type DoctorReviewStats = {
+  /** Mean rating rounded to 1 decimal; 0 when there are no approved reviews. */
+  average: number;
+  /** Number of approved reviews. */
+  count: number;
+};

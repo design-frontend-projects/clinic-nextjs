@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { DOCTOR_PAGE_ROLES } from "@/types/clinic.types";
+import type { DoctorReview, DoctorReviewStats } from "@/types/review.types";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -333,4 +334,133 @@ export async function getDoctorLabOrders(appointmentId?: string) {
     orderBy: { created_at: "desc" },
     take: 50,
   });
+}
+
+export async function getDoctorPatients(search?: string) {
+  const tenant = await requireTenantInfo();
+
+  if (!isPractitioner(tenant.role)) {
+    throw new Error("Unauthorized");
+  }
+
+  const patients = await prisma.patients.findMany({
+    where: {
+      clinic_id: tenant.clinicId,
+      deleted_at: null,
+      ...(search
+        ? {
+            OR: [
+              { first_name: { contains: search, mode: "insensitive" } },
+              { last_name: { contains: search, mode: "insensitive" } },
+              { phone: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    include: {
+      encounters: {
+        orderBy: { encounter_date: "desc" },
+        take: 1,
+      },
+      appointments: {
+        where: {
+          doctor_id: tenant.profileId,
+        },
+        orderBy: { appointment_date: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: { created_at: "desc" },
+    take: 100,
+  });
+
+  return patients.map((p) => {
+    const latestEncounter = p.encounters[0];
+    const latestAppt = p.appointments[0];
+    return {
+      id: p.id,
+      name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Unnamed Patient",
+      gender: p.gender,
+      dob: p.date_of_birth ? p.date_of_birth.toISOString() : null,
+      phone: p.phone || "—",
+      email: p.email || "—",
+      condition: latestEncounter?.diagnosis || "No diagnosis",
+      last_visit: latestAppt?.appointment_date
+        ? latestAppt.appointment_date.toISOString()
+        : latestEncounter?.encounter_date
+        ? latestEncounter.encounter_date.toISOString()
+        : p.created_at.toISOString(),
+    };
+  });
+}
+
+
+/**
+ * Aggregate rating summary for the current doctor's own approved reviews.
+ * Scoped to the tenant + the doctor themself.
+ */
+export async function getDoctorReviewStats(): Promise<DoctorReviewStats> {
+  const tenant = await requireTenantInfo();
+
+  if (!isPractitioner(tenant.role)) {
+    throw new Error("Unauthorized: Only practitioners can access this data");
+  }
+
+  const result = await prisma.appointment_reviews.aggregate({
+    where: {
+      clinic_id: tenant.clinicId,
+      doctor_id: tenant.profileId,
+      status: "approved",
+    },
+    _avg: { rating: true },
+    _count: true,
+  });
+
+  return {
+    average: Math.round((result._avg.rating ?? 0) * 10) / 10,
+    count: result._count,
+  };
+}
+
+/**
+ * The current doctor's own approved reviews, most recently approved first.
+ * Scoped to the tenant + the doctor themself.
+ */
+export async function getDoctorReviews(limit?: number): Promise<DoctorReview[]> {
+  const tenant = await requireTenantInfo();
+
+  if (!isPractitioner(tenant.role)) {
+    throw new Error("Unauthorized: Only practitioners can access this data");
+  }
+
+  const reviews = await prisma.appointment_reviews.findMany({
+    where: {
+      clinic_id: tenant.clinicId,
+      doctor_id: tenant.profileId,
+      status: "approved",
+    },
+    orderBy: { approved_at: "desc" },
+    take: limit ?? 100,
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      created_at: true,
+      approved_at: true,
+      appointments: { select: { appointment_date: true } },
+      patients: { select: { first_name: true, last_name: true } },
+    },
+  });
+
+  return reviews.map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    created_at: (r.approved_at ?? r.created_at).toISOString(),
+    appointment_date: r.appointments.appointment_date?.toISOString() ?? null,
+    patient_name:
+      [r.patients.first_name, r.patients.last_name].filter(Boolean).join(" ") ||
+      "Patient",
+  }));
 }

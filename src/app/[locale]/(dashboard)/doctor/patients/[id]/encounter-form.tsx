@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -66,16 +67,17 @@ export function EncounterForm({ patientId, appointmentId }: EncounterFormProps) 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField
           control={form.control}
           name="diagnosis"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Diagnosis</FormLabel>
+              <FormLabel className="font-semibold text-sm text-foreground">Diagnosis</FormLabel>
               <FormControl>
                 <Input
                   placeholder="Primary diagnosis (e.g., Acute Pharyngitis)"
+                  className="rounded-xl border-border/40 bg-background/50 focus:border-accent-blue focus:ring-accent-blue/40 shadow-inner px-4 py-2.5 transition-all"
                   {...field}
                 />
               </FormControl>
@@ -89,11 +91,11 @@ export function EncounterForm({ patientId, appointmentId }: EncounterFormProps) 
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Consultation Notes</FormLabel>
+              <FormLabel className="font-semibold text-sm text-foreground">Consultation Notes</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Record symptoms, observations, and findings..."
-                  className="min-h-[120px]"
+                  className="min-h-[140px] rounded-xl border-border/40 bg-background/50 focus:border-accent-blue focus:ring-accent-blue/40 shadow-inner px-4 py-2.5 transition-all"
                   {...field}
                 />
               </FormControl>
@@ -107,11 +109,11 @@ export function EncounterForm({ patientId, appointmentId }: EncounterFormProps) 
           name="treatment_plan"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Treatment Plan</FormLabel>
+              <FormLabel className="font-semibold text-sm text-foreground">Treatment Plan</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Instructions, rest prescriptions, follow-up..."
-                  className="min-h-[80px]"
+                  className="min-h-[90px] rounded-xl border-border/40 bg-background/50 focus:border-accent-blue focus:ring-accent-blue/40 shadow-inner px-4 py-2.5 transition-all"
                   {...field}
                 />
               </FormControl>
@@ -120,11 +122,17 @@ export function EncounterForm({ patientId, appointmentId }: EncounterFormProps) 
           )}
         />
 
-        <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Encounter
-          </Button>
+        <div className="flex justify-end pt-2">
+          <motion.div
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            className="inline-flex w-full sm:w-auto"
+          >
+            <Button type="submit" disabled={isPending} className="w-full rounded-xl px-6 py-2 font-semibold">
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin text-muted-foreground" />}
+              Save Encounter
+            </Button>
+          </motion.div>
         </div>
       </form>
     </Form>

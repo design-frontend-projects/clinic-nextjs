@@ -32,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   // pages while the owner keeps their /admin sidebar.
   { titleKey: "sidebar.myAppointments", href: "/doctor/appointments", iconKey: "appointments", roles: ["owner"] },
   { titleKey: "sidebar.labOrders", href: "/doctor/lab-orders", iconKey: "labOrders", roles: ["owner"] },
+  { titleKey: "sidebar.myReviews", href: "/doctor/reviews", iconKey: "reviews", roles: ["owner"] },
 
   // Settings group (RBAC) — gated by settings permissions
   { titleKey: "sidebar.roles", href: "/settings/roles", iconKey: "roles", roles: ["admin", "owner","app_owner"], requiredPermission: "settings.roles.manage" },
@@ -46,6 +47,7 @@ export const NAV_ITEMS: NavItem[] = [
   { titleKey: "sidebar.myPatients", href: "/doctor/patients", iconKey: "patients", roles: ["doctor"] },
   { titleKey: "sidebar.prescriptions", href: "/doctor/prescriptions", iconKey: "prescriptions", roles: ["doctor"] },
   { titleKey: "sidebar.labOrders", href: "/doctor/lab-orders", iconKey: "labOrders", roles: ["doctor"] },
+  { titleKey: "sidebar.myReviews", href: "/doctor/reviews", iconKey: "reviews", roles: ["doctor"] },
 
   // Staff
   { titleKey: "sidebar.dashboard", href: "/staff", iconKey: "dashboard", roles: ["staff"] },

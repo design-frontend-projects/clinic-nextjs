@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -76,32 +77,43 @@ export default function DoctorPrescriptionsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="space-y-6"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Prescriptions</h1>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent">
+            Prescriptions
+          </h1>
           <p className="text-muted-foreground">
             Manage your issued patient prescriptions
           </p>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Prescription
-        </Button>
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+          <Button onClick={openNew} className="rounded-xl font-medium shadow-sm">
+            <Plus className="mr-2 h-4 w-4" />
+            New Prescription
+          </Button>
+        </motion.div>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Loading prescriptions...
+        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+          <span className="text-sm font-medium">Loading prescriptions...</span>
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={rows}
-          searchKey="patient_name"
-          searchPlaceholder="Search by patient name..."
-        />
+        <div className="rounded-2xl border border-border/40 bg-card/30 p-4 backdrop-blur-md shadow-sm animate-fade-in">
+          <DataTable
+            columns={columns}
+            data={rows}
+            searchKey="patient_name"
+            searchPlaceholder="Search by patient name..."
+          />
+        </div>
       )}
 
       <PrescriptionDialog
@@ -110,6 +122,6 @@ export default function DoctorPrescriptionsPage() {
         prescription={editing}
         onSaved={() => refetch()}
       />
-    </div>
+    </motion.div>
   );
 }
