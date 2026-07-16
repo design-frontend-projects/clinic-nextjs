@@ -3,7 +3,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { getTenantInfo } from "@/lib/auth";
+import { getSupabaseSession, getTenantInfo } from "@/lib/auth";
+import { roleHomePath, DEFAULT_HOME_PATH } from "@/lib/role-routes";
 import * as z from "zod";
 
 /**
@@ -28,6 +29,28 @@ export async function syncOnboardingCookie() {
     path: "/",
     sameSite: "lax",
   });
+}
+
+/**
+ * Resolve the dashboard landing path for the just-signed-in user from their
+ * authoritative `profiles.role` (the same source every dashboard guard uses).
+ *
+ * The client sign-in form reads roles from the Supabase JWT (`app_metadata.roles`),
+ * which is frequently empty and omits several roles — so it silently misroutes
+ * everyone to `/admin`. Resolving server-side from the DB fixes that. Falls back
+ * to the JWT claim, then `/admin`, when no profile is linked yet.
+ */
+export async function getPostSignInRedirect(): Promise<string> {
+  const tenant = await getTenantInfo();
+  if (tenant) {
+    return roleHomePath(tenant.role);
+  }
+
+  // No profile row yet (e.g. mid-provisioning): fall back to the JWT claim.
+  const session = await getSupabaseSession();
+  const roles = session?.user?.app_metadata?.roles as string[] | undefined;
+  const jwtRole = roles?.find((r) => roleHomePath(r) !== DEFAULT_HOME_PATH);
+  return jwtRole ? roleHomePath(jwtRole) : DEFAULT_HOME_PATH;
 }
 
 const signUpSchema = z.object({

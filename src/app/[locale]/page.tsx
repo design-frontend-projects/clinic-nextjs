@@ -1,4 +1,5 @@
 import { getSupabaseSession, getTenantInfo } from "@/lib/auth";
+import { roleHomePath, DEFAULT_HOME_PATH } from "@/lib/role-routes";
 import {
   getPublicPlans,
   getPublicSpecialties,
@@ -24,7 +25,7 @@ export default async function LandingPage() {
     getPublicTestimonials(),
   ]);
 
-  let dashboardPath = "/admin";
+  let dashboardPath = DEFAULT_HOME_PATH;
   let fullName: string | null = null;
   let email = session?.user?.email ?? null;
 
@@ -33,22 +34,11 @@ export default async function LandingPage() {
     if (tenant) {
       fullName = tenant.fullName;
       email = tenant.email || email;
-      const role = tenant.role;
-      if (role === "app_owner") {
-        dashboardPath = "/app-owner";
-      } else if (role === "staff") {
-        dashboardPath = "/staff";
-      } else if (role === "doctor") {
-        dashboardPath = "/doctor";
-      } else if (role === "admin" || role === "owner") {
-        dashboardPath = "/admin";
-      }
+      dashboardPath = roleHomePath(tenant.role);
     } else {
       const roles = session.user.app_metadata?.roles as string[] | undefined;
-      if (roles?.includes("app_owner")) dashboardPath = "/app-owner";
-      else if (roles?.includes("staff")) dashboardPath = "/staff";
-      else if (roles?.includes("doctor")) dashboardPath = "/doctor";
-      else if (roles?.includes("admin") || roles?.includes("owner")) dashboardPath = "/admin";
+      const jwtRole = roles?.find((r) => roleHomePath(r) !== DEFAULT_HOME_PATH);
+      if (jwtRole) dashboardPath = roleHomePath(jwtRole);
     }
   }
 

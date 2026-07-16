@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { syncOnboardingCookie } from "@/app/actions/auth";
+import { getPostSignInRedirect, syncOnboardingCookie } from "@/app/actions/auth";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,17 +70,10 @@ export function SignInForm() {
       // middleware onboarding gate doesn't push them into the owner wizard.
       await syncOnboardingCookie();
 
-      const roles = useAuthStore.getState().getRoles();
-      const isAppOwner = roles.includes("app_owner");
-      const isStaff = roles.includes("staff");
-      const isDoctor = roles.includes("doctor");
-      const redirectPath = isAppOwner
-        ? "/app-owner"
-        : isStaff
-          ? "/staff"
-          : isDoctor
-            ? "/doctor"
-            : "/admin";
+      // Resolve the landing route from the authoritative DB role (profiles.role)
+      // rather than the JWT `app_metadata.roles` claim, which is often empty and
+      // silently routes everyone to /admin.
+      const redirectPath = await getPostSignInRedirect();
 
       toast.success(t("signInButton"));
 
