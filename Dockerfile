@@ -16,8 +16,8 @@ WORKDIR /app
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ── Build ────────────────────────────────────────────────────────────────────
 FROM base AS builder

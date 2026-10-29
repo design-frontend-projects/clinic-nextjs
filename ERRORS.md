@@ -32,3 +32,21 @@
 - **Prevention**: Declare constructor properties intended for external/action consumption as `public` or `public readonly`.
 - **Status**: Fixed
 
+---
+
+## [2026-10-30 00:05] - Cannot find module '.prisma/client/default' in Next.js 16 (Turbopack)
+
+- **Type**: Integration
+- **Severity**: High
+- **File**: `src/lib/prisma.ts:1`
+- **Agent**: @debugger
+- **Root Cause**: Prisma 7 (`@prisma/client@7.4.2`) no longer includes an automatic `postinstall` script in its package, and `pnpm-workspace.yaml` had placeholder strings (`set this to true or false`) under `allowBuilds`. Running `pnpm install` recreated the `@prisma/client` virtual store folder without regenerating `.prisma/client/default`.
+- **Error Message**: 
+  ```
+  Failed to load external module @prisma/client-8bf6e2af8d9667ab: Error: Cannot find module '.prisma/client/default'
+  ```
+- **Fix Applied**: Configured boolean values in `pnpm-workspace.yaml` `allowBuilds`, added `"postinstall": "prisma generate"` and `prisma generate` prefixes to `dev` and `build` in `package.json`, switched `prisma.config.ts` to `process.env.DIRECT_URL` so `prisma generate` works without requiring `DIRECT_URL` at install/build time, updated `Dockerfile` `deps` stage with `--ignore-scripts`, and regenerated the Prisma Client.
+- **Prevention**: Ensure `postinstall`, `dev`, and `build` scripts always run `prisma generate` and keep `pnpm-workspace.yaml` `allowBuilds` values as valid booleans.
+- **Status**: Fixed
+
+
