@@ -183,6 +183,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["doctor"],
   },
   {
+    titleKey: "sidebar.billing",
+    href: "/doctor/billing",
+    iconKey: "billing",
+    roles: ["doctor"],
+  },
+  {
     titleKey: "sidebar.insurance",
     href: "/doctor/insurance",
     iconKey: "insurance",

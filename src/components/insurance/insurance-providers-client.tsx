@@ -6,7 +6,15 @@ import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  FlaskConical,
+  Pencil,
+  Pill,
+  Plus,
+  ShieldCheck,
+  Stethoscope,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -17,6 +25,7 @@ import {
 } from "@/app/actions/insurance";
 import {
   insuranceProviderSchema,
+  type DeductionType,
   type InsuranceProviderData,
   type InsuranceProviderRow,
 } from "@/types/insurance.types";
@@ -50,7 +59,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+
+function formatRuleShort(
+  type: DeductionType | null | undefined,
+  value: number | null | undefined,
+  fallbackType: DeductionType,
+): string | null {
+  if (value === null || value === undefined) return null;
+  const resolvedType = type ?? fallbackType;
+  return resolvedType === "fixed"
+    ? `$${Number(value).toFixed(2)}`
+    : `${Number(value)}%`;
+}
 
 function deductionLabel(row: InsuranceProviderRow): string {
   return row.deduction_type === "fixed"
@@ -64,6 +86,12 @@ const emptyForm: InsuranceProviderData = {
   contact_phone: "",
   deduction_type: "fixed",
   deduction_value: 0,
+  consultation_deduction_type: "percentage",
+  consultation_deduction_value: null,
+  lab_deduction_type: "percentage",
+  lab_deduction_value: null,
+  pharmacy_deduction_type: "percentage",
+  pharmacy_deduction_value: null,
   covered_visits: null,
   is_active: true,
 };
@@ -100,6 +128,14 @@ export function InsuranceProvidersClient() {
       contact_phone: row.contact_phone ?? "",
       deduction_type: row.deduction_type,
       deduction_value: row.deduction_value,
+      consultation_deduction_type:
+        row.consultation_deduction_type ?? row.deduction_type,
+      consultation_deduction_value: row.consultation_deduction_value ?? null,
+      lab_deduction_type: row.lab_deduction_type ?? row.deduction_type,
+      lab_deduction_value: row.lab_deduction_value ?? null,
+      pharmacy_deduction_type:
+        row.pharmacy_deduction_type ?? row.deduction_type,
+      pharmacy_deduction_value: row.pharmacy_deduction_value ?? null,
       covered_visits: row.covered_visits,
       is_active: row.is_active,
     });
@@ -115,7 +151,9 @@ export function InsuranceProvidersClient() {
         toast.error(result.error);
         return;
       }
-      toast.success(editing ? "Insurance company updated." : "Insurance company added.");
+      toast.success(
+        editing ? "Insurance company updated." : "Insurance company added.",
+      );
       setDialogOpen(false);
       refetch();
     });
@@ -147,7 +185,9 @@ export function InsuranceProvidersClient() {
           <div>
             <p className="font-medium">{row.original.name}</p>
             <p className="text-xs text-muted-foreground">
-              {row.original.contact_email || row.original.contact_phone || "No contact"}
+              {row.original.contact_email ||
+                row.original.contact_phone ||
+                "No contact"}
             </p>
           </div>
         </div>
@@ -155,12 +195,48 @@ export function InsuranceProvidersClient() {
     },
     {
       id: "deduction",
-      header: "Deduction",
-      cell: ({ row }) => (
-        <Badge variant="secondary" className="font-normal">
-          {deductionLabel(row.original)}
-        </Badge>
-      ),
+      header: "Deduction Rules (Default & Per Category)",
+      cell: ({ row }) => {
+        const r = row.original;
+        const consultLabel = formatRuleShort(
+          r.consultation_deduction_type,
+          r.consultation_deduction_value,
+          r.deduction_type,
+        );
+        const labLabel = formatRuleShort(
+          r.lab_deduction_type,
+          r.lab_deduction_value,
+          r.deduction_type,
+        );
+        const pharmLabel = formatRuleShort(
+          r.pharmacy_deduction_type,
+          r.pharmacy_deduction_value,
+          r.deduction_type,
+        );
+
+        return (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="secondary" className="font-normal">
+              Default: {deductionLabel(r)}
+            </Badge>
+            {consultLabel && (
+              <Badge variant="outline" className="text-xs font-normal">
+                Consultation: {consultLabel}
+              </Badge>
+            )}
+            {labLabel && (
+              <Badge variant="outline" className="text-xs font-normal">
+                Lab: {labLabel}
+              </Badge>
+            )}
+            {pharmLabel && (
+              <Badge variant="outline" className="text-xs font-normal">
+                Pharmacy: {pharmLabel}
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "covered_visits",
@@ -217,14 +293,21 @@ export function InsuranceProvidersClient() {
   ];
 
   const deductionType = form.watch("deduction_type");
+  const consultType =
+    form.watch("consultation_deduction_type") ?? deductionType;
+  const labType = form.watch("lab_deduction_type") ?? deductionType;
+  const pharmType = form.watch("pharmacy_deduction_type") ?? deductionType;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Insurance Companies</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Insurance Companies
+          </h1>
           <p className="text-muted-foreground">
-            Define insurance companies and the deduction applied at billing
+            Define insurance companies and deduction rules per visit,
+            consultation, lab, and pharmacy
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -241,13 +324,14 @@ export function InsuranceProvidersClient() {
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editing ? "Edit Insurance Company" : "Add Insurance Company"}
             </DialogTitle>
             <DialogDescription>
-              Set the company details and how much it covers per visit.
+              Set the company details, default deduction rule, and optional
+              deduction overrides for Consultation, Lab, and Pharmacy.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -264,7 +348,8 @@ export function InsuranceProvidersClient() {
                 </p>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="contact_email">Contact Email</Label>
                 <Input
@@ -283,43 +368,260 @@ export function InsuranceProvidersClient() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Deduction Type *</Label>
-                <Select
-                  value={deductionType}
-                  onValueChange={(v) =>
-                    form.setValue("deduction_type", v as "fixed" | "percentage")
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fixed">Fixed price per visit</SelectItem>
-                    <SelectItem value="percentage">Percentage of invoice</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="deduction_value">
-                  {deductionType === "fixed" ? "Amount ($) *" : "Percentage (%) *"}
-                </Label>
-                <Input
-                  id="deduction_value"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...form.register("deduction_value")}
-                />
-                {form.formState.errors.deduction_value && (
-                  <p className="text-xs text-destructive">
-                    {form.formState.errors.deduction_value.message}
-                  </p>
-                )}
+
+            <Separator />
+
+            {/* Default Deduction Rule */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">
+                Default / General Deduction Rule *
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Applied to any invoice item whose category does not have a
+                specific override below.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Deduction Type *</Label>
+                  <Select
+                    value={deductionType}
+                    onValueChange={(v) =>
+                      form.setValue(
+                        "deduction_type",
+                        v as "fixed" | "percentage",
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">
+                        Fixed price ($ amount)
+                      </SelectItem>
+                      <SelectItem value="percentage">
+                        Percentage (% of amount)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deduction_value">
+                    {deductionType === "fixed"
+                      ? "Default Amount ($) *"
+                      : "Default Percentage (%) *"}
+                  </Label>
+                  <Input
+                    id="deduction_value"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...form.register("deduction_value")}
+                  />
+                  {form.formState.errors.deduction_value && (
+                    <p className="text-xs text-destructive">
+                      {form.formState.errors.deduction_value.message}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <Separator />
+
+            {/* Category-Specific Overrides */}
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-sm font-semibold">
+                  Category-Specific Deductions (Consultation, Lab, Pharmacy)
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Optional. Leave the value empty to fall back to the default
+                  deduction rule above.
+                </p>
+              </div>
+
+              {/* Consultation */}
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Stethoscope className="h-4 w-4 text-sky-600" />
+                  <span>Consultation Deduction</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Type</Label>
+                    <Select
+                      value={consultType}
+                      onValueChange={(v) =>
+                        form.setValue(
+                          "consultation_deduction_type",
+                          v as "fixed" | "percentage",
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fixed ($)</SelectItem>
+                        <SelectItem value="percentage">
+                          Percentage (%)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="consultation_deduction_value"
+                      className="text-xs"
+                    >
+                      {consultType === "fixed"
+                        ? "Consultation Amount ($)"
+                        : "Consultation Coverage (%)"}
+                    </Label>
+                    <Input
+                      id="consultation_deduction_value"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Use default rule"
+                      {...form.register("consultation_deduction_value", {
+                        setValueAs: (v) =>
+                          v === "" || v === null ? null : Number(v),
+                      })}
+                    />
+                    {form.formState.errors.consultation_deduction_value && (
+                      <p className="text-xs text-destructive">
+                        {
+                          form.formState.errors.consultation_deduction_value
+                            .message
+                        }
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Lab */}
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <FlaskConical className="h-4 w-4 text-amber-600" />
+                  <span>Lab Deduction</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Type</Label>
+                    <Select
+                      value={labType}
+                      onValueChange={(v) =>
+                        form.setValue(
+                          "lab_deduction_type",
+                          v as "fixed" | "percentage",
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fixed ($)</SelectItem>
+                        <SelectItem value="percentage">
+                          Percentage (%)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="lab_deduction_value" className="text-xs">
+                      {labType === "fixed"
+                        ? "Lab Amount ($)"
+                        : "Lab Coverage (%)"}
+                    </Label>
+                    <Input
+                      id="lab_deduction_value"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Use default rule"
+                      {...form.register("lab_deduction_value", {
+                        setValueAs: (v) =>
+                          v === "" || v === null ? null : Number(v),
+                      })}
+                    />
+                    {form.formState.errors.lab_deduction_value && (
+                      <p className="text-xs text-destructive">
+                        {form.formState.errors.lab_deduction_value.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Pharmacy */}
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Pill className="h-4 w-4 text-emerald-600" />
+                  <span>Pharmacy & Prescription Deduction</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Type</Label>
+                    <Select
+                      value={pharmType}
+                      onValueChange={(v) =>
+                        form.setValue(
+                          "pharmacy_deduction_type",
+                          v as "fixed" | "percentage",
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fixed ($)</SelectItem>
+                        <SelectItem value="percentage">
+                          Percentage (%)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="pharmacy_deduction_value"
+                      className="text-xs"
+                    >
+                      {pharmType === "fixed"
+                        ? "Pharmacy Amount ($)"
+                        : "Pharmacy Coverage (%)"}
+                    </Label>
+                    <Input
+                      id="pharmacy_deduction_value"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Use default rule"
+                      {...form.register("pharmacy_deduction_value", {
+                        setValueAs: (v) =>
+                          v === "" || v === null ? null : Number(v),
+                      })}
+                    />
+                    {form.formState.errors.pharmacy_deduction_value && (
+                      <p className="text-xs text-destructive">
+                        {
+                          form.formState.errors.pharmacy_deduction_value
+                            .message
+                        }
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="covered_visits">Covered Visits</Label>
                 <Input
@@ -328,7 +630,8 @@ export function InsuranceProvidersClient() {
                   min="1"
                   placeholder="Unlimited"
                   {...form.register("covered_visits", {
-                    setValueAs: (v) => (v === "" || v === null ? null : Number(v)),
+                    setValueAs: (v) =>
+                      v === "" || v === null ? null : Number(v),
                   })}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -351,6 +654,7 @@ export function InsuranceProvidersClient() {
                 </div>
               </div>
             </div>
+
             <DialogFooter>
               <Button
                 type="button"
@@ -360,14 +664,21 @@ export function InsuranceProvidersClient() {
                 Cancel
               </Button>
               <Button type="submit" disabled={isPending}>
-                {isPending ? "Saving..." : editing ? "Save Changes" : "Add Company"}
+                {isPending
+                  ? "Saving..."
+                  : editing
+                    ? "Save Changes"
+                    : "Add Company"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+      <AlertDialog
+        open={!!deleting}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove {deleting?.name}?</AlertDialogTitle>

@@ -9,7 +9,6 @@ import {
 } from "@/components/admin/temp-password-dialog";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,7 +62,15 @@ type Patient = {
   profile_id: string | null;
 };
 
-function InviteToPortalCell({ patient, t }: { patient: Patient, t: any }) {
+type PatientsTranslator = ReturnType<typeof useTranslations<"admin.patients">>;
+
+function InviteToPortalCell({
+  patient,
+  t,
+}: {
+  patient: Patient;
+  t: PatientsTranslator;
+}) {
   const [isPending, startTransition] = useTransition();
   const [tempPasswordInfo, setTempPasswordInfo] =
     useState<TempPasswordInfo | null>(null);
@@ -118,7 +125,13 @@ function InviteToPortalCell({ patient, t }: { patient: Patient, t: any }) {
   );
 }
 
-function InsuranceCell({ patient, t }: { patient: Patient, t: any }) {
+function InsuranceCell({
+  patient,
+  t,
+}: {
+  patient: Patient;
+  t: PatientsTranslator;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -143,6 +156,63 @@ export default function PatientsPage() {
   const t = useTranslations("admin.patients");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const columns: ColumnDef<Patient>[] = [
+    {
+      accessorKey: "first_name",
+      header: t("table.name"),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+            <Users className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="font-medium">
+              {row.original.first_name} {row.original.last_name}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {row.original.email || t("table.noEmail")}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "phone",
+      header: t("table.phone"),
+      cell: ({ row }) => row.original.phone || "—",
+    },
+    {
+      accessorKey: "gender",
+      header: t("table.gender"),
+      cell: ({ row }) => (
+        <span className="capitalize">{row.original.gender || "—"}</span>
+      ),
+    },
+    {
+      accessorKey: "date_of_birth",
+      header: t("table.dob"),
+      cell: ({ row }) =>
+        row.original.date_of_birth
+          ? format(new Date(row.original.date_of_birth), "MMM d, yyyy")
+          : "—",
+    },
+    {
+      accessorKey: "created_at",
+      header: t("table.registered"),
+      cell: ({ row }) => format(new Date(row.original.created_at), "MMM d, yyyy"),
+    },
+    {
+      id: "insurance",
+      header: t("insurance"),
+      cell: ({ row }) => <InsuranceCell patient={row.original} t={t} />,
+    },
+    {
+      id: "portal",
+      header: t("table.portal"),
+      cell: ({ row }) => <InviteToPortalCell patient={row.original} t={t} />,
+    },
+  ];
 
   const { data: patients = [], refetch } = useQuery({
     queryKey: ["patients"],

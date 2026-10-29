@@ -4,14 +4,12 @@ import { randomUUID } from "crypto";
 
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
-import {
-  isPolicyEligible,
-  remainingVisits,
-} from "@/lib/insurance";
+import { isPolicyEligible, remainingVisits } from "@/lib/insurance";
 import {
   assignPatientInsuranceSchema,
   insuranceProviderSchema,
   type AssignPatientInsuranceData,
+  type DeductionType,
   type InsuranceProviderData,
   type InsuranceProviderRow,
   type PatientInsuranceRow,
@@ -19,16 +17,22 @@ import {
 import { revalidatePath } from "next/cache";
 
 /**
- * Insurance companies and patient policies are managed by clinic owners and
- * doctors (admins are the owner-side dashboard role and are included the same
- * way every /admin screen pairs them with owners).
+ * Insurance companies and patient policies are managed by clinic owners,
+ * admins, super_admins, and doctors.
  */
-const INSURANCE_MANAGER_ROLES = ["owner", "admin", "doctor"] as const;
+const INSURANCE_MANAGER_ROLES = [
+  "owner",
+  "admin",
+  "super_admin",
+  "doctor",
+] as const;
 
 async function requireInsuranceManager() {
   const tenant = await requireTenantInfo();
   if (!(INSURANCE_MANAGER_ROLES as readonly string[]).includes(tenant.role)) {
-    throw new Error("Unauthorized: insurance is managed by owners and doctors");
+    throw new Error(
+      "Unauthorized: insurance is managed by owners, admins, and doctors",
+    );
   }
   return tenant;
 }
@@ -36,6 +40,22 @@ async function requireInsuranceManager() {
 function revalidateInsurancePages() {
   revalidatePath("/admin/insurance");
   revalidatePath("/doctor/insurance");
+  revalidatePath("/admin/billing");
+  revalidatePath("/doctor/billing");
+}
+
+function normalizeOptionalCategoryRule(
+  type: DeductionType | null | undefined,
+  value: number | null | undefined,
+  defaultType: DeductionType,
+): { type: DeductionType | null; value: number | null } {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return { type: null, value: null };
+  }
+  return {
+    type: type ?? defaultType,
+    value: Number(value),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -62,6 +82,23 @@ export async function getInsuranceProviders(): Promise<InsuranceProviderRow[]> {
     contact_phone: p.contact_phone,
     deduction_type: p.deduction_type,
     deduction_value: Number(p.deduction_value),
+    consultation_deduction_type: p.consultation_deduction_type ?? null,
+    consultation_deduction_value:
+      p.consultation_deduction_value !== null &&
+      p.consultation_deduction_value !== undefined
+        ? Number(p.consultation_deduction_value)
+        : null,
+    lab_deduction_type: p.lab_deduction_type ?? null,
+    lab_deduction_value:
+      p.lab_deduction_value !== null && p.lab_deduction_value !== undefined
+        ? Number(p.lab_deduction_value)
+        : null,
+    pharmacy_deduction_type: p.pharmacy_deduction_type ?? null,
+    pharmacy_deduction_value:
+      p.pharmacy_deduction_value !== null &&
+      p.pharmacy_deduction_value !== undefined
+        ? Number(p.pharmacy_deduction_value)
+        : null,
     covered_visits: p.covered_visits,
     is_active: p.is_active,
     created_at: p.created_at.toISOString(),
@@ -76,6 +113,22 @@ export async function createInsuranceProvider(data: InsuranceProviderData) {
     if (!result.success) return { error: firstIssue(result.error) };
     const parsed = result.data;
 
+    const consultation = normalizeOptionalCategoryRule(
+      parsed.consultation_deduction_type,
+      parsed.consultation_deduction_value,
+      parsed.deduction_type,
+    );
+    const lab = normalizeOptionalCategoryRule(
+      parsed.lab_deduction_type,
+      parsed.lab_deduction_value,
+      parsed.deduction_type,
+    );
+    const pharmacy = normalizeOptionalCategoryRule(
+      parsed.pharmacy_deduction_type,
+      parsed.pharmacy_deduction_value,
+      parsed.deduction_type,
+    );
+
     await prisma.insurance_providers.create({
       data: {
         id: randomUUID(),
@@ -85,6 +138,12 @@ export async function createInsuranceProvider(data: InsuranceProviderData) {
         contact_phone: parsed.contact_phone || null,
         deduction_type: parsed.deduction_type,
         deduction_value: parsed.deduction_value,
+        consultation_deduction_type: consultation.type,
+        consultation_deduction_value: consultation.value,
+        lab_deduction_type: lab.type,
+        lab_deduction_value: lab.value,
+        pharmacy_deduction_type: pharmacy.type,
+        pharmacy_deduction_value: pharmacy.value,
         covered_visits: parsed.covered_visits ?? null,
         is_active: parsed.is_active,
       },
@@ -93,7 +152,9 @@ export async function createInsuranceProvider(data: InsuranceProviderData) {
     revalidateInsurancePages();
     return { success: true as const };
   } catch (error) {
-    return { error: toErrorMessage(error, "Failed to create insurance company.") };
+    return {
+      error: toErrorMessage(error, "Failed to create insurance company."),
+    };
   }
 }
 
@@ -107,6 +168,22 @@ export async function updateInsuranceProvider(
     if (!result.success) return { error: firstIssue(result.error) };
     const parsed = result.data;
 
+    const consultation = normalizeOptionalCategoryRule(
+      parsed.consultation_deduction_type,
+      parsed.consultation_deduction_value,
+      parsed.deduction_type,
+    );
+    const lab = normalizeOptionalCategoryRule(
+      parsed.lab_deduction_type,
+      parsed.lab_deduction_value,
+      parsed.deduction_type,
+    );
+    const pharmacy = normalizeOptionalCategoryRule(
+      parsed.pharmacy_deduction_type,
+      parsed.pharmacy_deduction_value,
+      parsed.deduction_type,
+    );
+
     const { count } = await prisma.insurance_providers.updateMany({
       where: { id, clinic_id: tenant.clinicId, deleted_at: null },
       data: {
@@ -115,6 +192,12 @@ export async function updateInsuranceProvider(
         contact_phone: parsed.contact_phone || null,
         deduction_type: parsed.deduction_type,
         deduction_value: parsed.deduction_value,
+        consultation_deduction_type: consultation.type,
+        consultation_deduction_value: consultation.value,
+        lab_deduction_type: lab.type,
+        lab_deduction_value: lab.value,
+        pharmacy_deduction_type: pharmacy.type,
+        pharmacy_deduction_value: pharmacy.value,
         covered_visits: parsed.covered_visits ?? null,
         is_active: parsed.is_active,
       },
@@ -124,7 +207,9 @@ export async function updateInsuranceProvider(
     revalidateInsurancePages();
     return { success: true as const };
   } catch (error) {
-    return { error: toErrorMessage(error, "Failed to update insurance company.") };
+    return {
+      error: toErrorMessage(error, "Failed to update insurance company."),
+    };
   }
 }
 
@@ -141,7 +226,9 @@ export async function deleteInsuranceProvider(id: string) {
     revalidateInsurancePages();
     return { success: true as const };
   } catch (error) {
-    return { error: toErrorMessage(error, "Failed to delete insurance company.") };
+    return {
+      error: toErrorMessage(error, "Failed to delete insurance company."),
+    };
   }
 }
 
@@ -284,6 +371,12 @@ type PolicyWithProvider = {
     contact_phone: string | null;
     deduction_type: "fixed" | "percentage";
     deduction_value: unknown;
+    consultation_deduction_type?: "fixed" | "percentage" | null;
+    consultation_deduction_value?: unknown;
+    lab_deduction_type?: "fixed" | "percentage" | null;
+    lab_deduction_value?: unknown;
+    pharmacy_deduction_type?: "fixed" | "percentage" | null;
+    pharmacy_deduction_value?: unknown;
     covered_visits: number | null;
     is_active: boolean;
     deleted_at: Date | null;
@@ -305,6 +398,24 @@ function mapPolicyRow(pi: PolicyWithProvider): PatientInsuranceRow {
     valid_to: pi.valid_to ? pi.valid_to.toISOString() : null,
     deduction_type: provider.deduction_type,
     deduction_value: Number(provider.deduction_value),
+    consultation_deduction_type: provider.consultation_deduction_type ?? null,
+    consultation_deduction_value:
+      provider.consultation_deduction_value !== null &&
+      provider.consultation_deduction_value !== undefined
+        ? Number(provider.consultation_deduction_value)
+        : null,
+    lab_deduction_type: provider.lab_deduction_type ?? null,
+    lab_deduction_value:
+      provider.lab_deduction_value !== null &&
+      provider.lab_deduction_value !== undefined
+        ? Number(provider.lab_deduction_value)
+        : null,
+    pharmacy_deduction_type: provider.pharmacy_deduction_type ?? null,
+    pharmacy_deduction_value:
+      provider.pharmacy_deduction_value !== null &&
+      provider.pharmacy_deduction_value !== undefined
+        ? Number(provider.pharmacy_deduction_value)
+        : null,
     covered_visits: provider.covered_visits,
     visits_used: pi.visits_used,
     remaining_visits: remainingVisits(provider.covered_visits, pi.visits_used),

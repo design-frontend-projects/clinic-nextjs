@@ -263,7 +263,27 @@ export async function getInvoices() {
   return prisma.invoices.findMany({
     where: { clinic_id: tenant.clinicId },
     include: {
-      patients: { select: { first_name: true, last_name: true } },
+      patients: {
+        select: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          phone: true,
+          email: true,
+        },
+      },
+      invoice_items: {
+        where: { deleted_at: null },
+        select: {
+          id: true,
+          catalog_item_id: true,
+          category: true,
+          description: true,
+          quantity: true,
+          unit_price: true,
+          total_price: true,
+        },
+      },
       payments: true,
       insurance_claims: {
         select: {
@@ -283,7 +303,7 @@ export async function getInvoices() {
 
 export async function searchPatients(query: string) {
   const tenant = await requireTenantInfo();
-  
+
   if (!query || query.length < 2) return [];
 
   return prisma.patients.findMany({
@@ -307,7 +327,9 @@ export async function searchPatients(query: string) {
   });
 }
 
-export async function registerPatientAndCreateAppointment(data: CreateAppointmentWithPatientData) {
+export async function registerPatientAndCreateAppointment(
+  data: CreateAppointmentWithPatientData,
+) {
   try {
     const tenant = await requireTenantInfo();
     await requirePermission("appointment.manage");

@@ -23,7 +23,8 @@ export default async function DoctorLayout({
   if (
     tenant.role !== "doctor" &&
     tenant.role !== "admin" &&
-    tenant.role !== "owner"
+    tenant.role !== "owner" &&
+    tenant.role !== "super_admin"
   ) {
     return redirect({ href: "/", locale: await getLocale() });
   }

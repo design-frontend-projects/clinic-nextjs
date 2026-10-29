@@ -535,6 +535,7 @@ model clinics {
   appointment_reviews     appointment_reviews[]
   appointments            appointments[]
   audit_logs              audit_logs[]
+  billing_catalog_items   billing_catalog_items[]
   branches                branches[]
   encounters              encounters[]
   file_storage            file_storage[]
@@ -615,7 +616,13 @@ model insurance_providers {
   covered_visits     Int?
   created_at         DateTime               @default(now())
   deduction_type     InsuranceDeductionType @default(fixed)
-  deduction_value    Decimal                @default(0) @db.Decimal(12, 2)
+  deduction_value              Decimal                 @default(0) @db.Decimal(12, 2)
+  consultation_deduction_type  InsuranceDeductionType?
+  consultation_deduction_value Decimal?                @db.Decimal(12, 2)
+  lab_deduction_type           InsuranceDeductionType?
+  lab_deduction_value          Decimal?                @db.Decimal(12, 2)
+  pharmacy_deduction_type      InsuranceDeductionType?
+  pharmacy_deduction_value     Decimal?                @db.Decimal(12, 2)
   deleted_at         DateTime?
   is_active          Boolean                @default(true)
   updated_at         DateTime               @default(now()) @updatedAt
@@ -628,7 +635,9 @@ model insurance_providers {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model invoice_items {
   id          String    @id @default(uuid()) @db.Uuid
-  invoice_id  String    @db.Uuid
+  invoice_id            String                 @db.Uuid
+  catalog_item_id       String?                @db.Uuid
+  category              BillingItemCategory    @default(other)
   description String?
   quantity    Int?
   unit_price  Decimal?  @db.Decimal(12, 2)
@@ -636,7 +645,8 @@ model invoice_items {
   clinic_id   String    @db.Uuid
   deleted_at  DateTime?
   updated_at  DateTime  @default(now()) @updatedAt
-  invoices    invoices  @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  billing_catalog_items billing_catalog_items? @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+  invoices              invoices               @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
 }
@@ -1243,6 +1253,36 @@ enum PrescriptionStatus {
 enum InsuranceDeductionType {
   fixed
   percentage
+}
+
+enum BillingItemCategory {
+  consultation
+  lab
+  pharmacy
+  prescription
+  procedure
+  other
+}
+
+model billing_catalog_items {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinic_id     String              @db.Uuid
+  name_en       String
+  name_ar       String
+  category      BillingItemCategory @default(other)
+  price         Decimal             @default(0) @db.Decimal(12, 2)
+  description   String?
+  is_active     Boolean             @default(true)
+  created_by    String?             @db.Uuid
+  created_at    DateTime            @default(now())
+  updated_at    DateTime            @default(now()) @updatedAt
+  deleted_at    DateTime?
+  clinics       clinics             @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  invoice_items invoice_items[]
+
+  @@index([clinic_id, is_active])
+  @@index([clinic_id, category])
+
 }
 
 enum InvoiceStatus {

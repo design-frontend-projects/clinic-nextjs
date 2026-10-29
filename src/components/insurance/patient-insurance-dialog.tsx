@@ -59,7 +59,17 @@ export function PolicySummary({ policy }: { policy: PatientInsuranceRow }) {
       : `${policy.remaining_visits} of ${policy.covered_visits} visits left`;
   return (
     <span className="text-xs text-muted-foreground">
-      {rule} · {visits}
+      {rule}
+      {policy.consultation_deduction_value !== null
+        ? ` · Consult: ${(policy.consultation_deduction_type ?? policy.deduction_type) === "fixed" ? `$${policy.consultation_deduction_value.toFixed(2)}` : `${policy.consultation_deduction_value}%`}`
+        : ""}
+      {policy.lab_deduction_value !== null
+        ? ` · Lab: ${(policy.lab_deduction_type ?? policy.deduction_type) === "fixed" ? `$${policy.lab_deduction_value.toFixed(2)}` : `${policy.lab_deduction_value}%`}`
+        : ""}
+      {policy.pharmacy_deduction_value !== null
+        ? ` · Pharm: ${(policy.pharmacy_deduction_type ?? policy.deduction_type) === "fixed" ? `$${policy.pharmacy_deduction_value.toFixed(2)}` : `${policy.pharmacy_deduction_value}%`}`
+        : ""}{" "}
+      · {visits}
     </span>
   );
 }
