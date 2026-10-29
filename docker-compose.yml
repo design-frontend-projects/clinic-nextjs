@@ -76,16 +76,16 @@ services:
 
   # Optional local Postgres — dev only. Enable with:
   #   docker compose --profile localdb up
-  # Then point DATABASE_URL / DIRECT_URL at postgres://postgres:postgres@postgres:5432/clinic
+  # Then point DATABASE_URL / DIRECT_URL at postgres://postgres:postgres@postgres:5472/clinic
   postgres:
     image: postgres:16-alpine
-    profiles: ["localdb"]
+    profiles: [ "localdb" ]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: clinic
     ports:
-      - "5432:5432"
+      - "5472:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped

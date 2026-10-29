@@ -22,12 +22,12 @@ you always reach it through nginx.
 
 ### Ports
 
-| Service   | Internal | Published | Notes                                                |
-|-----------|----------|-----------|------------------------------------------------------|
-| nginx     | 80       | **80**    | Public entry point. Hit the app here.                |
-| app       | 4000     | —         | Internal only (`expose`). Scaled behind nginx.       |
-| waha      | 3000     | 3000      | WhatsApp dashboard/API, direct at `localhost:3000`.  |
-| postgres  | 5432     | 5432      | Optional, `localdb` profile only.                    |
+| Service  | Internal | Published | Notes                                               |
+| -------- | -------- | --------- | --------------------------------------------------- |
+| nginx    | 80       | **80**    | Public entry point. Hit the app here.               |
+| app      | 4000     | —         | Internal only (`expose`). Scaled behind nginx.      |
+| waha     | 3000     | 3000      | WhatsApp dashboard/API, direct at `localhost:3000`. |
+| postgres | 5472     | 5472      | Optional, `localdb` profile only.                   |
 
 ### How the load balancing works
 
@@ -104,5 +104,5 @@ docker compose down -v                # also drop volumes (WAHA session + pg dat
 - The **WAHA dashboard** is not proxied — reach it directly at `http://localhost:3000`
   (scan the QR to link WhatsApp).
 - nginx waits for the app's Docker `HEALTHCHECK` (`depends_on: condition:
-  service_healthy`), so `docker compose up` briefly shows the app as `starting`
+service_healthy`), so `docker compose up` briefly shows the app as `starting`
   before nginx comes online — this is expected.
