@@ -1,0 +1,42 @@
+# Dependencies & build output — regenerated inside the image
+node_modules
+.next
+out
+build
+dist
+
+# Prisma generated client + Serwist SW — regenerated during `docker build`
+src/generated/prisma
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+
+# Secrets & local env — injected at build/run time, never baked into the image
+.env
+.env.*
+!.env.example
+
+# WAHA session data (bind/named volume, not build context)
+.waha
+.sessions
+
+# VCS, IDE, OS
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Tests, coverage, logs, misc
+coverage
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.claude
+*.md
+!README.md
+tsconfig.tsbuildinfo
+Dockerfile
+.dockerignore
+docker-compose.yml

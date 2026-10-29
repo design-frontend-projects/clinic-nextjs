@@ -141,7 +141,7 @@ export function SignInForm() {
         <input
           id="rememberMe"
           type="checkbox"
-          className="h-4 w-4 rounded-[4px] border border-border bg-card accent-primary cursor-pointer"
+          className="h-4 w-4 rounded-md border border-border bg-card accent-primary cursor-pointer"
           {...register("rememberMe")}
         />
         <Label

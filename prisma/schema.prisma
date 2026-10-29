@@ -1155,6 +1155,46 @@ model notifications {
   @@index([sender_id, created_at])
 }
 
+model whatsapp_templates {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id  String   @db.Uuid
+  key        String
+  name       String
+  body_en    String
+  body_ar    String?
+  variables  Json     @default("[]")
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+  created_by String?  @db.Uuid
+
+  @@unique([tenant_id, key])
+  @@index([tenant_id, is_active])
+}
+
+model whatsapp_messages {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id       String?  @db.Uuid
+  group_id        String   @db.Uuid
+  sender_id       String   @db.Uuid
+  sender_role     String
+  recipient_kind  String
+  recipient_id    String?  @db.Uuid
+  recipient_role  String?
+  to_phone        String
+  body            String
+  template_key    String?
+  status          String
+  waha_message_id String?
+  error           String?
+  created_at      DateTime @default(now())
+  created_by      String?  @db.Uuid
+
+  @@index([tenant_id, created_at])
+  @@index([group_id])
+  @@index([sender_id, created_at])
+}
+
 enum AppointmentStatus {
   scheduled
   checked_in

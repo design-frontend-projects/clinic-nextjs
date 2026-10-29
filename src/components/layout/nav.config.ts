@@ -137,6 +137,20 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "owner", "doctor", "staff", "pharmacist"],
   },
 
+  // WhatsApp messaging (reachable from each role's own dashboard area)
+  {
+    titleKey: "sidebar.messages",
+    href: "/admin/messages",
+    iconKey: "messages",
+    roles: ["admin", "owner"],
+  },
+  {
+    titleKey: "sidebar.messages",
+    href: "/app-owner/messages",
+    iconKey: "messages",
+    roles: ["app_owner"],
+  },
+
   // Doctor
   {
     titleKey: "sidebar.dashboard",
@@ -180,6 +194,12 @@ export const NAV_ITEMS: NavItem[] = [
     iconKey: "reviews",
     roles: ["doctor"],
   },
+  {
+    titleKey: "sidebar.messages",
+    href: "/doctor/messages",
+    iconKey: "messages",
+    roles: ["doctor"],
+  },
 
   // Staff
   {
@@ -210,6 +230,12 @@ export const NAV_ITEMS: NavItem[] = [
     titleKey: "sidebar.billing",
     href: "/staff/billing",
     iconKey: "billing",
+    roles: ["staff"],
+  },
+  {
+    titleKey: "sidebar.messages",
+    href: "/staff/messages",
+    iconKey: "messages",
     roles: ["staff"],
   },
 

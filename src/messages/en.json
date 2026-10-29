@@ -263,7 +263,8 @@
     "audit": "Audit Log",
     "reviews": "Reviews",
     "myReviews": "My Reviews",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "messages": "WhatsApp Messages"
   },
   "pages": {
     "doctor": {

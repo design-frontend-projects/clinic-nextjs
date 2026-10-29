@@ -1,0 +1,101 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Clinic app + WAHA (WhatsApp HTTP API) gateway.
+#
+# The primary database is Supabase (external) — `DATABASE_URL` / `DIRECT_URL`
+# point there. An optional local Postgres is provided under the `localdb`
+# profile for offline dev only (`docker compose --profile localdb up`).
+#
+# Values come from `.env` (see keys below). Never commit real secrets.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # nginx — public entry point (:80), reverse proxy + load balancer for `app`.
+  # Scale the app behind it with:  docker compose up -d --scale app=3
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - clinic-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Inlined into the client bundle at build time.
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+    env_file:
+      - .env
+    environment:
+      # Server-side WhatsApp gateway wiring. The app reaches WAHA over the
+      # internal compose network by service name, not the published port.
+      WAHA_BASE_URL: http://waha:3000
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WAHA_SESSION: ${WAHA_SESSION:-default}
+    # No host port — nginx fronts the app. `expose` keeps 4000 reachable only on
+    # the internal network so the service can scale to N replicas collision-free.
+    expose:
+      - "4000"
+    depends_on:
+      waha:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - clinic-net
+
+  waha:
+    # WAHA Core (free, OSS). Supports session management + text sends.
+    image: devlikeapro/waha:latest
+    environment:
+      # Protects every WAHA API call — clients must send `X-Api-Key`.
+      WHATSAPP_HTTP_API_KEY: ${WAHA_API_KEY}
+      WAHA_DASHBOARD_ENABLED: "true"
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:-admin}
+      WHATSAPP_DEFAULT_ENGINE: WEBJS
+      WAHA_PRINT_QR: "true"
+    ports:
+      # Dashboard + Swagger + QR at http://localhost:3000
+      - "3000:3000"
+    volumes:
+      # Persist the linked WhatsApp session across restarts.
+      - waha-sessions:/app/.sessions
+    restart: unless-stopped
+    networks:
+      - clinic-net
+
+  # Optional local Postgres — dev only. Enable with:
+  #   docker compose --profile localdb up
+  # Then point DATABASE_URL / DIRECT_URL at postgres://postgres:postgres@postgres:5432/clinic
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["localdb"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clinic
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - clinic-net
+
+volumes:
+  waha-sessions:
+  postgres-data:
+
+networks:
+  clinic-net:
+    driver: bridge
