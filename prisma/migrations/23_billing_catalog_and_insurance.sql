@@ -72,13 +72,18 @@ ALTER TABLE "billing_catalog_items" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS billing_catalog_items_clinic_all ON "billing_catalog_items";
 CREATE POLICY billing_catalog_items_clinic_all ON "billing_catalog_items"
     FOR ALL TO authenticated
-    USING ("clinic_id" = auth.current_tenant_id())
-    WITH CHECK ("clinic_id" = auth.current_tenant_id());
+    USING ("clinic_id" = (SELECT "tenant_id" FROM "profiles" WHERE "auth_user_id" = auth.uid()))
+    WITH CHECK ("clinic_id" = (SELECT "tenant_id" FROM "profiles" WHERE "auth_user_id" = auth.uid()));
 
 DROP POLICY IF EXISTS billing_catalog_items_super_admin ON "billing_catalog_items";
 CREATE POLICY billing_catalog_items_super_admin ON "billing_catalog_items"
     FOR ALL TO authenticated
-    USING (auth.is_super_admin());
+    USING (
+        EXISTS (
+            SELECT 1 FROM "profiles"
+            WHERE "auth_user_id" = auth.uid() AND "role" = 'super_admin'
+        )
+    );
 
 -- ---------------------------------------------------------------------------
 -- 5. Prevent hard deletion of invoices (immutability rule)

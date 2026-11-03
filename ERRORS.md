@@ -70,3 +70,24 @@
 
 
 
+---
+
+## [2026-10-30 01:28] - Unknown argument `consultation_deduction_type` in `prisma.insurance_providers.updateMany()`
+
+- **Type**: Runtime / Integration
+- **Severity**: High
+- **File**: `src/lib/prisma.ts:18`, `prisma/migrations/23_billing_catalog_and_insurance.sql:59`
+- **Agent**: @debugger & @database-architect
+- **Root Cause**:
+  1. In development (`next dev` with Turbopack), `globalForPrisma.prismaBase` in `src/lib/prisma.ts` cached the `PrismaClient` instance across HMR reloads, and Node's CommonJS `require.cache` retained the pre-`prisma generate` `.prisma/client` runtime data model (`_runtimeDataModel`), which lacked the newly added `consultation_deduction_type`, `lab_deduction_type`, `pharmacy_deduction_type` fields and `billing_catalog_items` delegate.
+  2. Additionally, `prisma/migrations/23_billing_catalog_and_insurance.sql` had not yet been applied to the PostgreSQL database and referenced `auth.current_tenant_id()` / `auth.is_super_admin()` helper functions instead of the direct `profiles` subquery pattern used by the target database.
+- **Error Message**: 
+  ```
+  `__TURBOPACK__imported__module__...["prisma"].insurance_providers.updateMany()` invocation
+  Unknown argument `consultation_deduction_type`. Available options are marked with ?.
+  ```
+- **Fix Applied**:
+  1. Updated RLS policies in `prisma/migrations/23_billing_catalog_and_insurance.sql` to use `profiles` subqueries matching `22_whatsapp_messaging.sql`, and executed the migration against PostgreSQL so `billing_catalog_items`, `invoice_items` (`catalog_item_id`, `category`), and `insurance_providers` (`consultation_deduction_type`, `consultation_deduction_value`, `lab_deduction_type`, `lab_deduction_value`, `pharmacy_deduction_type`, `pharmacy_deduction_value`) are present in the live database.
+  2. Updated `src/lib/prisma.ts` with `hasCurrentSchema()` and `createPrismaClient()` so that if `globalForPrisma.prismaBase` or the CJS `@prisma/client` cache holds a stale schema in development, it automatically invalidates the cached `.prisma/client` module and instantiates a fresh `PrismaClient`.
+- **Prevention**: Whenever adding models or columns to `prisma/schema.prisma`, always apply the corresponding SQL migration to the target database immediately after `pnpm prisma generate` and ensure `src/lib/prisma.ts` validates schema freshness for cached dev singletons.
+- **Status**: Fixed
