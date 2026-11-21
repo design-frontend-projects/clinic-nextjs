@@ -6,7 +6,7 @@
 #   deps    → install locked dependencies only (best layer cache)
 #   builder → prisma generate + next build (webpack; emits standalone + sw.js)
 #   runner  → minimal, non-root image serving `.next/standalone/server.js`
-# The repo pins neither Node nor pnpm, so both are pinned explicitly here.
+# Node 22 is pinned here; pnpm matches `packageManager` in package.json.
 # ─────────────────────────────────────────────────────────────────────────────
 
 FROM node:22-alpine AS base

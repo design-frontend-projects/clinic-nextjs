@@ -91,3 +91,21 @@
   2. Updated `src/lib/prisma.ts` with `hasCurrentSchema()` and `createPrismaClient()` so that if `globalForPrisma.prismaBase` or the CJS `@prisma/client` cache holds a stale schema in development, it automatically invalidates the cached `.prisma/client` module and instantiates a fresh `PrismaClient`.
 - **Prevention**: Whenever adding models or columns to `prisma/schema.prisma`, always apply the corresponding SQL migration to the target database immediately after `pnpm prisma generate` and ensure `src/lib/prisma.ts` validates schema freshness for cached dev singletons.
 - **Status**: Fixed
+
+---
+
+## [2026-11-22 00:07] - Coolify Railpack build fails with `ERROR packages field missing or empty`
+
+- **Type**: Process / Integration
+- **Severity**: High
+- **File**: `package.json:4`, `pnpm-workspace.yaml:1`
+- **Agent**: @devops-engineer & @debugger
+- **Root Cause**: Coolify was configured to build with Railpack (`coolify-railpack`) instead of the project's multi-stage `Dockerfile`. Because `package.json` did not declare `"packageManager"`, Railpack's `mise` defaulted to `pnpm@9.15.9`, which fails when `pnpm-workspace.yaml` uses the pnpm v10 format (`allowBuilds:` without a `packages:` field).
+- **Error Message**: 
+  ```
+  > pnpm install --frozen-lockfile --prefer-offline:
+  0.581  ERROR  packages field missing or empty
+  ```
+- **Fix Applied**: Added `"packageManager": "pnpm@10.26.1"` to `package.json`, updated the header comment in `Dockerfile`, and documented switching Coolify's Build Pack from Railpack to Dockerfile (port `4000`, `/api/health`, build-time `NEXT_PUBLIC_*` env vars).
+- **Prevention**: Always pin `"packageManager"` in `package.json` when using pnpm v10 features in `pnpm-workspace.yaml`, and verify Coolify's Build Pack matches the repository's `Dockerfile` / `next.config.ts` (`output: "standalone"`) setup.
+- **Status**: Fixed
