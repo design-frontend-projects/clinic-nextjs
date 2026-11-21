@@ -11,7 +11,10 @@
 
 FROM node:22-alpine AS base
 # libc6-compat: some Next.js standalone deps expect glibc symbols on musl.
-RUN corepack enable && apk add --no-cache libc6-compat
+# Pin pnpm via Corepack so the lockfile version is deterministic across builds.
+RUN corepack enable \
+ && corepack prepare pnpm@10.26.1 --activate \
+ && apk add --no-cache libc6-compat
 WORKDIR /app
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
@@ -38,9 +41,9 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY \
     NEXT_TELEMETRY_DISABLED=1
 
-# Prisma client is gitignored → regenerate it, then build (webpack for Serwist).
-RUN npx prisma generate \
- && pnpm build
+# `pnpm build` runs `prisma generate && next build --webpack` using the locked
+# Prisma 7 CLI from node_modules (avoiding duplicate generation or npx drift).
+RUN pnpm build
 
 # ── Runtime ──────────────────────────────────────────────────────────────────
 FROM base AS runner
@@ -60,8 +63,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 USER nextjs
 EXPOSE 4000
 
-# Lightweight liveness probe against the app root.
+# Lightweight liveness probe against /api/health (bypasses Supabase/i18n proxy).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:4000/ >/dev/null 2>&1 || exit 1
+  CMD wget -qO- http://127.0.0.1:4000/api/health >/dev/null 2>&1 || exit 1
 
 CMD ["node", "server.js"]

@@ -16,10 +16,12 @@ const publicRoutes = [
 ];
 
 export default async function middleware(request: NextRequest) {
-  // The Supabase callback (code exchange for OAuth/invite/recovery links) lives
-  // outside the [locale] tree and runs before a session exists — it must not be
-  // locale-redirected by next-intl or auth-gated below.
-  if (request.nextUrl.pathname.startsWith("/auth/")) {
+  // Health probes and the Supabase auth callback live outside the [locale] tree
+  // and must not be locale-redirected by next-intl or auth-gated below.
+  if (
+    request.nextUrl.pathname === "/api/health" ||
+    request.nextUrl.pathname.startsWith("/auth/")
+  ) {
     return NextResponse.next();
   }
 
