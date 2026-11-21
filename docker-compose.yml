@@ -53,26 +53,26 @@ services:
     networks:
       - clinic-net
 
-  waha:
-    # WAHA Core (free, OSS). Supports session management + text sends.
-    image: devlikeapro/waha:latest
-    environment:
-      # Protects every WAHA API call — clients must send `X-Api-Key`.
-      WHATSAPP_HTTP_API_KEY: ${WAHA_API_KEY}
-      WAHA_DASHBOARD_ENABLED: "true"
-      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
-      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:-admin}
-      WHATSAPP_DEFAULT_ENGINE: WEBJS
-      WAHA_PRINT_QR: "true"
-    ports:
-      # Dashboard + Swagger + QR at http://localhost:3000
-      - "3000:3000"
-    volumes:
-      # Persist the linked WhatsApp session across restarts.
-      - waha-sessions:/app/.sessions
-    restart: unless-stopped
-    networks:
-      - clinic-net
+  # waha:
+  #   # WAHA Core (free, OSS). Supports session management + text sends.
+  #   image: devlikeapro/waha:latest
+  #   environment:
+  #     # Protects every WAHA API call — clients must send `X-Api-Key`.
+  #     WHATSAPP_HTTP_API_KEY: ${WAHA_API_KEY}
+  #     WAHA_DASHBOARD_ENABLED: "true"
+  #     WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
+  #     WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:-admin}
+  #     WHATSAPP_DEFAULT_ENGINE: WEBJS
+  #     WAHA_PRINT_QR: "true"
+  #   ports:
+  #     # Dashboard + Swagger + QR at http://localhost:3000
+  #     - "3000:3000"
+  #   volumes:
+  #     # Persist the linked WhatsApp session across restarts.
+  #     - waha-sessions:/app/.sessions
+  #   restart: unless-stopped
+  #   networks:
+  #     - clinic-net
 
   # Optional local Postgres — dev only. Enable with:
   #   docker compose --profile localdb up
@@ -93,7 +93,7 @@ services:
       - clinic-net
 
 volumes:
-  waha-sessions:
+  # waha-sessions:
   postgres-data:
 
 networks:
