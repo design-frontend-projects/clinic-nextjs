@@ -35,14 +35,23 @@ export const viewport: Viewport = {
 };
 
 import { getLocale } from "next-intl/server";
+import { getPublicSupabaseEnv } from "@/lib/supabase/env";
 
 export default async function RootLayout({
   children,
 }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = (await import(`../../messages/${locale}.json`)).default;
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = getPublicSupabaseEnv();
+  const publicEnvScript = `window.__PUBLIC_ENV__=${JSON.stringify({
+    NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseAnonKey,
+  }).replace(/</g, "\\u003c")};`;
   return (
     <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: publicEnvScript }} />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ServiceWorkerProvider />
         <IntlProvider initialLocale={locale} initialMessages={messages}>

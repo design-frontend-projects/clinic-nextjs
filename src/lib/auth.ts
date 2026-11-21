@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { cache as reactCache } from "react";
 import { isBranchLockedRole, isMultiBranchRole } from "@/types/clinic.types";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 
 /**
  * Helper to fetch the current authenticated user from cookies (server-side).
@@ -19,9 +20,10 @@ import { isBranchLockedRole, isMultiBranchRole } from "@/types/clinic.types";
  */
 export const getSupabaseSession = reactCache(async () => {
   const cookieStore = await cookies();
+  const { url, anonKey } = getSupabaseEnv();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {

@@ -1,5 +1,6 @@
 import { createClient, type User } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 import { generateTempPassword } from "@/lib/user-creation";
 import { routing } from "@/i18n/routing";
 
@@ -44,9 +45,10 @@ function buildRedirectTo(locale: string = routing.defaultLocale): string {
 
 /** Anon client for public auth flows (no cookies needed for email dispatch). */
 function createAnonClient() {
+  const { url, anonKey } = getSupabaseEnv();
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 }

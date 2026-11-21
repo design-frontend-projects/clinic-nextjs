@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 
 /**
  * Auth callback for OAuth code exchange and email links (invite / recovery /
@@ -33,9 +34,10 @@ export async function GET(request: Request) {
   const next = isSafeNextPath(rawNext) ? rawNext : "/";
 
   const cookieStore = await cookies();
+  const { url, anonKey } = getSupabaseEnv();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {

@@ -1,20 +1,17 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { getSupabaseEnv } from "./env";
 
 let supabaseClient: ReturnType<typeof createBrowserClient> | null = null;
 
 export function createSupabaseClient() {
+  const { url, anonKey } = getSupabaseEnv();
+
   if (typeof window === "undefined") {
-    return createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    return createBrowserClient(url, anonKey);
   }
 
   if (!supabaseClient) {
-    supabaseClient = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    supabaseClient = createBrowserClient(url, anonKey);
   }
 
   return supabaseClient;

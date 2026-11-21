@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
+import { getSupabaseEnv } from "./lib/supabase/env";
 
 const handleI18nRouting = createMiddleware(routing);
 
@@ -27,9 +28,11 @@ export default async function middleware(request: NextRequest) {
 
   const response = handleI18nRouting(request);
 
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabaseEnv();
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
