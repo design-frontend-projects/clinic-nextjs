@@ -28,15 +28,25 @@ public/workbox-*.js
 .DS_Store
 Thumbs.db
 
-# Tests, coverage, logs, misc
+# Tests, coverage, logs, docs, non-runtime workspace folders
 coverage
 *.log
 npm-debug.log*
 pnpm-debug.log*
 .claude
+.playwright-mcp
+docs
+design-md
+composio
+conductor
+revolut
+nginx
+scripts
+reqs.txt
+update-i18n.js
 *.md
 !README.md
 tsconfig.tsbuildinfo
 Dockerfile
 .dockerignore
-docker-compose.yml
+docker-compose*.yml
