@@ -53,15 +53,15 @@ async function assertBranchInClinic(
   clinicId: string,
   requireActive = true,
 ) {
-  const branch = await prisma.branches.findFirst({
+  const link = await prisma.clinic_branches.findFirst({
     where: {
-      id: branchId,
+      branch_id: branchId,
       clinic_id: clinicId,
-      ...(requireActive && { status: "active" }),
+      ...(requireActive && { branches: { status: "active" } }),
     },
     select: { id: true },
   });
-  if (!branch) {
+  if (!link) {
     throw new Error("The selected branch does not belong to this clinic");
   }
 }
@@ -106,41 +106,60 @@ async function resolveDoctorAssignments(
     throw new Error("Select at least one clinic and branch for this doctor");
   }
 
-  // Dedupe by branch (the DB unique key is (profile_id, branch_id)).
-  const byBranch = new Map<string, string>(); // branch_id -> clinic_id
+  // Dedupe by (clinic_id, branch_id) — shared physical branches may appear under
+  // multiple clinics (DB unique key is (profile_id, clinic_id, branch_id)).
+  const byPair = new Map<string, { clinic_id: string; branch_id: string }>();
   for (const a of assignments) {
     if (!ownerClinicIds.has(a.clinic_id)) {
       throw new Error("A selected clinic is not available to you");
     }
-    byBranch.set(a.branch_id, a.clinic_id);
+    byPair.set(`${a.clinic_id}:${a.branch_id}`, {
+      clinic_id: a.clinic_id,
+      branch_id: a.branch_id,
+    });
   }
 
-  // Every branch must be active and actually belong to its declared clinic.
-  const branchIds = [...byBranch.keys()];
-  const branches = await prisma.branches.findMany({
-    where: { id: { in: branchIds }, status: "active" },
-    select: { id: true, clinic_id: true },
+  // Every (clinic, branch) pair must be linked in clinic_branches with an active branch.
+  const pairs = [...byPair.values()];
+  const uniqueClinicIds = Array.from(new Set(pairs.map((p) => p.clinic_id)));
+  const uniqueBranchIds = Array.from(new Set(pairs.map((p) => p.branch_id)));
+
+  const validLinks = await prisma.clinic_branches.findMany({
+    where: {
+      clinic_id: { in: uniqueClinicIds },
+      branch_id: { in: uniqueBranchIds },
+      branches: { status: "active" },
+    },
+    select: { clinic_id: true, branch_id: true },
   });
-  const validBranch = new Map(branches.map((b) => [b.id, b.clinic_id]));
-  for (const [branchId, clinicId] of byBranch) {
-    if (validBranch.get(branchId) !== clinicId) {
+  const validPairKeys = new Set(
+    validLinks.map((l) => `${l.clinic_id}:${l.branch_id}`),
+  );
+  for (const key of byPair.keys()) {
+    if (!validPairKeys.has(key)) {
       throw new Error("A selected branch does not belong to its clinic");
     }
   }
 
-  // Primary must be one of the assigned branches; otherwise default to the first.
-  const homeBranchId =
-    primaryBranchId && byBranch.has(primaryBranchId)
-      ? primaryBranchId
-      : branchIds[0];
+  // Primary must be one of the assigned pairs; otherwise default to the first.
+  const primaryPair =
+    (primaryBranchId
+      ? pairs.find((p) => p.branch_id === primaryBranchId)
+      : undefined) ?? pairs[0];
 
-  const rows = [...byBranch.entries()].map(([branch_id, clinic_id]) => ({
-    clinic_id,
-    branch_id,
-    is_primary: branch_id === homeBranchId,
+  const rows = pairs.map((p) => ({
+    clinic_id: p.clinic_id,
+    branch_id: p.branch_id,
+    is_primary:
+      p.clinic_id === primaryPair.clinic_id &&
+      p.branch_id === primaryPair.branch_id,
   }));
 
-  return { rows, homeClinicId: byBranch.get(homeBranchId)!, homeBranchId };
+  return {
+    rows,
+    homeClinicId: primaryPair.clinic_id,
+    homeBranchId: primaryPair.branch_id,
+  };
 }
 
 /**

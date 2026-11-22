@@ -12,13 +12,13 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { createSupabaseClient } from "@/lib/supabase/client";
-import { useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { useTranslations, useLocale } from "next-intl";
 import { useLocaleSwitcher } from "@/components/providers/intl-provider";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import { performClientSignOut } from "@/lib/client-sign-out";
 import { BranchSelector } from "./branch-selector";
 import { BranchDisplay } from "./branch-display";
 import { DoctorLocationSelector } from "./doctor-location-selector";
@@ -28,6 +28,7 @@ import { openCommandPalette } from "@/components/layout/command-palette";
 export function Header() {
   const { setMobileOpen } = useSidebarStore();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const locale = useLocale();
   const { switchLocale } = useLocaleSwitcher();
   const t = useTranslations();
@@ -38,9 +39,8 @@ export function Header() {
   });
 
   const handleSignOut = async () => {
-    const supabase = createSupabaseClient();
-    await supabase.auth.signOut();
-    router.push("/sign-in");
+    await performClientSignOut(queryClient);
+    router.replace("/sign-in");
   };
 
   const toggleLanguage = () => {
@@ -164,6 +164,13 @@ export function Header() {
                 )}
               </div>
             </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/profile">
+                <User className="me-2 h-4 w-4" />
+                <span>{t("header.profile")}</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleSignOut}

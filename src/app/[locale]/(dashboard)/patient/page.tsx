@@ -81,7 +81,7 @@ export default function PatientDashboardPage() {
               </Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/patient/profile">
+              <Link href="/profile">
                 <User className="mr-2 h-4 w-4" />
                 {t("linkProfile")}
               </Link>

@@ -81,6 +81,7 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
         tempPassword: result.tempPassword,
         fullName: result.ownerName,
         email: result.ownerEmail,
+        phone: data.owner.phone,
       });
     });
   };

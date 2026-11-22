@@ -62,11 +62,13 @@ export async function findClinicDuplicate({
   email,
   phone,
   excludePatientId,
+  excludeProfileId,
 }: {
   clinicId: string;
   email?: string | null;
   phone?: string | null;
   excludePatientId?: string;
+  excludeProfileId?: string;
 }): Promise<DuplicateMatch | null> {
   const normEmail = email?.trim().toLowerCase() || null;
   const normPhone = phone?.trim() || null;
@@ -75,7 +77,11 @@ export async function findClinicDuplicate({
   const or = buildContactOr(normEmail, normPhone);
 
   const profileMatch = await prisma.profiles.findFirst({
-    where: { tenant_id: clinicId, OR: or },
+    where: {
+      tenant_id: clinicId,
+      OR: or,
+      ...(excludeProfileId ? { id: { not: excludeProfileId } } : {}),
+    },
     select: { email: true, phone: true },
   });
   if (profileMatch) {

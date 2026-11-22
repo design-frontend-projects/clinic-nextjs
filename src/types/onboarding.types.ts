@@ -11,26 +11,40 @@ export const profileSchema = z.object({
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
 
-// ─── Clinic Form ────────────────────────────────────────────────
-export const clinicSchema = z.object({
-  name: z.string().min(2, "Clinic name is required"),
-  registration_number: z.string().optional(),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional(),
-  subscription_plan: z.string().optional(),
-  is_primary: z.boolean().optional(),
-});
-
-export type ClinicFormData = z.infer<typeof clinicSchema>;
-
 // ─── Branch Form ────────────────────────────────────────────────
 export const branchSchema = z.object({
-  name: z.string().min(2, "Branch name is required"),
+  id: z.string().uuid().optional(),
+  name: z.string().trim().min(2, "Branch name is required"),
   address: z.string().optional(),
   phone: z.string().optional(),
 });
 
 export type BranchFormData = z.infer<typeof branchSchema>;
+
+export const onboardingBranchesSchema = z.array(branchSchema);
+
+export interface OnboardingBranchItem {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+}
+
+// ─── Clinic Form ────────────────────────────────────────────────
+export const clinicSchema = z.object({
+  name: z.string().trim().min(2, "Clinic name is required"),
+  registration_number: z.string().optional(),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  subscription_plan: z.string().optional(),
+  is_primary: z.boolean().optional(),
+  branch_ids: z
+    .array(z.string().uuid())
+    .min(1, "Please select at least one branch"),
+  primary_branch_id: z.string().uuid().optional(),
+});
+
+export type ClinicFormData = z.infer<typeof clinicSchema>;
 
 // ─── Subscription Form ──────────────────────────────────────────────
 export const subscriptionSchema = z.object({
@@ -43,17 +57,16 @@ export type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
 export type OnboardingStep =
   | "subscription"
   | "profile"
+  | "branch"
   | "clinic"
-  | "specialties"
-  | "branch";
+  | "specialties";
 
 export type OnboardingCache = {
   profileData: Partial<ProfileFormData>;
   clinicData: Partial<ClinicFormData>;
-  branchData: Partial<BranchFormData>;
+  branches: OnboardingBranchItem[];
   subscriptionData: Partial<SubscriptionFormData>;
   specialtyIds: string[];
   currentStep: OnboardingStep;
   clinicId: string | null;
 };
-

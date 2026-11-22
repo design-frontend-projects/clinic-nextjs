@@ -73,6 +73,17 @@ describe("findClinicDuplicate", () => {
     expect(where.clinic_id).toBe(CLINIC);
   });
 
+  it("passes excludeProfileId into the profiles query", async () => {
+    await findClinicDuplicate({
+      clinicId: CLINIC,
+      phone: "+201001234567",
+      excludeProfileId: "profile-1",
+    });
+    const where = profilesFindFirst.mock.calls[0][0].where;
+    expect(where.id).toEqual({ not: "profile-1" });
+    expect(where.tenant_id).toBe(CLINIC);
+  });
+
   it("normalizes email casing/whitespace and only queries provided fields", async () => {
     await findClinicDuplicate({ clinicId: CLINIC, email: "  A@B.COM  ", phone: "" });
     const or = profilesFindFirst.mock.calls[0][0].where.OR;

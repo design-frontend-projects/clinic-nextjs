@@ -12,8 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { createSupabaseClient } from "@/lib/supabase/client";
-import { useAuthStore } from "@/stores/authStore";
+import { useQueryClient } from "@tanstack/react-query";
+import { performClientSignOut } from "@/lib/client-sign-out";
 import { useTranslations } from "next-intl";
 
 interface LandingUserNavProps {
@@ -28,14 +28,12 @@ export function LandingUserNav({
   dashboardPath,
 }: LandingUserNavProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const t = useTranslations("layout.landingUserNav");
 
   const handleSignOut = async () => {
-    const supabase = createSupabaseClient();
-    await supabase.auth.signOut();
-    useAuthStore.getState().setSession(null);
-    router.push("/sign-in");
-    router.refresh();
+    await performClientSignOut(queryClient);
+    router.replace("/sign-in");
   };
 
   return (
@@ -69,7 +67,7 @@ export function LandingUserNav({
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link href="/settings">{t("settings")}</Link>
+            <Link href="/profile">{t("profile")}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="cursor-pointer">
             <Link href={dashboardPath}>{t("dashboard")}</Link>

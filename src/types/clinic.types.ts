@@ -7,7 +7,7 @@ export const profileStatusEnum = z.enum(["active", "inactive", "blocked"]);
 
 export const clinicSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(2, "Clinic name must be at least 2 characters"),
+  name: z.string().trim().min(2, "Clinic name must be at least 2 characters"),
   registration_number: z.string().optional().nullable(),
   email: z.string().email("Invalid email address").optional().or(z.literal("")).nullable(),
   phone: z.string().optional().nullable(),
@@ -16,12 +16,16 @@ export const clinicSchema = z.object({
   have_pharmacy: z.boolean(),
   have_lab: z.boolean(),
   have_radio_center: z.boolean(),
+  branch_ids: z
+    .array(z.string().uuid())
+    .min(1, "Select at least one branch"),
+  primary_branch_id: z.string().uuid().optional().nullable(),
 });
 
 export const branchSchema = z.object({
   id: z.string().uuid().optional(),
-  clinic_id: z.string().uuid(),
-  name: z.string().min(2, "Branch name must be at least 2 characters"),
+  clinic_id: z.string().uuid().optional().nullable(),
+  name: z.string().trim().min(2, "Branch name must be at least 2 characters"),
   address: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   status: branchStatusEnum,
@@ -134,6 +138,46 @@ export type Clinic = z.infer<typeof clinicSchema>;
 export type Branch = z.infer<typeof branchSchema>;
 export type Profile = z.infer<typeof profileSchema>;
 
-export interface ClinicWithBranches extends Clinic {
-  branches: Branch[];
+export interface LinkedClinicSummary {
+  id: string;
+  name: string;
+  is_primary: boolean;
+}
+
+export interface OwnerBranchItem {
+  id: string;
+  owner_id: string | null;
+  clinic_id: string | null;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  status: "active" | "inactive";
+  created_at: Date;
+  linked_clinics: LinkedClinicSummary[];
+}
+
+export interface ClinicLinkedBranch {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  status: "active" | "inactive";
+  is_primary: boolean;
+  created_at: Date;
+}
+
+export interface ClinicWithBranches {
+  id: string;
+  name: string;
+  registration_number: string | null;
+  email: string | null;
+  phone: string | null;
+  subscription_plan: string | null;
+  status: "trial" | "active" | "suspended";
+  is_primary: boolean | null;
+  have_pharmacy: boolean | null;
+  have_lab: boolean | null;
+  have_radio_center: boolean | null;
+  created_at: Date;
+  branches: ClinicLinkedBranch[];
 }

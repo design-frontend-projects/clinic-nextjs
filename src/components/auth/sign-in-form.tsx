@@ -1,14 +1,15 @@
 "use client";
 import { motion } from "framer-motion";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { mapSignInErrorKey, type SignInErrorKey } from "@/lib/auth-errors";
-import { getPostSignInRedirect, syncOnboardingCookie } from "@/app/actions/auth";
+import { completeSignIn } from "@/app/actions/auth";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,8 +31,10 @@ type SignInValues = z.infer<ReturnType<typeof createSignInSchema>>;
 
 export function SignInForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const submittingRef = useRef(false);
   const [formErrorKey, setFormErrorKey] = useState<SignInErrorKey | null>(null);
   const t = useTranslations("auth.signIn");
 
@@ -56,6 +59,8 @@ export function SignInForm() {
   });
 
   const onSubmit = async (data: SignInValues) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsLoading(true);
     setFormErrorKey(null);
 
@@ -67,37 +72,35 @@ export function SignInForm() {
     const normalizedEmail = data.email.trim().toLowerCase();
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password: data.password,
-      });
+      const { data: signInData, error } =
+        await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: data.password,
+        });
 
       if (error) {
         throw error;
       }
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
-      useAuthStore.getState().setSession(session);
+      useAuthStore.getState().setSession(signInData.session ?? null);
+      queryClient.clear();
 
-      // Invited users (doctors/staff) already belong to a clinic; make sure the
-      // middleware onboarding gate doesn't push them into the owner wizard.
-      await syncOnboardingCookie();
-
-      // Resolve the landing route from the authoritative DB role (profiles.role)
-      // rather than the JWT `app_metadata.roles` claim, which is often empty and
-      // silently routes everyone to /admin.
-      const redirectPath = await getPostSignInRedirect();
+      // Single server round-trip: syncs the onboarding cookie (when eligible)
+      // and resolves the authoritative role landing route from `profiles.role`.
+      const { redirectPath } = await completeSignIn();
 
       toast.success(t("signInButton"));
 
+      // Keep loading state active while Next.js transitions to the dashboard so
+      // the button doesn't re-enable mid-navigation and trigger a duplicate
+      // submission. Do not call `router.refresh()` in the same tick as
+      // `router.replace()` — it races the in-flight navigation transition.
       router.replace(redirectPath);
-      router.refresh();
     } catch (error: unknown) {
       const errorKey = mapSignInErrorKey(error);
       setFormErrorKey(errorKey);
       toast.error(t(errorKey));
-    } finally {
+      submittingRef.current = false;
       setIsLoading(false);
     }
   };

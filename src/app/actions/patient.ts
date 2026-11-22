@@ -5,10 +5,6 @@ import { requireTenantInfo, getTenantInfo } from "@/lib/auth";
 import { requirePermission } from "@/lib/permissions";
 import { createUserAccount, rollbackAuthUser } from "@/lib/invitations";
 import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
-import {
-  patientProfileUpdateSchema,
-  type PatientProfileUpdateData,
-} from "@/types/patient.types";
 import { revalidatePath } from "next/cache";
 import { requireCurrentPatient } from "@/lib/patient-auth";
 
@@ -65,30 +61,6 @@ export async function getMyVisitHistory() {
   ]);
 
   return { encounters, pastAppointments };
-}
-
-/** Patient updates their own phone number (kept in sync on both rows). */
-export async function updateMyProfile(data: PatientProfileUpdateData) {
-  const parsed = patientProfileUpdateSchema.safeParse(data);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message || "Invalid data" };
-  }
-
-  const { tenant, patient } = await requireCurrentPatient();
-
-  await prisma.$transaction([
-    prisma.profiles.update({
-      where: { id: tenant.profileId },
-      data: { phone: parsed.data.phone },
-    }),
-    prisma.patients.update({
-      where: { id: patient.id },
-      data: { phone: parsed.data.phone },
-    }),
-  ]);
-
-  revalidatePath("/patient/profile");
-  return { success: true };
 }
 
 /**

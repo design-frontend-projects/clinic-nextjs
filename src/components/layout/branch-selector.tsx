@@ -14,7 +14,7 @@ import { Building2, ChevronDown, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { updateProfileBranch } from "@/app/actions/profile";
-import { createSupabaseClient } from "@/lib/supabase/client";
+import { getBranches } from "@/app/actions/clinic";
 import { useTranslations } from "next-intl";
 
 interface BranchSelectorProps {
@@ -27,21 +27,11 @@ export function BranchSelector({
   clinicId,
 }: BranchSelectorProps) {
   const queryClient = useQueryClient();
-  const supabase = createSupabaseClient();
   const t = useTranslations("layout.branchSelector");
 
   const { data: branches, isLoading } = useQuery({
     queryKey: ["branches", clinicId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("branches")
-        .select("*")
-        .eq("clinic_id", clinicId)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => getBranches(clinicId),
   });
 
   const updateBranchMutation = useMutation({
@@ -49,7 +39,6 @@ export function BranchSelector({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-info"] });
       toast.success(t("switchedSuccess"));
-      // Optionally refresh the page or trigger a data reload across the app
       window.location.reload();
     },
     onError: (error) => {
@@ -57,7 +46,8 @@ export function BranchSelector({
     },
   });
 
-  const currentBranch = branches?.find((b: any) => b.id === currentBranchId);
+  const activeBranches = (branches ?? []).filter((b) => b.status === "active");
+  const currentBranch = activeBranches.find((b) => b.id === currentBranchId);
 
   if (isLoading) {
     return <Skeleton className="h-9 w-[200px]" />;
@@ -85,10 +75,10 @@ export function BranchSelector({
           {t("switchBranch")}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {branches?.map((branch: any) => (
+        {activeBranches.map((branch) => (
           <DropdownMenuItem
             key={branch.id}
-            onClick={() => updateBranchMutation.mutate(branch.id!)}
+            onClick={() => updateBranchMutation.mutate(branch.id)}
             className="flex flex-col items-start gap-0.5 py-2"
           >
             <span className="font-medium">{branch.name}</span>
@@ -99,7 +89,7 @@ export function BranchSelector({
             )}
           </DropdownMenuItem>
         ))}
-        {branches?.length === 0 && (
+        {activeBranches.length === 0 && (
           <div className="p-2 text-xs text-center text-muted-foreground italic">
             {t("noBranches")}
           </div>

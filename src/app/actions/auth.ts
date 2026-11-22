@@ -9,6 +9,75 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
 import { roleHomePath, DEFAULT_HOME_PATH } from "@/lib/role-routes";
 import * as z from "zod";
 
+async function setOnboardingCookieIfEligible(
+  tenant: Awaited<ReturnType<typeof getTenantInfo>>,
+): Promise<void> {
+  if (!tenant?.clinicId) return;
+  if (tenant.is_owner && !tenant.is_profile_completed) return;
+
+  const cookieStore = await cookies();
+  const secure = await isSecureCookieContext();
+  cookieStore.set("onboarding_complete", "1", {
+    httpOnly: true,
+    secure,
+    path: "/",
+    sameSite: "lax",
+  });
+}
+
+async function resolveFallbackRedirectPath(): Promise<string> {
+  try {
+    const session = await getSupabaseSession();
+    const roles = session?.user?.app_metadata?.roles as string[] | undefined;
+    const jwtRole = roles?.find((r) => roleHomePath(r) !== DEFAULT_HOME_PATH);
+    return jwtRole ? roleHomePath(jwtRole) : DEFAULT_HOME_PATH;
+  } catch (error) {
+    console.error(
+      "[auth] getPostSignInRedirect: getSupabaseSession fallback failed:",
+      error,
+    );
+    return DEFAULT_HOME_PATH;
+  }
+}
+
+/**
+ * Single post-sign-in server action combining onboarding cookie sync and
+ * authoritative role-based landing route resolution in ONE `getTenantInfo()`
+ * round-trip (eliminating duplicate proxy/auth/DB calls during login).
+ */
+export async function completeSignIn(): Promise<{ redirectPath: string }> {
+  try {
+    const tenant = await getTenantInfo();
+    if (tenant) {
+      await setOnboardingCookieIfEligible(tenant);
+      return { redirectPath: roleHomePath(tenant.role) };
+    }
+  } catch (error) {
+    console.error(
+      "[auth] completeSignIn: getTenantInfo failed, falling back to JWT role:",
+      error,
+    );
+  }
+
+  return { redirectPath: await resolveFallbackRedirectPath() };
+}
+
+/**
+ * Clear tenant/onboarding cookies on explicit sign-out so a subsequent user on
+ * the same browser never inherits the previous user's clinic/branch/onboarding
+ * state.
+ */
+export async function clearSignOutCookies(): Promise<void> {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete("onboarding_complete");
+    cookieStore.delete("active_clinic_id");
+    cookieStore.delete("active_branch_id");
+  } catch (error) {
+    console.error("[auth] clearSignOutCookies failed:", error);
+  }
+}
+
 /**
  * After a successful sign-in, mark onboarding as complete for users who
  * already belong to a clinic. The middleware onboarding gate (src/proxy.ts)
@@ -22,17 +91,7 @@ import * as z from "zod";
 export async function syncOnboardingCookie() {
   try {
     const tenant = await getTenantInfo();
-    if (!tenant?.clinicId) return;
-    if (tenant.is_owner && !tenant.is_profile_completed) return;
-
-    const cookieStore = await cookies();
-    const secure = await isSecureCookieContext();
-    cookieStore.set("onboarding_complete", "1", {
-      httpOnly: true,
-      secure,
-      path: "/",
-      sameSite: "lax",
-    });
+    await setOnboardingCookieIfEligible(tenant);
   } catch (error) {
     // Do not crash sign-in with an opaque 500 if the DB lookup fails; the
     // middleware onboarding gate remains authoritative on subsequent navigation.
@@ -64,18 +123,7 @@ export async function getPostSignInRedirect(): Promise<string> {
   }
 
   // No profile row yet (e.g. mid-provisioning) or DB unavailable: fall back to the JWT claim.
-  try {
-    const session = await getSupabaseSession();
-    const roles = session?.user?.app_metadata?.roles as string[] | undefined;
-    const jwtRole = roles?.find((r) => roleHomePath(r) !== DEFAULT_HOME_PATH);
-    return jwtRole ? roleHomePath(jwtRole) : DEFAULT_HOME_PATH;
-  } catch (error) {
-    console.error(
-      "[auth] getPostSignInRedirect: getSupabaseSession fallback failed:",
-      error,
-    );
-    return DEFAULT_HOME_PATH;
-  }
+  return resolveFallbackRedirectPath();
 }
 
 const signUpSchema = z.object({

@@ -78,6 +78,7 @@ function InviteToPortalCell({ patient }: { patient: Patient }) {
           tempPassword: result.tempPassword,
           fullName: `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim(),
           email: patient.email,
+          phone: patient.phone,
         });
       }
     });

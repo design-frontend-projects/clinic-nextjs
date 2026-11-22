@@ -197,15 +197,15 @@ export const getTenantInfo = reactCache(async () => {
   }
 
   // Validate the resolved branch against the clinic; drop stale/foreign values
-  // (e.g. a cookie from another clinic or a branch deleted after assignment).
+  // (e.g. a cookie from another clinic or a branch deleted/unlinked after assignment).
   let branchName: string | null = null;
   if (branchId && clinic?.id) {
-    const branch = await prisma.branches.findFirst({
-      where: { id: branchId, clinic_id: clinic.id },
-      select: { name: true },
+    const link = await prisma.clinic_branches.findFirst({
+      where: { branch_id: branchId, clinic_id: clinic.id },
+      select: { branches: { select: { name: true } } },
     });
-    if (branch) {
-      branchName = branch.name;
+    if (link) {
+      branchName = link.branches.name;
     } else {
       branchId = null;
     }

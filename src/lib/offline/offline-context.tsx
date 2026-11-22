@@ -40,8 +40,9 @@ interface OfflineProviderProps {
 }
 
 /**
- * Initialises the per-clinic RXDB database and starts live replication for the
- * authenticated tenant. Mount inside the dashboard, below auth resolution.
+ * Initialises the per-(clinicId, userId) RXDB database and starts live
+ * replication for the authenticated tenant. Mount inside the dashboard, below
+ * auth resolution.
  *
  * Encryption note: the at-rest key is derived from the (clinicId, userId) pair
  * so it is stable across sessions. This is deliberately weak — the key is
@@ -66,44 +67,61 @@ export function OfflineProvider({
     const activeCollections = new Set<string>();
 
     void (async () => {
-      // Dynamically imported so RXDB (which touches browser globals) never loads
-      // during SSR of this client component, and stays out of non-dashboard bundles.
-      const { getOfflineDb } = await import("./db");
-      const { initReplication } = await import("./replication");
+      try {
+        // Dynamically imported so RXDB (which touches browser globals) never loads
+        // during SSR of this client component, and stays out of non-dashboard bundles.
+        const { getOfflineDb, cleanupLegacyClinicDb } = await import("./db");
+        const { initReplication } = await import("./replication");
 
-      const password = `${clinicId}:${userId}`;
-      const database = await getOfflineDb(clinicId, password);
-      if (cancelled) {
-        return;
-      }
-      setDb(database);
+        const password = `${clinicId}:${userId}`;
+        const database = await getOfflineDb(clinicId, userId, password);
+        if (cancelled) {
+          return;
+        }
 
-      const handle = initReplication(database, clinicId);
-      handleRef.current = handle;
+        // Best-effort background cleanup of legacy clinic-only IndexedDBs.
+        void cleanupLegacyClinicDb(clinicId);
 
-      for (const { name, state } of handle.replications) {
+        setDb(database);
+        setSyncError(null);
+
+        const handle = initReplication(database, clinicId);
+        handleRef.current = handle;
+
+        for (const { name, state } of handle.replications) {
+          subs.push(
+            state.active$.subscribe((active) => {
+              if (active) activeCollections.add(name);
+              else activeCollections.delete(name);
+              setSyncing(activeCollections.size > 0);
+            }),
+          );
+          subs.push(
+            state.error$.subscribe((error) => {
+              // Offline errors are expected and noisy — record, don't toast.
+              setSyncError(error?.message ?? "sync error");
+            }),
+          );
+        }
+
         subs.push(
-          state.active$.subscribe((active) => {
-            if (active) activeCollections.add(name);
-            else activeCollections.delete(name);
-            setSyncing(activeCollections.size > 0);
+          conflictEvents$.subscribe(() => {
+            toast.info(t("conflictKept"));
           }),
         );
-        subs.push(
-          state.error$.subscribe((error) => {
-            // Offline errors are expected and noisy — record, don't toast.
-            setSyncError(error?.message ?? "sync error");
-          }),
-        );
+
+        setReady(true);
+      } catch (error) {
+        if (cancelled) return;
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to initialize offline database";
+        console.warn("[offline] Database initialization failed:", error);
+        setSyncError(message);
+        setSyncing(false);
+        setReady(false);
       }
-
-      subs.push(
-        conflictEvents$.subscribe(() => {
-          toast.info(t("conflictKept"));
-        }),
-      );
-
-      setReady(true);
     })();
 
     return () => {
@@ -111,6 +129,7 @@ export function OfflineProvider({
       subs.forEach((sub) => sub.unsubscribe());
       const handle = handleRef.current;
       handleRef.current = null;
+      setSyncing(false);
       setReady(false);
       setDb(null);
       if (handle) void handle.cancel();

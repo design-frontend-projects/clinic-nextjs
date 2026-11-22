@@ -465,14 +465,16 @@ model audit_logs {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model branches {
   id                                                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clinic_id                                                String                   @db.Uuid
+  owner_id                                                 String?                  @db.Uuid
+  clinic_id                                                String?                  @db.Uuid
   name                                                     String
   address                                                  String?
   phone                                                    String?
   status                                                   BranchStatus             @default(active)
   created_at                                               DateTime                 @default(now())
   appointments                                             appointments[]
-  clinics                                                  clinics                  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  clinic_branches                                          clinic_branches[]
+  clinics                                                  clinics?                 @relation(fields: [clinic_id], references: [id], onDelete: SetNull)
   encounters                                               encounters[]
   invoices                                                 invoices[]
   lab_orders                                               lab_orders[]
@@ -491,6 +493,23 @@ model branches {
   stock_transfers_stock_transfers_to_branch_idTobranches   stock_transfers[]        @relation("stock_transfers_to_branch_idTobranches")
 
   @@index([clinic_id])
+  @@index([owner_id])
+}
+
+/// Many-to-many link between clinics and owner-level physical branches.
+/// Requires RLS setup — see prisma/migrations/24_shared_clinic_branches.sql.
+model clinic_branches {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinic_id  String   @db.Uuid
+  branch_id  String   @db.Uuid
+  is_primary Boolean  @default(false)
+  created_at DateTime @default(now())
+  branches   branches @relation(fields: [branch_id], references: [id], onDelete: Cascade)
+  clinics    clinics  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+
+  @@unique([clinic_id, branch_id])
+  @@index([clinic_id])
+  @@index([branch_id])
 }
 
 /// Multi-clinic / multi-branch assignments for personnel (currently doctors).
@@ -509,7 +528,7 @@ model profile_branches {
   clinics    clinics  @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   profiles   profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
 
-  @@unique([profile_id, branch_id])
+  @@unique([profile_id, clinic_id, branch_id], map: "profile_branches_profile_clinic_branch_key")
   @@index([profile_id])
   @@index([clinic_id])
   @@index([branch_id])
@@ -537,6 +556,7 @@ model clinics {
   audit_logs              audit_logs[]
   billing_catalog_items   billing_catalog_items[]
   branches                branches[]
+  clinic_branches         clinic_branches[]
   encounters              encounters[]
   file_storage            file_storage[]
   insurance_claims        insurance_claims[]

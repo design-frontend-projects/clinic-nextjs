@@ -1,7 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getBranches, upsertBranch, deleteBranch } from "@/app/actions/clinic";
+import {
+  getOwnerBranches,
+  upsertBranch,
+  deleteBranch,
+} from "@/app/actions/clinic";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -18,15 +23,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { branchSchema, type Branch } from "@/types/clinic.types";
+import {
+  branchSchema,
+  type Branch,
+  type OwnerBranchItem,
+} from "@/types/clinic.types";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Building, Edit2, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   AlertDialog,
@@ -40,26 +55,44 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface BranchManagementProps {
-  clinicId: string;
+  /** Optional externally-fetched branches list to share query data with parent. */
+  branches?: OwnerBranchItem[];
+  isLoading?: boolean;
 }
 
-export function BranchManagement({ clinicId }: BranchManagementProps) {
+export function BranchManagement({
+  branches: externalBranches,
+  isLoading: externalLoading,
+}: BranchManagementProps = {}) {
   const queryClient = useQueryClient();
   const t = useTranslations("admin.branches");
   const tStatus = useTranslations("enums.status");
   const [isOpen, setIsOpen] = useState(false);
-  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [editingBranch, setEditingBranch] = useState<OwnerBranchItem | null>(
+    null,
+  );
   const [branchToDelete, setBranchToDelete] = useState<string | null>(null);
 
-  const { data: branches, isLoading } = useQuery({
-    queryKey: ["branches", clinicId],
-    queryFn: () => getBranches(clinicId),
+  const { data: fetchedBranches, isLoading: queryLoading } = useQuery({
+    queryKey: ["owner-branches"],
+    queryFn: () => getOwnerBranches(),
+    enabled: externalBranches === undefined,
   });
+
+  const branches = externalBranches ?? fetchedBranches;
+  const isLoading = externalLoading ?? queryLoading;
+
+  const invalidateAllBranchQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["owner-branches"] });
+    queryClient.invalidateQueries({ queryKey: ["clinics"] });
+    queryClient.invalidateQueries({ queryKey: ["branches"] });
+    queryClient.invalidateQueries({ queryKey: ["owner-clinics-branches"] });
+  };
 
   const upsertMutation = useMutation({
     mutationFn: (data: Branch) => upsertBranch(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["branches", clinicId] });
+      invalidateAllBranchQueries();
       toast.success(editingBranch ? t("toastUpdated") : t("toastCreated"));
       setIsOpen(false);
       setEditingBranch(null);
@@ -72,7 +105,7 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteBranch(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["branches", clinicId] });
+      invalidateAllBranchQueries();
       toast.success(t("toastDeleted"));
       setBranchToDelete(null);
     },
@@ -85,25 +118,43 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<Branch>({
     resolver: zodResolver(branchSchema),
     defaultValues: {
-      clinic_id: clinicId,
+      name: "",
+      address: "",
+      phone: "",
       status: "active",
-      is_main: false,
     },
   });
 
+  const statusValue = watch("status");
+
   const onOpenAdd = () => {
     setEditingBranch(null);
-    reset({ clinic_id: clinicId, status: "active", is_main: false });
+    reset({
+      id: undefined,
+      clinic_id: undefined,
+      name: "",
+      address: "",
+      phone: "",
+      status: "active",
+    });
     setIsOpen(true);
   };
 
-  const onEdit = (branch: Branch) => {
+  const onEdit = (branch: OwnerBranchItem) => {
     setEditingBranch(branch);
-    reset(branch);
+    reset({
+      id: branch.id,
+      name: branch.name,
+      address: branch.address ?? "",
+      phone: branch.phone ?? "",
+      status: branch.status,
+    });
     setIsOpen(true);
   };
 
@@ -111,13 +162,16 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
     upsertMutation.mutate(data);
   };
 
-  if (isLoading) return <div>{t("loading")}</div>;
+  if (isLoading) return <div className="py-6 text-sm text-muted-foreground">{t("loading")}</div>;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{t("title")}</h3>
-        <Button size="sm" onClick={onOpenAdd}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">{t("title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+        </div>
+        <Button onClick={onOpenAdd}>
           <Plus className="me-2 h-4 w-4" />
           {t("addBranch")}
         </Button>
@@ -130,6 +184,7 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
               <TableHead>{t("colName")}</TableHead>
               <TableHead>{t("colAddress")}</TableHead>
               <TableHead>{t("colPhone")}</TableHead>
+              <TableHead>{t("colClinics")}</TableHead>
               <TableHead>{t("colStatus")}</TableHead>
               <TableHead className="text-end">{t("colActions")}</TableHead>
             </TableRow>
@@ -138,32 +193,52 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
             {branches?.map((branch) => (
               <TableRow key={branch.id}>
                 <TableCell className="font-medium">
-                  {branch.name}
-                  {branches.indexOf(branch) === 0 && (
-                    <Badge
-                      variant="outline"
-                      className="ms-2 bg-primary/5 text-primary border-primary/20"
-                    >
-                      {t("mainBadge")}
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Building className="h-4 w-4 text-primary shrink-0" />
+                    <span>{branch.name}</span>
+                  </div>
                 </TableCell>
                 <TableCell>{branch.address || "-"}</TableCell>
                 <TableCell>{branch.phone || "-"}</TableCell>
+                <TableCell>
+                  {branch.linked_clinics.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {branch.linked_clinics.map((c) => (
+                        <Badge
+                          key={c.id}
+                          variant="outline"
+                          className="text-xs font-normal"
+                        >
+                          {c.name}
+                          {c.is_primary && (
+                            <span className="ms-1 text-primary">★</span>
+                          )}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      {t("unassigned")}
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge
                     variant={
                       branch.status === "active" ? "default" : "secondary"
                     }
                   >
-                    {branch.status === "active" ? tStatus("active") : tStatus("inactive")}
+                    {branch.status === "active"
+                      ? tStatus("active")
+                      : tStatus("inactive")}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-end space-x-2">
+                <TableCell className="text-end space-x-1">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onEdit(branch)}
+                    aria-label={t("editBranch")}
                   >
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -171,7 +246,8 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
                     variant="ghost"
                     size="icon"
                     className="text-destructive hover:text-destructive"
-                    onClick={() => setBranchToDelete(branch.id!)}
+                    onClick={() => setBranchToDelete(branch.id)}
+                    aria-label={t("deleteBranch")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -181,7 +257,7 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
             {branches?.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center py-8 text-muted-foreground"
                 >
                   {t("empty")}
@@ -198,15 +274,13 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
             <DialogTitle>
               {editingBranch ? t("editBranch") : t("addBranch")}
             </DialogTitle>
-            <DialogDescription>
-              {t("dialogDesc")}
-            </DialogDescription>
+            <DialogDescription>{t("dialogDesc")}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="branch_name">{t("formName")}</Label>
+              <Label htmlFor="owner_branch_name">{t("formName")}</Label>
               <Input
-                id="branch_name"
+                id="owner_branch_name"
                 {...register("name")}
                 placeholder={t("formNamePlaceholder")}
               />
@@ -217,13 +291,34 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">{t("formAddress")}</Label>
-              <Input id="address" {...register("address")} />
+              <Label htmlFor="owner_branch_address">{t("formAddress")}</Label>
+              <Input id="owner_branch_address" {...register("address")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="branch_phone">{t("formPhone")}</Label>
-              <Input id="branch_phone" {...register("phone")} />
+              <Label htmlFor="owner_branch_phone">{t("formPhone")}</Label>
+              <Input id="owner_branch_phone" {...register("phone")} />
             </div>
+            {editingBranch && (
+              <div className="space-y-2">
+                <Label>{t("formStatus")}</Label>
+                <Select
+                  value={statusValue}
+                  onValueChange={(val: "active" | "inactive") =>
+                    setValue("status", val)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">{tStatus("active")}</SelectItem>
+                    <SelectItem value="inactive">
+                      {tStatus("inactive")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Button
               type="submit"
               className="w-full"
@@ -242,9 +337,7 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteDesc")}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t("deleteDesc")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>

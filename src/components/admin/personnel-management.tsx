@@ -170,6 +170,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
           tempPassword: result.tempPassword,
           fullName: result.fullName ?? variables.full_name,
           email: variables.email,
+          phone: variables.phone,
         });
       } else {
         toast.success(t("toastUpdated", { title }));

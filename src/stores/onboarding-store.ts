@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   ProfileFormData,
   ClinicFormData,
-  BranchFormData,
+  OnboardingBranchItem,
   SubscriptionFormData,
   OnboardingStep,
 } from "@/types/onboarding.types";
@@ -11,7 +11,7 @@ import type {
 type OnboardingState = {
   profileData: Partial<ProfileFormData>;
   clinicData: Partial<ClinicFormData>;
-  branchData: Partial<BranchFormData>;
+  branches: OnboardingBranchItem[];
   subscriptionData: Partial<SubscriptionFormData>;
   specialtyIds: string[];
   currentStep: OnboardingStep;
@@ -22,7 +22,7 @@ type OnboardingState = {
 type OnboardingActions = {
   setProfileData: (data: Partial<ProfileFormData>) => void;
   setClinicData: (data: Partial<ClinicFormData>) => void;
-  setBranchData: (data: Partial<BranchFormData>) => void;
+  setBranches: (branches: OnboardingBranchItem[]) => void;
   setSubscriptionData: (data: Partial<SubscriptionFormData>) => void;
   setSpecialtyIds: (ids: string[]) => void;
   setStep: (step: OnboardingStep) => void;
@@ -34,7 +34,7 @@ type OnboardingActions = {
 const initialState: OnboardingState = {
   profileData: {},
   clinicData: {},
-  branchData: {},
+  branches: [],
   subscriptionData: {},
   specialtyIds: [],
   currentStep: "subscription",
@@ -57,10 +57,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
           clinicData: { ...state.clinicData, ...data },
         })),
 
-      setBranchData: (data) =>
-        set((state) => ({
-          branchData: { ...state.branchData, ...data },
-        })),
+      setBranches: (branches) => set({ branches }),
 
       setSubscriptionData: (data) =>
         set((state) => ({

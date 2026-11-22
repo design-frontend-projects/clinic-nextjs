@@ -260,7 +260,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     titleKey: "sidebar.myProfile",
-    href: "/patient/profile",
+    href: "/profile",
     iconKey: "profile",
     roles: ["patient"],
   },

@@ -38,17 +38,21 @@ export function DoctorAssignmentEditor({
   onChange,
 }: DoctorAssignmentEditorProps) {
   const t = useTranslations("admin.personnel.assignmentEditor");
-  const isSelected = (branchId: string) =>
-    assignments.some((a) => a.branch_id === branchId);
+  const isSelected = (clinicId: string, branchId: string) =>
+    assignments.some(
+      (a) => a.clinic_id === clinicId && a.branch_id === branchId,
+    );
 
   const toggleBranch = (clinicId: string, branchId: string) => {
-    if (isSelected(branchId)) {
-      const next = assignments.filter((a) => a.branch_id !== branchId);
+    if (isSelected(clinicId, branchId)) {
+      const next = assignments.filter(
+        (a) => !(a.clinic_id === clinicId && a.branch_id === branchId),
+      );
       // If we removed the current default, promote another selection (or clear).
-      const nextPrimary =
-        primaryBranchId === branchId
-          ? (next[0]?.branch_id ?? null)
-          : primaryBranchId;
+      const stillHasPrimary = next.some((a) => a.branch_id === primaryBranchId);
+      const nextPrimary = stillHasPrimary
+        ? primaryBranchId
+        : (next[0]?.branch_id ?? null);
       onChange(next, nextPrimary);
     } else {
       const next = [...assignments, { clinic_id: clinicId, branch_id: branchId }];
@@ -58,8 +62,8 @@ export function DoctorAssignmentEditor({
     }
   };
 
-  const setPrimary = (branchId: string) => {
-    if (!isSelected(branchId)) return;
+  const setPrimary = (clinicId: string, branchId: string) => {
+    if (!isSelected(clinicId, branchId)) return;
     onChange(assignments, branchId);
   };
 
@@ -91,11 +95,11 @@ export function DoctorAssignmentEditor({
               ) : (
                 <div className="ps-6 space-y-1.5">
                   {clinic.branches.map((branch) => {
-                    const selected = isSelected(branch.id);
+                    const selected = isSelected(clinic.id, branch.id);
                     const isPrimary = primaryBranchId === branch.id;
                     return (
                       <div
-                        key={branch.id}
+                        key={`${clinic.id}-${branch.id}`}
                         className="flex items-center justify-between gap-2"
                       >
                         <Label className="flex items-center gap-2 font-normal cursor-pointer">
@@ -111,7 +115,7 @@ export function DoctorAssignmentEditor({
                         {selected && (
                           <button
                             type="button"
-                            onClick={() => setPrimary(branch.id)}
+                            onClick={() => setPrimary(clinic.id, branch.id)}
                             className={cn(
                               "flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors",
                               isPrimary

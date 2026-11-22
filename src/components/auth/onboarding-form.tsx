@@ -4,19 +4,20 @@ import { useState, useEffect } from "react";
 import { useRouter } from "@/i18n/routing";
 import { toast } from "sonner";
 import { SubscriptionSetupStep } from "@/components/onboarding/subscription-setup-step";
+import { BranchSetupStep } from "@/components/onboarding/branch-setup-step";
 import { ClinicSetupStep } from "@/components/onboarding/clinic-setup-step";
 import { SpecialtySetupStep } from "@/components/onboarding/specialty-setup-step";
-import { BranchSetupStep } from "@/components/onboarding/branch-setup-step";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import {
+  saveOnboardingBranchesStep,
   saveClinicStep,
-  saveBranchStep,
   saveSpecialtiesStep,
   getOnboardingProgress,
 } from "@/app/actions/onboarding";
 import type {
   ClinicFormData,
   BranchFormData,
+  OnboardingBranchItem,
   SubscriptionFormData,
   OnboardingStep,
 } from "@/types/onboarding.types";
@@ -26,7 +27,7 @@ import { useTranslations } from "next-intl";
 type OnboardingProgressData = {
   subscriptionData?: Partial<SubscriptionFormData>;
   clinicData?: Partial<ClinicFormData>;
-  branchData?: Partial<BranchFormData>;
+  branches?: OnboardingBranchItem[];
   specialtyIds?: string[];
   clinicId?: string;
 };
@@ -39,8 +40,6 @@ type OnboardingFormProps = {
 };
 
 export function OnboardingForm({
-  defaultEmail,
-  defaultFullName,
   initialPlanId,
 }: OnboardingFormProps) {
   const router = useRouter();
@@ -51,13 +50,12 @@ export function OnboardingForm({
   const {
     subscriptionData,
     clinicData,
-    branchData,
+    branches,
     specialtyIds,
     currentStep,
-    clinicId,
     setSubscriptionData,
     setClinicData,
-    setBranchData,
+    setBranches,
     setSpecialtyIds,
     setStep,
     setClinicId,
@@ -82,7 +80,7 @@ export function OnboardingForm({
           const data = res.data as OnboardingProgressData;
           if (data.subscriptionData) setSubscriptionData(data.subscriptionData);
           if (data.clinicData) setClinicData(data.clinicData);
-          if (data.branchData) setBranchData(data.branchData);
+          if (data.branches) setBranches(data.branches);
           if (data.specialtyIds) setSpecialtyIds(data.specialtyIds);
           if (data.clinicId) setClinicId(data.clinicId);
         }
@@ -101,20 +99,49 @@ export function OnboardingForm({
       }
     }
     loadProgress();
-  }, [setSubscriptionData, setClinicData, setBranchData, setSpecialtyIds, setStep, setClinicId, router, initialPlanId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    setSubscriptionData,
+    setClinicData,
+    setBranches,
+    setSpecialtyIds,
+    setStep,
+    setClinicId,
+    router,
+    initialPlanId,
+  ]);
 
   const handleSubscriptionSubmit = async (data: SubscriptionFormData) => {
     setLoading(true);
     setSubscriptionData(data);
-    
+
     try {
       setTimeout(() => {
-        setStep("clinic");
+        setStep("branch");
         setLoading(false);
-      }, 500);
+      }, 300);
     } catch (err) {
       console.error(err);
       toast.error(t("anErrorOccurred"));
+      setLoading(false);
+    }
+  };
+
+  const handleBranchesSubmit = async (list: BranchFormData[]) => {
+    setLoading(true);
+    try {
+      const res = await saveOnboardingBranchesStep(list);
+      if ("error" in res) {
+        toast.error(res.error);
+        return;
+      }
+
+      setBranches(res.branches);
+      setStep("clinic");
+    } catch (error) {
+      console.error("Onboarding branch step error:", error);
+      toast.error(t("somethingWentWrong"));
+    } finally {
       setLoading(false);
     }
   };
@@ -124,7 +151,10 @@ export function OnboardingForm({
     setClinicData(data);
 
     try {
-      const res = await saveClinicStep(data, subscriptionData as SubscriptionFormData);
+      const subPayload: SubscriptionFormData = {
+        plan_id: subscriptionData.plan_id || initialPlanId || "basic",
+      };
+      const res = await saveClinicStep(data, subPayload);
       if (res.error || !res.clinicId) {
         toast.error(res.error || t("failedToSaveClinic"));
         return;
@@ -132,7 +162,7 @@ export function OnboardingForm({
       setClinicId(res.clinicId);
       setStep("specialties");
     } catch (error) {
-      console.error("Onboarding error:", error);
+      console.error("Onboarding clinic step error:", error);
       toast.error(t("somethingWentWrong"));
     } finally {
       setLoading(false);
@@ -149,55 +179,19 @@ export function OnboardingForm({
         toast.error(res.error);
         return;
       }
-      setStep("branch");
-    } catch (error) {
-      console.error("Onboarding error:", error);
-      toast.error(t("somethingWentWrong"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBranchSubmit = async (data: BranchFormData) => {
-    if (!clinicId) {
-      toast.error(t("missingClinicId"));
-      return;
-    }
-
-    setLoading(true);
-    setBranchData(data);
-
-    try {
-      const res = await saveBranchStep(data, clinicId);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
 
       clearOnboarding();
       toast.success(t("setupCompleted"));
       router.push("/admin");
     } catch (error) {
-      console.error("Onboarding error:", error);
+      console.error("Onboarding specialties step error:", error);
       toast.error(t("somethingWentWrong"));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBackToSubscription = () => {
-    setStep("subscription");
-  };
-
-  const handleBackToClinic = () => {
-    setStep("clinic");
-  };
-
-  const handleBackToSpecialties = () => {
-    setStep("specialties");
-  };
-
-  const STEP_ORDER = ["subscription", "clinic", "specialties", "branch"] as const;
+  const STEP_ORDER = ["subscription", "branch", "clinic", "specialties"] as const;
   const activeIndex = STEP_ORDER.indexOf(
     currentStep as (typeof STEP_ORDER)[number],
   );
@@ -215,9 +209,9 @@ export function OnboardingForm({
       <div className="flex items-center justify-between border-b border-border pb-3">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {currentStep === "subscription" && t("step1")}
-          {currentStep === "clinic" && t("step2")}
-          {currentStep === "specialties" && t("step3")}
-          {currentStep === "branch" && t("step4")}
+          {currentStep === "branch" && t("step2")}
+          {currentStep === "clinic" && t("step3")}
+          {currentStep === "specialties" && t("step4")}
         </span>
         <div className="flex gap-1">
           {STEP_ORDER.map((step, i) => (
@@ -243,11 +237,21 @@ export function OnboardingForm({
         />
       )}
 
+      {currentStep === "branch" && (
+        <BranchSetupStep
+          defaultBranches={branches}
+          onSubmit={handleBranchesSubmit}
+          onBack={() => setStep("subscription")}
+          loading={loading}
+        />
+      )}
+
       {currentStep === "clinic" && (
         <ClinicSetupStep
+          availableBranches={branches}
           defaultValues={clinicData}
           onSubmit={handleClinicSubmit}
-          onBack={handleBackToSubscription}
+          onBack={() => setStep("branch")}
           loading={loading}
         />
       )}
@@ -256,16 +260,7 @@ export function OnboardingForm({
         <SpecialtySetupStep
           defaultValues={specialtyIds}
           onSubmit={handleSpecialtiesSubmit}
-          onBack={handleBackToClinic}
-          loading={loading}
-        />
-      )}
-
-      {currentStep === "branch" && (
-        <BranchSetupStep
-          defaultValues={branchData}
-          onSubmit={handleBranchSubmit}
-          onBack={handleBackToSpecialties}
+          onBack={() => setStep("clinic")}
           loading={loading}
         />
       )}

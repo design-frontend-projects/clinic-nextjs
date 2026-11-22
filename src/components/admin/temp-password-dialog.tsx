@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy, KeyRound } from "lucide-react";
+import { useRef, useState } from "react";
+import { Check, Copy, KeyRound, MessageCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +11,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import {
+  buildTempPasswordShareMessage,
+  buildWhatsAppShareUrl,
+  parseWhatsAppPhone,
+} from "@/lib/whatsapp/share-link";
 
 export interface TempPasswordInfo {
   tempPassword: string;
   fullName?: string | null;
   email?: string | null;
+  phone?: string | null;
 }
 
 interface TempPasswordDialogProps {
@@ -32,7 +40,19 @@ interface TempPasswordDialogProps {
  */
 export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
   const t = useTranslations("admin.tempPassword");
+  const locale = useLocale();
+  const [prevInfo, setPrevInfo] = useState<TempPasswordInfo | null>(info);
   const [copied, setCopied] = useState(false);
+  const [phone, setPhone] = useState(info?.phone ?? "");
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+
+  if (info !== prevInfo) {
+    setPrevInfo(info);
+    setPhone(info?.phone ?? "");
+    setCopied(false);
+  }
+
+  const phoneStatus = parseWhatsAppPhone(phone);
 
   const handleCopy = async () => {
     if (!info) return;
@@ -46,6 +66,46 @@ export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
     }
   };
 
+  const handleShareWhatsApp = () => {
+    if (!info) return;
+
+    const signInUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/${locale}/sign-in`
+        : "";
+
+    const greeting = info.fullName?.trim()
+      ? t("whatsappMessage.greetingWithName", { name: info.fullName.trim() })
+      : t("whatsappMessage.greetingGeneric");
+
+    const text = buildTempPasswordShareMessage({
+      greeting,
+      intro: t("whatsappMessage.intro"),
+      emailLabel: t("whatsappMessage.emailLabel"),
+      email: info.email,
+      passwordLabel: t("whatsappMessage.passwordLabel"),
+      tempPassword: info.tempPassword,
+      signInUrlLabel: t("whatsappMessage.signInUrlLabel"),
+      signInUrl,
+      changePasswordNote: t("whatsappMessage.changePasswordNote"),
+    });
+
+    const result = buildWhatsAppShareUrl({ phone, text });
+
+    if ("error" in result) {
+      toast.error(
+        result.error === "missing_country_code"
+          ? t("whatsappPhoneMissingCountryCode")
+          : t("whatsappPhoneInvalid"),
+      );
+      phoneInputRef.current?.focus();
+      return;
+    }
+
+    window.open(result.url, "_blank", "noopener,noreferrer");
+    toast.success(t("toastWhatsAppOpened"));
+  };
+
   return (
     <Dialog
       open={!!info}
@@ -56,7 +116,7 @@ export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
         }
       }}
     >
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5" />
@@ -89,7 +149,43 @@ export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
           </p>
         )}
 
-        <DialogFooter>
+        <div className="space-y-1.5">
+          <Label htmlFor="temp-password-whatsapp-phone">
+            {t("whatsappPhoneLabel")}
+          </Label>
+          <Input
+            ref={phoneInputRef}
+            id="temp-password-whatsapp-phone"
+            type="tel"
+            dir="ltr"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder={t("whatsappPhonePlaceholder")}
+          />
+          {phoneStatus.status === "missing_country_code" ? (
+            <p className="text-xs text-amber-600 dark:text-amber-500">
+              {t("whatsappPhoneMissingCountryCode")}
+            </p>
+          ) : phoneStatus.status === "invalid" ? (
+            <p className="text-xs text-destructive">
+              {t("whatsappPhoneInvalid")}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t("whatsappPhoneHint")}
+            </p>
+          )}
+        </div>
+
+        <DialogFooter className="flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleShareWhatsApp}
+          >
+            <MessageCircle className="me-2 h-4 w-4 text-emerald-600" />
+            {t("shareWhatsApp")}
+          </Button>
           <Button type="button" onClick={onClose}>
             {t("done")}
           </Button>

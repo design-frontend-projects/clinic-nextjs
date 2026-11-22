@@ -1,16 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Building2,
+  Building,
   Mail,
   Phone,
   FileText,
   CreditCard,
   Loader2,
-  CheckCircle,
   ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,10 +24,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { clinicSchema, type ClinicFormData } from "@/types/onboarding.types";
+import { BranchMultiSelect } from "@/components/shared/branch-multi-select";
+import {
+  clinicSchema,
+  type ClinicFormData,
+  type OnboardingBranchItem,
+} from "@/types/onboarding.types";
 import { useTranslations } from "next-intl";
 
 type ClinicSetupStepProps = {
+  availableBranches: OnboardingBranchItem[];
   defaultValues?: Partial<ClinicFormData>;
   onSubmit: (data: ClinicFormData) => void;
   onBack: () => void;
@@ -33,13 +41,29 @@ type ClinicSetupStepProps = {
 };
 
 export function ClinicSetupStep({
+  availableBranches,
   defaultValues,
   onSubmit,
   onBack,
   loading,
 }: ClinicSetupStepProps) {
   const t = useTranslations("clinic");
+  const tBranch = useTranslations("branch");
   const tOnboarding = useTranslations("auth.onboarding");
+
+  const availableIds = new Set(availableBranches.map((b) => b.id));
+  const initialSelected =
+    defaultValues?.branch_ids?.filter((id) => availableIds.has(id)) ?? [];
+  const defaultBranchIds =
+    initialSelected.length > 0
+      ? initialSelected
+      : availableBranches.map((b) => b.id);
+  const defaultPrimaryId =
+    defaultValues?.primary_branch_id &&
+    defaultBranchIds.includes(defaultValues.primary_branch_id)
+      ? defaultValues.primary_branch_id
+      : defaultBranchIds[0];
+
   const {
     register,
     handleSubmit,
@@ -55,10 +79,36 @@ export function ClinicSetupStep({
       phone: defaultValues?.phone ?? "",
       subscription_plan: defaultValues?.subscription_plan ?? "free",
       is_primary: defaultValues?.is_primary ?? true,
+      branch_ids: defaultBranchIds,
+      primary_branch_id: defaultPrimaryId,
     },
   });
 
   const selectedPlan = watch("subscription_plan");
+  const selectedBranchIds = watch("branch_ids") ?? [];
+  const selectedPrimaryBranchId = watch("primary_branch_id");
+
+  // Reconcile selections if the owner went back and edited their branches.
+  useEffect(() => {
+    const validIds = new Set(availableBranches.map((b) => b.id));
+    const filtered = selectedBranchIds.filter((id) => validIds.has(id));
+    if (filtered.length !== selectedBranchIds.length) {
+      const nextIds =
+        filtered.length > 0 ? filtered : availableBranches.map((b) => b.id);
+      setValue("branch_ids", nextIds, { shouldValidate: true });
+      setValue(
+        "primary_branch_id",
+        selectedPrimaryBranchId && nextIds.includes(selectedPrimaryBranchId)
+          ? selectedPrimaryBranchId
+          : nextIds[0],
+      );
+    } else if (filtered.length === 0 && availableBranches.length > 0) {
+      const nextIds = availableBranches.map((b) => b.id);
+      setValue("branch_ids", nextIds);
+      setValue("primary_branch_id", nextIds[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableBranches]);
 
   const subscriptionPlans = [
     { value: "free", label: t("free") },
@@ -82,6 +132,35 @@ export function ClinicSetupStep({
         />
         {errors.name && (
           <p className="text-xs text-destructive">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <Building className="h-4 w-4 text-muted-foreground" />
+          {t("branches")} *
+        </Label>
+        <BranchMultiSelect
+          options={availableBranches}
+          selectedIds={selectedBranchIds}
+          primaryId={selectedPrimaryBranchId}
+          onChange={(ids, primaryId) => {
+            setValue("branch_ids", ids, { shouldValidate: true });
+            setValue("primary_branch_id", primaryId);
+          }}
+          placeholder={t("selectBranchesPlaceholder")}
+          searchPlaceholder={t("searchBranchesPlaceholder")}
+          emptyText={t("noBranchesAvailable")}
+          primaryLabel={tBranch("primaryBadge")}
+          setPrimaryLabel={tBranch("setPrimary")}
+          selectedCountLabel={(count) => t("branchesSelectedCount", { count })}
+          disabled={loading}
+        />
+        <p className="text-xs text-muted-foreground">{t("branchesHint")}</p>
+        {errors.branch_ids && (
+          <p className="text-xs text-destructive">
+            {errors.branch_ids.message}
+          </p>
         )}
       </div>
 
@@ -166,7 +245,7 @@ export function ClinicSetupStep({
           {loading ? (
             <Loader2 className="me-2 h-4 w-4 animate-spin" />
           ) : (
-            <CheckCircle className="me-2 h-4 w-4" />
+            <ArrowRight className="me-2 h-4 w-4" />
           )}
           {tOnboarding("initializeClinic")}
         </Button>

@@ -7,7 +7,12 @@ import { useTheme } from "next-themes";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useLocaleSwitcher } from "@/components/providers/intl-provider";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { ResolvedNavItem } from "@/components/layout/nav.config";
 
 export const OPEN_COMMAND_PALETTE_EVENT = "clinicpro:open-command-palette";
@@ -61,6 +66,9 @@ export function CommandPalette({ items }: CommandPaletteProps) {
         <DialogTitle className="sr-only">
           {t("commandPalette.title")}
         </DialogTitle>
+        <DialogDescription className="sr-only">
+          {t("commandPalette.placeholder")}
+        </DialogDescription>
         <Command className="flex h-full w-full flex-col overflow-hidden bg-surface text-foreground">
           <div className="flex items-center border-b border-hairline px-3.5">
             <Search className="me-2.5 h-4 w-4 shrink-0 text-muted-foreground" />

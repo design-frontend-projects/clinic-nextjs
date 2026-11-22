@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   Loader2,
   ArrowLeft,
-  ArrowRight,
+  CheckCircle,
   Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -121,9 +121,9 @@ export function SpecialtySetupStep({
             {loading ? (
               <Loader2 className="me-2 h-4 w-4 animate-spin" />
             ) : (
-              <ArrowRight className="me-2 h-4 w-4" />
+              <CheckCircle className="me-2 h-4 w-4" />
             )}
-            {t("continue")}
+            {t("completeSetup")}
           </Button>
         </div>
         <Button

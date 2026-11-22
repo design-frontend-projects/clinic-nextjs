@@ -194,6 +194,7 @@ export function NewAppointmentDialog({
           tempPassword: result.tempPassword,
           fullName: `${variables.patient.first_name} ${variables.patient.last_name}`.trim(),
           email: variables.patient.email,
+          phone: variables.patient.phone,
         });
       }
     },
