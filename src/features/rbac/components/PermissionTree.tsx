@@ -66,7 +66,7 @@ function TreeNodeComponent({ node, selectedIds, onToggle, level }: NodeProps) {
   const isChecked = isLeaf && selectedIds.includes(node.permission!.id);
 
   return (
-    <div className="select-none font-inter">
+    <div className="select-none">
       <div
         className={cn(
           "flex items-center gap-2 rounded-md py-1.5 px-2 hover:bg-surface-elevated transition-colors",
@@ -88,7 +88,7 @@ function TreeNodeComponent({ node, selectedIds, onToggle, level }: NodeProps) {
               e.stopPropagation();
               setIsOpen(!isOpen);
             }}
-            className="flex h-5 w-5 items-center justify-center text-mute hover:text-ink"
+            className="flex h-5 w-5 items-center justify-center text-muted-foreground hover:text-foreground"
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
@@ -105,15 +105,15 @@ function TreeNodeComponent({ node, selectedIds, onToggle, level }: NodeProps) {
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <Key className="h-4 w-4 text-mute shrink-0" />
+          <Key className="h-4 w-4 text-muted-foreground shrink-0" />
         )}
 
-        <span className={cn("text-sm", !isLeaf ? "font-semibold text-ink" : "text-mute")}>
+        <span className={cn("text-sm", !isLeaf ? "font-semibold text-foreground" : "text-muted-foreground")}>
           {node.label}
         </span>
 
         {isLeaf && node.permission?.description && (
-          <span className="text-xs text-mute/60 hidden md:inline truncate ml-2">
+          <span className="text-xs text-muted-foreground/60 hidden md:inline truncate ml-2">
             — {node.permission.description}
           </span>
         )}
@@ -154,7 +154,7 @@ export function PermissionTree({ permissions, selectedIds, onToggle }: Permissio
   return (
     <div className="rounded-lg border border-hairline bg-surface p-4 space-y-1">
       {Object.keys(tree).length === 0 ? (
-        <div className="py-6 text-center text-sm text-mute">No permissions available</div>
+        <div className="py-6 text-center text-sm text-muted-foreground">No permissions available</div>
       ) : (
         Object.values(tree).map((rootNode) => (
           <TreeNodeComponent

@@ -80,15 +80,15 @@ export default function CreateRolePage() {
   };
 
   return (
-    <div className="space-y-6 font-inter max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={() => router.push("/settings/roles")} className="h-9 w-9 border-hairline">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">Create Custom Role</h1>
-            <p className="text-mute text-xs mt-0.5">Initialize a custom role with permissions and hierarchy links.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Create Custom Role</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">Initialize a custom role with permissions and hierarchy links.</p>
           </div>
         </div>
 
@@ -113,11 +113,11 @@ export default function CreateRolePage() {
         <div className="space-y-4 md:col-span-1">
           <Card className="bg-surface border-hairline">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold tracking-tight text-ink uppercase">Role Configuration</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-tight text-foreground uppercase">Role Configuration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="role_name" className="text-xs font-semibold text-ink uppercase">Role Name</Label>
+                <Label htmlFor="role_name" className="text-xs font-semibold text-foreground uppercase">Role Name</Label>
                 <Input
                   id="role_name"
                   value={name}
@@ -128,7 +128,7 @@ export default function CreateRolePage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="parent_role" className="text-xs font-semibold text-ink uppercase">Inherits From (Parent)</Label>
+                <Label htmlFor="parent_role" className="text-xs font-semibold text-foreground uppercase">Inherits From (Parent)</Label>
                 <Select
                   value={parentRoleId || "none"}
                   onValueChange={(val) => setParentRoleId(val === "none" ? null : val)}
@@ -146,7 +146,7 @@ export default function CreateRolePage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="role_desc" className="text-xs font-semibold text-ink uppercase">Description</Label>
+                <Label htmlFor="role_desc" className="text-xs font-semibold text-foreground uppercase">Description</Label>
                 <Textarea
                   id="role_desc"
                   value={description}
@@ -162,7 +162,7 @@ export default function CreateRolePage() {
 
         {/* Right Col - permissions */}
         <div className="md:col-span-2 space-y-3">
-          <h3 className="text-sm font-semibold tracking-tight text-ink uppercase">Map Role Permissions</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">Map Role Permissions</h3>
           <PermissionTree
             permissions={permissions}
             selectedIds={selectedPermissionIds}

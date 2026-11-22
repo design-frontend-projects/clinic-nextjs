@@ -52,12 +52,25 @@ export function DataTable<TData, TValue>({
     state: { sorting, columnFilters },
   });
 
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const pageStart =
+    totalRows === 0
+      ? 0
+      : table.getState().pagination.pageIndex *
+          table.getState().pagination.pageSize +
+        1;
+  const pageEnd = Math.min(
+    (table.getState().pagination.pageIndex + 1) *
+      table.getState().pagination.pageSize,
+    totalRows,
+  );
+
   return (
     <div className="space-y-4">
       {/* Search */}
       {searchKey && (
         <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-mute" />
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
             value={
@@ -66,13 +79,13 @@ export function DataTable<TData, TValue>({
             onChange={(event) =>
               table.getColumn(searchKey)?.setFilterValue(event.target.value)
             }
-            className="pl-9"
+            className="ps-9"
           />
         </div>
       )}
 
       {/* Table */}
-      <div className="rounded-md border border-hairline bg-surface">
+      <div className="overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-surface shadow-[var(--shadow-soft)]">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -111,7 +124,7 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center text-mute font-inter"
+                  className="h-24 text-center text-muted-foreground"
                 >
                   No results found.
                 </TableCell>
@@ -122,19 +135,9 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-mute font-inter">
-          Showing{" "}
-          {table.getState().pagination.pageIndex *
-            table.getState().pagination.pageSize +
-            1}{" "}
-          to{" "}
-          {Math.min(
-            (table.getState().pagination.pageIndex + 1) *
-              table.getState().pagination.pageSize,
-            table.getFilteredRowModel().rows.length,
-          )}{" "}
-          of {table.getFilteredRowModel().rows.length} entries
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm tabular-nums text-muted-foreground">
+          Showing {pageStart} to {pageEnd} of {totalRows} entries
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -143,7 +146,7 @@ export function DataTable<TData, TValue>({
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
             Previous
           </Button>
           <Button
@@ -153,7 +156,7 @@ export function DataTable<TData, TValue>({
             disabled={!table.getCanNextPage()}
           >
             Next
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 rtl:rotate-180" />
           </Button>
         </div>
       </div>

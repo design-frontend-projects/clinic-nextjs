@@ -9,6 +9,7 @@ import {
   Stethoscope,
   Pill,
   Bell,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,25 +50,45 @@ export function AppOwnerSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 border-r bg-background flex flex-col min-h-screen">
-      <div className="h-14 border-b flex items-center px-6 lg:h-[60px]">
-        <span className="font-bold tracking-tight">App Owner</span>
+    <aside className="flex min-h-screen w-64 flex-col border-e border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] bg-primary text-primary-foreground">
+          <Activity className="h-4 w-4" />
+        </div>
+        <span className="font-bold tracking-tight text-foreground">
+          App Owner
+        </span>
       </div>
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 space-y-0.5 p-3">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/app-owner" && pathname.startsWith(item.href));
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/app-owner" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                "group relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-surface text-foreground shadow-[var(--shadow-soft)] dark:bg-sidebar-accent dark:font-semibold"
+                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               )}
             >
-              <item.icon className="h-4 w-4" />
+              {isActive && (
+                <span
+                  className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary dark:rounded-none"
+                  aria-hidden
+                />
+              )}
+              <item.icon
+                className={cn(
+                  "h-4 w-4 shrink-0",
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover:text-foreground",
+                )}
+              />
               {item.title}
             </Link>
           );

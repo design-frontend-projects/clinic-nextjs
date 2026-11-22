@@ -118,21 +118,21 @@ function EditRoleForm() {
   }
 
   if (detailsLoading) {
-    return <div className="py-24 text-center text-mute text-sm">Loading role details...</div>;
+    return <div className="py-24 text-center text-muted-foreground text-sm">Loading role details...</div>;
   }
 
   const filteredRoles = roles.filter((r: any) => r.id !== roleId);
 
   return (
-    <div className="space-y-6 font-inter max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={() => router.push("/settings/roles")} className="h-9 w-9 border-hairline">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">Edit Role: {roleDetails?.name}</h1>
-            <p className="text-mute text-xs mt-0.5">Modify permission scopes and parent bindings.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Edit Role: {roleDetails?.name}</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">Modify permission scopes and parent bindings.</p>
           </div>
         </div>
 
@@ -157,11 +157,11 @@ function EditRoleForm() {
         <div className="space-y-4 md:col-span-1">
           <Card className="bg-surface border-hairline">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold tracking-tight text-ink uppercase">Role Details</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-tight text-foreground uppercase">Role Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="role_name" className="text-xs font-semibold text-ink uppercase">Role Name</Label>
+                <Label htmlFor="role_name" className="text-xs font-semibold text-foreground uppercase">Role Name</Label>
                 <Input
                   id="role_name"
                   value={name}
@@ -173,7 +173,7 @@ function EditRoleForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="parent_role" className="text-xs font-semibold text-ink uppercase">Inherits From (Parent)</Label>
+                <Label htmlFor="parent_role" className="text-xs font-semibold text-foreground uppercase">Inherits From (Parent)</Label>
                 <Select
                   value={parentRoleId || "none"}
                   onValueChange={(val) => setParentRoleId(val === "none" ? null : val)}
@@ -192,7 +192,7 @@ function EditRoleForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="role_desc" className="text-xs font-semibold text-ink uppercase">Description</Label>
+                <Label htmlFor="role_desc" className="text-xs font-semibold text-foreground uppercase">Description</Label>
                 <Textarea
                   id="role_desc"
                   value={description}
@@ -209,7 +209,7 @@ function EditRoleForm() {
 
         {/* Right col - permission matrix/tree */}
         <div className="md:col-span-2 space-y-3">
-          <h3 className="text-sm font-semibold tracking-tight text-ink uppercase">Map Role Permissions</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">Map Role Permissions</h3>
           <PermissionTree
             permissions={permissions}
             selectedIds={selectedPermissionIds}
@@ -223,7 +223,7 @@ function EditRoleForm() {
 
 export default function EditRolePage() {
   return (
-    <Suspense fallback={<div className="py-24 text-center text-mute text-sm">Loading editor context...</div>}>
+    <Suspense fallback={<div className="py-24 text-center text-muted-foreground text-sm">Loading editor context...</div>}>
       <EditRoleForm />
     </Suspense>
   );

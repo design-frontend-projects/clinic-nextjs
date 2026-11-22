@@ -134,9 +134,9 @@ export function PermissionMatrix({
   };
 
   return (
-    <div className="space-y-4 font-inter">
+    <div className="space-y-4">
       {/* Legend Info */}
-      <div className="flex flex-wrap items-center gap-4 rounded-md border border-hairline bg-surface p-3 text-xs text-mute">
+      <div className="flex flex-wrap items-center gap-4 rounded-md border border-hairline bg-surface p-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5 font-semibold">
           <Info className="h-4 w-4 text-primary shrink-0" />
           <span>Legend:</span>
@@ -164,9 +164,9 @@ export function PermissionMatrix({
         <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow className="border-b border-hairline hover:bg-transparent">
-              <TableHead className="w-[300px] font-semibold text-ink text-xs uppercase font-mono">Module Permission</TableHead>
+              <TableHead className="w-[300px] font-semibold text-foreground text-xs uppercase font-mono">Module Permission</TableHead>
               {roles.map((role) => (
-                <TableHead key={role.id} className="text-center font-semibold text-ink text-xs uppercase font-mono">
+                <TableHead key={role.id} className="text-center font-semibold text-foreground text-xs uppercase font-mono">
                   {role.name}
                 </TableHead>
               ))}
@@ -175,7 +175,7 @@ export function PermissionMatrix({
           <TableBody>
             {permissions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={roles.length + 1} className="h-24 text-center text-mute text-xs italic">
+                <TableCell colSpan={roles.length + 1} className="h-24 text-center text-muted-foreground text-xs italic">
                   No permissions loaded.
                 </TableCell>
               </TableRow>
@@ -185,11 +185,11 @@ export function PermissionMatrix({
                   key={perm.id}
                   className="border-b border-hairline hover:bg-surface-elevated transition-colors"
                 >
-                  <TableCell className="font-mono text-xs text-ink py-2.5">
+                  <TableCell className="font-mono text-xs text-foreground py-2.5">
                     <div>
                       <p className="font-medium">{perm.name}</p>
                       {perm.description && (
-                        <p className="text-[10px] text-mute/80 mt-0.5 line-clamp-1">
+                        <p className="text-[10px] text-muted-foreground/80 mt-0.5 line-clamp-1">
                           {perm.description}
                         </p>
                       )}

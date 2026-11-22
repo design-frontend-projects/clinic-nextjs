@@ -22,29 +22,48 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn("relative overflow-hidden", className)}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-mute font-inter">{title}</p>
-            <p className="text-3xl font-semibold tracking-tight text-ink">{value}</p>
+    <Card
+      elevated
+      cornerAccent
+      className={cn("relative overflow-hidden py-0", className)}
+    >
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 space-y-1.5">
+            <p className="text-eyebrow font-medium text-muted-foreground dark:uppercase">
+              {title}
+            </p>
+            <p className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
+              {value}
+            </p>
             {description && (
-              <p className="text-xs text-mute font-inter">{description}</p>
+              <p className="text-xs text-muted-foreground">{description}</p>
             )}
             {trend && (
               <p
                 className={cn(
-                  "text-xs font-medium font-inter",
+                  "text-xs font-semibold tabular-nums",
                   trend.positive ? "text-accent-green" : "text-accent-red",
                 )}
               >
                 {trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}%{" "}
-                <span className="text-mute">vs last month</span>
+                <span className="font-normal text-muted-foreground">
+                  vs last month
+                </span>
               </p>
             )}
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-elevated">
-            <Icon className={cn("h-6 w-6", trend?.positive ? "text-accent-green" : trend ? "text-accent-red" : "text-accent-blue")} />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-button)] border border-hairline-soft bg-canvas-soft dark:border-hairline dark:bg-surface-elevated">
+            <Icon
+              className={cn(
+                "h-5 w-5",
+                trend?.positive
+                  ? "text-accent-green"
+                  : trend
+                    ? "text-accent-red"
+                    : "text-primary",
+              )}
+            />
           </div>
         </div>
       </CardContent>

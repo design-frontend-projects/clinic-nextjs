@@ -16,11 +16,14 @@ export default async function OnboardingPage({
   searchParams: Promise<{ plan?: string }>;
 }) {
   const session = await getSupabaseSession();
-  const t = await getTranslations('auth.onboarding');
+  const t = await getTranslations("auth.onboarding");
   const { plan } = await searchParams;
-  const initialPlanId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(plan ?? "")
-    ? plan
-    : undefined;
+  const initialPlanId =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      plan ?? "",
+    )
+      ? plan
+      : undefined;
 
   if (!session) {
     return redirect({ href: "/sign-in", locale: await getLocale() });
@@ -32,20 +35,23 @@ export default async function OnboardingPage({
   });
 
   if (!profile) {
-    return redirect({ href: "/sign-up?error=profile_missing", locale: await getLocale() });
+    return redirect({
+      href: "/sign-up?error=profile_missing",
+      locale: await getLocale(),
+    });
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-6 rounded-lg bg-card border border-border p-8">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground font-inter">
-            {session.user.user_metadata?.full_name ? `${session.user.user_metadata?.full_name}, ` : ''}
-            {t('title')}
+    <div className="flex min-h-screen w-full items-center justify-center bg-canvas px-4 py-12 sm:px-6 lg:px-8">
+      <div className="nvidia-corner-accent w-full max-w-md space-y-6 rounded-[var(--radius-card)] border border-hairline bg-card p-8 shadow-[var(--shadow-elevated)]">
+        <div className="space-y-2 text-center">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            {session.user.user_metadata?.full_name
+              ? `${session.user.user_metadata?.full_name}, `
+              : ""}
+            {t("title")}
           </h2>
-          <p className="text-sm text-muted-foreground font-inter">
-            {t('subtitle')}
-          </p>
+          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
         <OnboardingForm
           defaultEmail={session.user.email ?? undefined}

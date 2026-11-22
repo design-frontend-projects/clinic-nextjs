@@ -15,7 +15,7 @@ export function StarRating({ rating }: StarRatingProps) {
           key={i}
           className={
             i < rating
-              ? "h-3.5 w-3.5 fill-fin text-fin"
+              ? "h-3.5 w-3.5 fill-primary text-primary"
               : "h-3.5 w-3.5 text-muted-foreground/40"
           }
         />

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { OfflineBanner } from "@/components/layout/offline-banner";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import type { ResolvedNavItem } from "@/components/layout/nav.config";
 
@@ -17,7 +18,8 @@ export function DashboardShell({ role, items, children }: DashboardShellProps) {
   const isOpen = useSidebarStore((state) => state.isOpen);
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-canvas text-foreground">
+      <CommandPalette items={items} />
       <Sidebar role={role} items={items} />
       <div
         className={cn(
@@ -27,7 +29,9 @@ export function DashboardShell({ role, items, children }: DashboardShellProps) {
       >
         <OfflineBanner />
         <Header />
-        <main className="p-4 sm:p-6">{children}</main>
+        <main className="mx-auto max-w-[1440px] p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );

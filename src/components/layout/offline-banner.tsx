@@ -17,7 +17,7 @@ export function OfflineBanner() {
     return (
       <div
         role="status"
-        className="flex items-center gap-2 bg-amber-500/15 px-4 py-2 text-sm text-amber-700 dark:text-amber-400"
+        className="flex items-center gap-2 border-b border-accent-yellow/30 bg-accent-yellow-soft px-4 py-2 text-sm font-medium text-accent-yellow"
       >
         <WifiOff className="size-4 shrink-0" aria-hidden />
         <span>{t("banner")}</span>
@@ -29,7 +29,7 @@ export function OfflineBanner() {
     return (
       <div
         role="status"
-        className="flex items-center gap-2 bg-sky-500/10 px-4 py-1.5 text-xs text-sky-700 dark:text-sky-400"
+        className="flex items-center gap-2 border-b border-accent-blue/25 bg-accent-blue-soft px-4 py-1.5 text-xs font-medium text-accent-blue"
       >
         <RefreshCw className="size-3.5 shrink-0 animate-spin" aria-hidden />
         <span>{t("syncing")}</span>

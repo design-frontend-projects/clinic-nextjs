@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
 import { OnlineProvider } from "@/components/providers/online-provider";
@@ -12,7 +12,16 @@ import "../globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+  variable: "--",
+  display: "swap",
+  preload: true,
+});
+
+const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-arabic",
   display: "swap",
   preload: true,
 });
@@ -43,7 +52,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f5f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
 };
 
 import { getLocale } from "next-intl/server";
@@ -64,7 +76,7 @@ export default async function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: publicEnvScript }} />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${ibmPlexSansArabic.variable} font-sans antialiased`}>
         <ServiceWorkerProvider />
         <IntlProvider initialLocale={locale} initialMessages={messages}>
           <ThemeProvider

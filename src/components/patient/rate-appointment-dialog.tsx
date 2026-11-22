@@ -103,7 +103,7 @@ export function RateAppointmentDialog({
                 className={cn(
                   "h-7 w-7 transition-colors",
                   value <= (hovered || rating)
-                    ? "fill-fin text-fin"
+                    ? "fill-primary text-primary"
                     : "text-muted-foreground",
                 )}
               />

@@ -26,8 +26,8 @@ export function RoleSelector({
   label = "Select Role"
 }: RoleSelectorProps) {
   return (
-    <div className="space-y-1.5 font-inter">
-      {label && <Label className="text-xs font-semibold text-ink uppercase">{label}</Label>}
+    <div className="space-y-1.5">
+      {label && <Label className="text-xs font-semibold text-foreground uppercase">{label}</Label>}
       <Select value={selectedRoleId || ""} onValueChange={onSelect} disabled={disabled}>
         <SelectTrigger className="h-9 border-hairline font-mono text-xs">
           <SelectValue placeholder="Choose a role..." />

@@ -23,7 +23,12 @@
       "rememberMe": "Se souvenir de moi",
       "signInButton": "Se connecter",
       "invalidEmail": "Veuillez entrer une adresse e-mail valide",
-      "invalidPassword": "Le mot de passe doit contenir au moins 6 caractères"
+      "invalidPassword": "Le mot de passe doit contenir au moins 6 caractères",
+      "invalidCredentials": "Adresse e-mail ou mot de passe incorrect. Vérifiez vos identifiants ou réinitialisez votre mot de passe.",
+      "emailNotConfirmed": "Veuillez confirmer votre adresse e-mail avant de vous connecter. Vérifiez votre boîte de réception.",
+      "rateLimited": "Trop de tentatives de connexion. Veuillez patienter un instant avant de réessayer.",
+      "authCallbackFailed": "Votre lien de vérification est invalide ou a expiré. Veuillez vous connecter ou demander un nouveau lien.",
+      "genericError": "Impossible de vous connecter pour le moment. Veuillez réessayer."
     },
     "signUp": {
       "title": "Créer un compte",
@@ -1176,5 +1181,16 @@
         "status": "Statut"
       }
     }
+  },
+  "commandPalette": {
+    "title": "Palette de commandes",
+    "trigger": "Rechercher ou aller à...",
+    "placeholder": "Tapez un nom de page ou une commande...",
+    "noResults": "Aucune commande correspondante.",
+    "navigation": "Navigation",
+    "appearance": "Apparence",
+    "lightTheme": "Passer en mode clair (Notion)",
+    "darkTheme": "Passer en mode sombre (NVIDIA)",
+    "language": "Langue"
   }
 }

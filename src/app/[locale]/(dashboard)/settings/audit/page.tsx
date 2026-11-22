@@ -50,12 +50,12 @@ export default function AuditLogsPage() {
   };
 
   return (
-    <div className="space-y-6 font-inter max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-ink flex items-center gap-2">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <ClipboardList className="h-8 w-8 text-primary" /> Security Audit Logs
         </h1>
-        <p className="text-mute text-sm mt-1">
+        <p className="text-muted-foreground text-sm mt-1">
           Review a complete administrative log showing role creations, user assignments, permission updates, and IP locations.
         </p>
       </div>
@@ -63,7 +63,7 @@ export default function AuditLogsPage() {
       {/* Filters */}
       <div className="flex gap-4 items-center bg-surface border border-hairline rounded-md p-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-mute" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -76,18 +76,18 @@ export default function AuditLogsPage() {
       {/* Logs Table */}
       <div className="rounded-md border border-hairline bg-surface overflow-hidden">
         {isLoading ? (
-          <div className="py-32 text-center text-sm text-mute">Loading security audit trails...</div>
+          <div className="py-32 text-center text-sm text-muted-foreground">Loading security audit trails...</div>
         ) : logs.length === 0 ? (
-          <div className="py-32 text-center text-sm text-mute italic">No audit records match your query.</div>
+          <div className="py-32 text-center text-sm text-muted-foreground italic">No audit records match your query.</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-b border-hairline hover:bg-transparent">
-                <TableHead className="w-[180px] font-semibold text-ink text-xs uppercase font-mono">Timestamp</TableHead>
-                <TableHead className="w-[200px] font-semibold text-ink text-xs uppercase font-mono">Action</TableHead>
-                <TableHead className="w-[220px] font-semibold text-ink text-xs uppercase font-mono">Actor (Who)</TableHead>
-                <TableHead className="w-[150px] font-semibold text-ink text-xs uppercase font-mono">Client Details</TableHead>
-                <TableHead className="text-right font-semibold text-ink text-xs uppercase font-mono">Metadata</TableHead>
+                <TableHead className="w-[180px] font-semibold text-foreground text-xs uppercase font-mono">Timestamp</TableHead>
+                <TableHead className="w-[200px] font-semibold text-foreground text-xs uppercase font-mono">Action</TableHead>
+                <TableHead className="w-[220px] font-semibold text-foreground text-xs uppercase font-mono">Actor (Who)</TableHead>
+                <TableHead className="w-[150px] font-semibold text-foreground text-xs uppercase font-mono">Client Details</TableHead>
+                <TableHead className="text-right font-semibold text-foreground text-xs uppercase font-mono">Metadata</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -98,7 +98,7 @@ export default function AuditLogsPage() {
                 return (
                   <React.Fragment key={log.id}>
                     <TableRow className="border-b border-hairline hover:bg-surface-elevated transition-colors">
-                      <TableCell className="font-mono text-xs text-mute py-3">
+                      <TableCell className="font-mono text-xs text-muted-foreground py-3">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5" />
                           <span>{date.toLocaleDateString()} {date.toLocaleTimeString()}</span>
@@ -109,15 +109,15 @@ export default function AuditLogsPage() {
                           {log.action}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-ink py-3 truncate max-w-[220px]">
+                      <TableCell className="font-mono text-xs text-foreground py-3 truncate max-w-[220px]">
                         {log.actor_email || "system@clinicpro.com"}
                       </TableCell>
-                      <TableCell className="font-mono text-[10px] text-mute py-3">
+                      <TableCell className="font-mono text-[10px] text-muted-foreground py-3">
                         <div className="flex items-center gap-1.5">
                           {log.device === "Mobile" ? (
-                            <Smartphone className="h-3.5 w-3.5 text-mute" />
+                            <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
                           ) : (
-                            <Laptop className="h-3.5 w-3.5 text-mute" />
+                            <Laptop className="h-3.5 w-3.5 text-muted-foreground" />
                           )}
                           <span>{log.ip_address || "127.0.0.1"}</span>
                         </div>
@@ -137,18 +137,18 @@ export default function AuditLogsPage() {
                     {isExpanded && (
                       <TableRow className="bg-surface-elevated border-b border-hairline hover:bg-surface-elevated">
                         <TableCell colSpan={5} className="p-4">
-                          <div className="rounded-md border border-hairline bg-background p-4 space-y-4 font-mono text-[11px] leading-relaxed text-mute">
+                          <div className="rounded-md border border-hairline bg-background p-4 space-y-4 font-mono text-[11px] leading-relaxed text-muted-foreground">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
-                                <span className="font-bold text-ink uppercase">IP Address:</span> {log.ip_address || "Localhost"}
+                                <span className="font-bold text-foreground uppercase">IP Address:</span> {log.ip_address || "Localhost"}
                               </div>
                               <div>
-                                <span className="font-bold text-ink uppercase">Device Class:</span> {log.device}
+                                <span className="font-bold text-foreground uppercase">Device Class:</span> {log.device}
                               </div>
                             </div>
                             <Separator className="border-hairline" />
                             <div className="space-y-1">
-                              <span className="font-bold text-ink uppercase">User Agent:</span>
+                              <span className="font-bold text-foreground uppercase">User Agent:</span>
                               <p className="font-sans break-all">{log.user_agent || "Not captured"}</p>
                             </div>
                             <Separator className="border-hairline" />
@@ -185,7 +185,7 @@ export default function AuditLogsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between py-2 font-mono text-xs text-mute">
+        <div className="flex items-center justify-between py-2 font-mono text-xs text-muted-foreground">
           <span>Page {page} of {totalPages} ({total} entries)</span>
           <div className="flex gap-2">
             <Button

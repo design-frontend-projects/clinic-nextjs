@@ -90,13 +90,13 @@ export default function PermissionsSettingsPage() {
   };
 
   return (
-    <div className="space-y-6 font-inter max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-ink flex items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <ShieldCheck className="h-8 w-8 text-primary" /> Permission Matrix
           </h1>
-          <p className="text-mute text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Map clinical and administrative permissions across all system roles. Changes apply instantly.
           </p>
         </div>
@@ -113,7 +113,7 @@ export default function PermissionsSettingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="py-32 text-center text-sm text-mute">Loading permission matrix...</div>
+        <div className="py-32 text-center text-sm text-muted-foreground">Loading permission matrix...</div>
       ) : (
         <PermissionMatrix
           roles={roles}

@@ -27,18 +27,15 @@ const statusConfig: Record<
 > = {
   scheduled: {
     label: "Scheduled",
-    className:
-      "bg-accent-blue-soft text-accent-blue",
+    className: "bg-accent-blue-soft text-accent-blue",
   },
   checked_in: {
     label: "Checked In",
-    className:
-      "bg-accent-yellow-soft text-accent-yellow",
+    className: "bg-accent-yellow-soft text-accent-yellow",
   },
   completed: {
     label: "Completed",
-    className:
-      "bg-accent-green-soft text-accent-green",
+    className: "bg-accent-green-soft text-accent-green",
   },
   cancelled: {
     label: "Cancelled",
@@ -46,18 +43,15 @@ const statusConfig: Record<
   },
   no_show: {
     label: "No Show",
-    className:
-      "bg-surface-elevated text-mute",
+    className: "bg-muted text-muted-foreground",
   },
   active: {
     label: "Active",
-    className:
-      "bg-accent-green-soft text-accent-green",
+    className: "bg-accent-green-soft text-accent-green",
   },
   inactive: {
     label: "Inactive",
-    className:
-      "bg-surface-elevated text-mute",
+    className: "bg-muted text-muted-foreground",
   },
   blocked: {
     label: "Blocked",
@@ -65,43 +59,35 @@ const statusConfig: Record<
   },
   draft: {
     label: "Draft",
-    className:
-      "bg-surface-elevated text-mute",
+    className: "bg-muted text-muted-foreground",
   },
   issued: {
     label: "Issued",
-    className:
-      "bg-accent-blue-soft text-accent-blue",
+    className: "bg-accent-blue-soft text-accent-blue",
   },
   paid: {
     label: "Paid",
-    className:
-      "bg-accent-green-soft text-accent-green",
+    className: "bg-accent-green-soft text-accent-green",
   },
   pending: {
     label: "Pending",
-    className:
-      "bg-accent-yellow-soft text-accent-yellow",
+    className: "bg-accent-yellow-soft text-accent-yellow",
   },
   refunded: {
     label: "Refunded",
-    className:
-      "bg-accent-blue-soft text-accent-blue",
+    className: "bg-accent-blue-soft text-accent-blue",
   },
   trial: {
     label: "Trial",
-    className:
-      "bg-accent-blue-soft text-accent-blue",
+    className: "bg-accent-blue-soft text-accent-blue",
   },
   suspended: {
     label: "Suspended",
-    className:
-      "bg-accent-yellow-soft text-accent-yellow",
+    className: "bg-accent-yellow-soft text-accent-yellow",
   },
   approved: {
     label: "Approved",
-    className:
-      "bg-accent-green-soft text-accent-green",
+    className: "bg-accent-green-soft text-accent-green",
   },
   rejected: {
     label: "Rejected",
@@ -118,7 +104,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   const t = useTranslations("enums.status");
   const config = statusConfig[status as StatusVariant] || {
     label: status,
-    className: "bg-surface-elevated text-mute",
+    className: "bg-muted text-muted-foreground",
   };
 
   let label = config.label;
@@ -135,7 +121,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     <Badge
       variant="secondary"
       className={cn(
-        "border-0 font-medium capitalize font-inter",
+        "border-0 font-medium capitalize font-sans",
         config.className,
         className,
       )}

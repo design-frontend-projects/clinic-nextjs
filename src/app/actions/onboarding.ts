@@ -342,9 +342,11 @@ export async function saveBranchStep(data: BranchFormData, clinicId: string) {
 
     // Set cookie for middleware
     const cookieStore = await cookies();
+    const { isSecureCookieContext } = await import("@/lib/cookie-options");
+    const secure = await isSecureCookieContext();
     cookieStore.set("onboarding_complete", "1", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure,
       path: "/",
       sameSite: "lax",
     });

@@ -5,7 +5,40 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { softDeleteExtension } from "./prisma-soft-delete";
 
 // Setup adapter inside PrismaClient to fulfill Prisma 7 requirements
-const connectionString = `${process.env.DATABASE_URL}`;
+const rawDatabaseUrl = process.env.DATABASE_URL?.trim();
+
+function warnIfDatabaseUrlSuspicious(urlStr: string | undefined): void {
+  if (!urlStr) {
+    console.error(
+      "[prisma] DATABASE_URL is not set. Database queries will fail until it is configured.",
+    );
+    return;
+  }
+  try {
+    const parsed = new URL(urlStr);
+    const host = parsed.hostname;
+    if (
+      process.env.NODE_ENV === "production" &&
+      host &&
+      !host.includes(".") &&
+      host !== "localhost"
+    ) {
+      console.error(
+        `[prisma] DATABASE_URL resolved to single-label host "${host}" (port ${parsed.port || "default"}). ` +
+          `If you are using Supabase, check for unencoded special characters in the password (e.g. @ -> %40, # -> %23) ` +
+          `or shell $VAR interpolation in your deployment platform (enable "Is Literal" in Coolify).`,
+      );
+    }
+  } catch {
+    console.error(
+      "[prisma] DATABASE_URL is not a valid URL. Check for unencoded special characters in the password or invalid formatting.",
+    );
+  }
+}
+
+warnIfDatabaseUrlSuspicious(rawDatabaseUrl);
+
+const connectionString = rawDatabaseUrl ?? "";
 const parsedPoolMax = Number.parseInt(process.env.PG_POOL_MAX ?? "", 10);
 const pool = new Pool({
   connectionString,

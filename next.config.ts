@@ -9,6 +9,11 @@ const withNextIntl = createNextIntlPlugin();
 // "Turbopack not supported" notice is expected — silence it.
 process.env.SERWIST_SUPPRESS_TURBOPACK_WARNING = "1";
 
+const OFFLINE_REVISION =
+  process.env.SOURCE_COMMIT?.slice(0, 12) ||
+  process.env.GIT_COMMIT?.slice(0, 12) ||
+  "offline-v1";
+
 // PWA service worker (Serwist). Composed AROUND next-intl. The SW itself is
 // authored in src/app/sw.ts and emitted to public/sw.js. Disabled in dev to
 // avoid churn against the RSC dev server; we manage online state ourselves.
@@ -17,31 +22,41 @@ const withSerwist = withSerwistInit({
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV === "development",
   reloadOnOnline: false,
+  additionalPrecacheEntries: [
+    { url: "/en/offline", revision: OFFLINE_REVISION },
+    { url: "/ar/offline", revision: OFFLINE_REVISION },
+    { url: "/fr/offline", revision: OFFLINE_REVISION },
+  ],
 });
 
 // Must match routing.defaultLocale in src/i18n/routing.ts.
 const DEFAULT_LOCALE = "en";
 const PRODUCTION_HOST = "rkkbqnzxzkhmn4gof16rwwbn.79.72.6.5.sslip.io";
 
-function getConfiguredHost(): string | null {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (!raw) return null;
+function normalizeHost(raw: string | undefined): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
   try {
-    return new URL(raw).host;
+    const withProtocol = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    return new URL(withProtocol).host;
   } catch {
     return null;
   }
 }
 
+const normalizedProductionHost = normalizeHost(PRODUCTION_HOST) ?? PRODUCTION_HOST;
+
 const allowedServerActionOrigins = Array.from(
   new Set(
     [
-      PRODUCTION_HOST,
-      getConfiguredHost(),
+      normalizedProductionHost,
+      normalizeHost(process.env.NEXT_PUBLIC_SITE_URL),
       "localhost:4000",
       "localhost:4005",
-    ].filter((origin): origin is string => Boolean(origin))
-  )
+    ].filter((origin): origin is string => Boolean(origin)),
+  ),
 );
 
 // All pages live under the [locale] segment and there is no i18n middleware,
@@ -71,7 +86,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: PRODUCTION_HOST,
+        hostname: normalizedProductionHost,
         pathname: "/**",
       },
       {

@@ -104,13 +104,13 @@ export function RoleEditor({
 
   return (
     <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="sm:max-w-xl md:max-w-2xl bg-surface border-hairline flex flex-col font-inter max-h-[85vh]">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl bg-surface border-hairline flex flex-col max-h-[85vh]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold tracking-tight text-ink flex items-center gap-2">
+          <DialogTitle className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
             {role ? `Edit Role: ${role.name}` : "Create New Role"}
           </DialogTitle>
-          <DialogDescription className="text-mute text-xs">
+          <DialogDescription className="text-muted-foreground text-xs">
             {role ? "Modify permissions and settings for this role." : "Create a new custom role with default permissions and optional hierarchy links."}
           </DialogDescription>
         </DialogHeader>
@@ -124,7 +124,7 @@ export function RoleEditor({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="role_name" className="text-xs font-semibold text-ink uppercase">
+              <Label htmlFor="role_name" className="text-xs font-semibold text-foreground uppercase">
                 Role Name
               </Label>
               <Input
@@ -138,7 +138,7 @@ export function RoleEditor({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="parent_role" className="text-xs font-semibold text-ink uppercase">
+              <Label htmlFor="parent_role" className="text-xs font-semibold text-foreground uppercase">
                 Inherits From (Hierarchy Parent)
               </Label>
               <Select
@@ -162,7 +162,7 @@ export function RoleEditor({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="role_desc" className="text-xs font-semibold text-ink uppercase">
+            <Label htmlFor="role_desc" className="text-xs font-semibold text-foreground uppercase">
               Description
             </Label>
             <Textarea
@@ -177,7 +177,7 @@ export function RoleEditor({
           </div>
 
           <div className="flex-1 flex flex-col min-h-0 space-y-1.5">
-            <Label className="text-xs font-semibold text-ink uppercase">
+            <Label className="text-xs font-semibold text-foreground uppercase">
               Assign Permissions
             </Label>
             <ScrollArea className="flex-1 border border-hairline rounded-md bg-background p-1 max-h-[30vh]">

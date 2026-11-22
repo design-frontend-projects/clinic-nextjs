@@ -22,8 +22,8 @@ function StarRow({ rating }: { rating: number }) {
           key={i}
           className={
             i < rating
-              ? "h-4 w-4 fill-fin text-fin"
-              : "h-4 w-4 text-inverse-foreground/30"
+              ? "h-4 w-4 fill-sticker-orange text-sticker-orange dark:fill-primary dark:text-primary"
+              : "h-4 w-4 text-muted-foreground/30"
           }
         />
       ))}
@@ -56,34 +56,32 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
       : fallback;
 
   return (
-    <section id="testimonials" className="mx-auto max-w-[1280px] px-4 py-16 sm:px-6">
-      <div className="rounded-3xl bg-inverse-canvas px-6 py-14 sm:px-12">
-        <p className="text-center text-eyebrow font-medium text-inverse-foreground/60">
-          {t("eyebrow")}
-        </p>
-        <h2 className="mx-auto mt-3 max-w-2xl text-center text-display-md text-inverse-foreground">
-          {t("title")}
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-subhead text-inverse-foreground/60">
-          {t("subtitle")}
-        </p>
-        <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {items.slice(0, 6).map((item) => (
-            <figure
-              key={item.id}
-              className="flex flex-col rounded-lg bg-inverse-surface p-8 text-inverse-foreground"
-            >
-              <StarRow rating={item.rating} />
-              <blockquote className="mt-4 flex-1 text-lg leading-relaxed">
-                “{item.quote}”
-              </blockquote>
-              <figcaption className="mt-6">
-                <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-inverse-foreground/60">{item.clinic}</p>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+    <section id="testimonials" className="mx-auto max-w-[1280px] px-4 py-16 sm:px-6 lg:py-20">
+      <p className="text-center text-eyebrow font-semibold uppercase text-primary">
+        {t("eyebrow")}
+      </p>
+      <h2 className="mx-auto mt-3 max-w-2xl text-center text-display-md text-foreground">
+        {t("title")}
+      </h2>
+      <p className="mx-auto mt-4 max-w-2xl text-center text-subhead text-muted-foreground">
+        {t("subtitle")}
+      </p>
+      <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {items.slice(0, 6).map((item) => (
+          <figure
+            key={item.id}
+            className="nvidia-corner-accent flex flex-col rounded-[var(--radius-card)] border border-hairline bg-card p-7 text-foreground shadow-[var(--shadow-soft)]"
+          >
+            <StarRow rating={item.rating} />
+            <blockquote className="mt-4 flex-1 text-base leading-relaxed text-foreground">
+              “{item.quote}”
+            </blockquote>
+            <figcaption className="mt-6 border-t border-hairline-soft pt-4 dark:border-hairline">
+              <p className="font-semibold text-foreground">{item.name}</p>
+              <p className="text-xs text-muted-foreground">{item.clinic}</p>
+            </figcaption>
+          </figure>
+        ))}
       </div>
     </section>
   );

@@ -21,13 +21,13 @@ export default function UsersSettingsPage() {
   });
 
   return (
-    <div className="space-y-6 font-inter max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-ink flex items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Users className="h-8 w-8 text-primary" /> Staff Profiles
           </h1>
-          <p className="text-mute text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Browse registered medical practitioners, staff members, and assign security roles.
           </p>
         </div>
@@ -40,9 +40,9 @@ export default function UsersSettingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="py-24 text-center text-sm text-mute">Loading staff profiles...</div>
+        <div className="py-24 text-center text-sm text-muted-foreground">Loading staff profiles...</div>
       ) : profiles.length === 0 ? (
-        <div className="py-24 text-center text-sm text-mute border border-dashed border-hairline rounded-md">
+        <div className="py-24 text-center text-sm text-muted-foreground border border-dashed border-hairline rounded-md">
           No profiles found associated with this clinic.
         </div>
       ) : (
@@ -51,11 +51,11 @@ export default function UsersSettingsPage() {
             <Card key={profile.id} className="bg-surface border-hairline">
               <CardHeader className="pb-3 flex flex-row justify-between items-start space-y-0">
                 <div>
-                  <CardTitle className="text-base font-semibold text-ink flex items-center gap-1.5">
+                  <CardTitle className="text-base font-semibold text-foreground flex items-center gap-1.5">
                     <UserCheck className="h-4 w-4 text-emerald-500" />
                     {profile.full_name || "Unnamed Practitioner"}
                   </CardTitle>
-                  <p className="text-mute font-mono text-[11px] mt-0.5">{profile.email}</p>
+                  <p className="text-muted-foreground font-mono text-[11px] mt-0.5">{profile.email}</p>
                 </div>
                 <Badge
                   variant="outline"
@@ -71,14 +71,14 @@ export default function UsersSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {profile.specialty && (
-                  <div className="text-xs text-mute font-mono">
-                    <span className="font-semibold text-ink">Specialty: </span>
+                  <div className="text-xs text-muted-foreground font-mono">
+                    <span className="font-semibold text-foreground">Specialty: </span>
                     {profile.specialty}
                   </div>
                 )}
                 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-mute uppercase font-mono">Active Security Roles</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Active Security Roles</label>
                   <div className="flex flex-wrap gap-1.5">
                     {profile.user_roles?.length === 0 ? (
                       <Badge variant="outline" className="border-rose-500/20 text-rose-500 bg-rose-500/5 text-[9px] uppercase font-mono">
@@ -86,7 +86,7 @@ export default function UsersSettingsPage() {
                       </Badge>
                     ) : (
                       profile.user_roles?.map((ur: any) => (
-                        <Badge key={ur.roles.id} variant="outline" className="border-hairline text-mute text-[9px] uppercase font-mono">
+                        <Badge key={ur.roles.id} variant="outline" className="border-hairline text-muted-foreground text-[9px] uppercase font-mono">
                           {ur.roles.name}
                         </Badge>
                       ))

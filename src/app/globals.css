@@ -7,41 +7,52 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+  --font-sans: var(--font-inter), var(--font-arabic), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Semantic safety aliases */
+  --color-ink: var(--foreground);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-mute: var(--muted-foreground);
+
+  /* Core shadcn/ui tokens */
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 4px);
-  --radius-xl: calc(var(--radius) + 16px);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-active: var(--primary-active);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Surface & hairline tokens */
+  --color-canvas: var(--canvas);
+  --color-canvas-soft: var(--canvas-soft);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-card: var(--surface-card);
+  --color-hairline: var(--hairline);
+  --color-hairline-soft: var(--hairline-soft);
+  --color-inverse-canvas: var(--inverse-canvas);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-inverse-foreground: var(--inverse-foreground);
+
+  /* Hero band tokens (Notion Deep Indigo in Light, NVIDIA Pure Black in Dark) */
+  --color-hero-bg: var(--hero-bg);
+  --color-hero-fg: var(--hero-fg);
+  --color-hero-muted: var(--hero-muted);
+
+  /* Status & semantic accents */
   --color-accent-blue: var(--accent-blue);
   --color-accent-blue-soft: var(--accent-blue-soft);
   --color-accent-red: var(--accent-red);
@@ -50,178 +61,304 @@
   --color-accent-green-soft: var(--accent-green-soft);
   --color-accent-yellow: var(--accent-yellow);
   --color-accent-yellow-soft: var(--accent-yellow-soft);
-  --color-hero-stripe-start: var(--hero-stripe-start);
-  --color-hero-stripe-end: var(--hero-stripe-end);
-  --color-canvas: var(--canvas);
-  --color-surface: var(--surface);
-  --color-surface-elevated: var(--surface-elevated);
-  --color-surface-card: var(--surface-card);
-  --color-hairline: var(--hairline);
-  --color-hairline-soft: var(--hairline-soft);
-  --color-fin: var(--fin);
-  --color-inverse-canvas: var(--inverse-canvas);
-  --color-inverse-surface: var(--inverse-surface);
-  --color-inverse-foreground: var(--inverse-foreground);
+  --color-fin: var(--primary);
 
-  /* Intercom type scale */
-  --text-display-xl: 4.5rem;
-  --text-display-xl--line-height: 1.05;
-  --text-display-xl--letter-spacing: -0.028em;
-  --text-display-xl--font-weight: 500;
-  --text-display-lg: 3.5rem;
-  --text-display-lg--line-height: 1.1;
-  --text-display-lg--letter-spacing: -0.025em;
-  --text-display-lg--font-weight: 500;
+  /* Notion decorative sticker palette */
+  --color-sticker-sky: var(--sticker-sky);
+  --color-sticker-purple: var(--sticker-purple);
+  --color-sticker-pink: var(--sticker-pink);
+  --color-sticker-orange: var(--sticker-orange);
+  --color-sticker-teal: var(--sticker-teal);
+  --color-sticker-green: var(--sticker-green);
+
+  /* Charts */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Morphing radius tokens (Notion soft -> NVIDIA 2px angular) */
+  --radius-sm: var(--radius-input);
+  --radius-md: var(--radius-button);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-modal);
+  --radius-card: var(--radius-card);
+  --radius-button: var(--radius-button);
+  --radius-cta: var(--radius-cta);
+  --radius-input: var(--radius-input);
+  --radius-badge: var(--radius-badge);
+
+  /* Morphing elevation tokens */
+  --shadow-soft: var(--shadow-soft);
+  --shadow-elevated: var(--shadow-elevated);
+
+  /* Type scale (Notion tight heavy display + NVIDIA crisp hierarchy) */
+  --text-display-xl: 4rem;
+  --text-display-xl--line-height: 1.02;
+  --text-display-xl--letter-spacing: -0.033em;
+  --text-display-xl--font-weight: 700;
+  --text-display-lg: 3.375rem;
+  --text-display-lg--line-height: 1.06;
+  --text-display-lg--letter-spacing: -0.03em;
+  --text-display-lg--font-weight: 700;
   --text-display-md: 2.5rem;
-  --text-display-md--line-height: 1.15;
-  --text-display-md--letter-spacing: -0.02em;
-  --text-display-md--font-weight: 500;
-  --text-headline: 1.75rem;
-  --text-headline--line-height: 1.2;
-  --text-headline--letter-spacing: -0.018em;
-  --text-headline--font-weight: 500;
-  --text-card-title: 1.375rem;
-  --text-card-title--line-height: 1.25;
-  --text-card-title--letter-spacing: -0.014em;
-  --text-card-title--font-weight: 500;
-  --text-subhead: 1.25rem;
-  --text-subhead--line-height: 1.4;
-  --text-subhead--letter-spacing: -0.01em;
+  --text-display-md--line-height: 1.12;
+  --text-display-md--letter-spacing: -0.025em;
+  --text-display-md--font-weight: 700;
+  --text-headline: 1.625rem;
+  --text-headline--line-height: 1.23;
+  --text-headline--letter-spacing: -0.02em;
+  --text-headline--font-weight: 700;
+  --text-card-title: 1.25rem;
+  --text-card-title--line-height: 1.35;
+  --text-card-title--letter-spacing: -0.012em;
+  --text-card-title--font-weight: 600;
+  --text-subhead: 1.125rem;
+  --text-subhead--line-height: 1.5;
+  --text-subhead--letter-spacing: -0.005em;
   --text-subhead--font-weight: 400;
-  --text-eyebrow: 0.875rem;
-  --text-eyebrow--line-height: 1.3;
-  --text-eyebrow--font-weight: 500;
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1.33;
+  --text-eyebrow--letter-spacing: 0.04em;
+  --text-eyebrow--font-weight: 600;
 }
 
 :root {
+  /* =========================================================================
+     LIGHT MODE — NOTION DESIGN SYSTEM
+     Warm paper-soft canvas, near-black Inter, single confident Notion Blue,
+     playful decorative sticker palette, soft radii, barely-there shadows.
+     ========================================================================= */
   --radius: 0.5rem;
-  --font-inter: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-input: 0.25rem;   /* 4px */
+  --radius-button: 0.5rem;   /* 8px utility */
+  --radius-card: 0.75rem;    /* 12px feature/workspace card */
+  --radius-modal: 1rem;      /* 16px modal/container */
+  --radius-cta: 9999px;      /* pill marketing CTA */
+  --radius-badge: 9999px;    /* pill eyebrow/status badge */
 
-  /* Intercom light — cream canvas, white cards, charcoal ink */
-  --background: #f5f1ec;
-  --foreground: #111111;
+  --shadow-soft: 0 0.175px 1.041px rgba(0, 0, 0, 0.01),
+    0 0.8px 2.925px rgba(0, 0, 0, 0.02),
+    0 2.025px 7.847px rgba(0, 0, 0, 0.027),
+    0 4px 18px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 1px 2px rgba(0, 0, 0, 0.02),
+    0 4px 12px rgba(0, 0, 0, 0.04),
+    0 23px 52px rgba(0, 0, 0, 0.05);
+
+  --background: #f6f5f4;
+  --foreground: #000000;
+  --ink-secondary: #31302e;
   --card: #ffffff;
-  --card-foreground: #111111;
+  --card-foreground: #000000;
   --popover: #ffffff;
-  --popover-foreground: #111111;
-  --primary: #111111;
+  --popover-foreground: #000000;
+  --primary: #0075de;
+  --primary-active: #005bab;
   --primary-foreground: #ffffff;
   --secondary: #ffffff;
-  --secondary-foreground: #111111;
-  --muted: #ebe7e1;
-  --muted-foreground: #626260;
-  --accent: #ebe7e1;
-  --accent-foreground: #111111;
-  --destructive: #c41c1c;
+  --secondary-foreground: #000000;
+  --muted: #eeecea;
+  --muted-foreground: #615d59;
+  --accent: #eceae7;
+  --accent-foreground: #000000;
+  --destructive: #d93025;
   --destructive-foreground: #ffffff;
-  --border: #d3cec6;
-  --input: #d3cec6;
-  --ring: #111111;
+  --border: #e6e6e6;
+  --input: #dddddd;
+  --ring: #0075de;
 
-  --accent-blue: #2f7fd6;
-  --accent-blue-soft: rgba(101, 181, 255, 0.16);
-  --accent-red: #c41c1c;
-  --accent-red-soft: rgba(196, 28, 28, 0.12);
-  --accent-green: #0a9e44;
-  --accent-green-soft: rgba(11, 223, 80, 0.14);
-  --accent-yellow: #b45309;
-  --accent-yellow-soft: rgba(180, 83, 9, 0.12);
-  --hero-stripe-start: #ff5600;
-  --hero-stripe-end: #fe4c02;
-  --canvas: #f5f1ec;
+  --canvas: #f6f5f4;
+  --canvas-soft: #f6f5f4;
   --surface: #ffffff;
-  --surface-elevated: #ffffff;
+  --surface-elevated: #f6f5f4;
   --surface-card: #ffffff;
-  --hairline: #d3cec6;
-  --hairline-soft: #ebe7e1;
-  --fin: #ff5600;
-  --inverse-canvas: #000000;
-  --inverse-surface: #313130;
-  --inverse-foreground: #f5f1ec;
+  --hairline: #e6e6e6;
+  --hairline-soft: #eeecea;
+  --inverse-canvas: #213183;
+  --inverse-surface: #31302e;
+  --inverse-foreground: #ffffff;
 
-  --chart-1: #65b5ff;
-  --chart-2: #03b2cb;
-  --chart-3: #ff2067;
-  --chart-4: #b3e01c;
-  --chart-5: #fe4c02;
+  /* Notion deep indigo night hero */
+  --hero-bg: #213183;
+  --hero-fg: #ffffff;
+  --hero-muted: rgba(255, 255, 255, 0.78);
 
-  --sidebar: #f5f1ec;
-  --sidebar-foreground: #111111;
-  --sidebar-primary: #111111;
+  /* Semantic accents */
+  --accent-blue: #0075de;
+  --accent-blue-soft: rgba(0, 117, 222, 0.1);
+  --accent-red: #d93025;
+  --accent-red-soft: rgba(217, 48, 37, 0.1);
+  --accent-green: #1aae39;
+  --accent-green-soft: rgba(26, 174, 57, 0.12);
+  --accent-yellow: #dd5b00;
+  --accent-yellow-soft: rgba(221, 91, 0, 0.12);
+
+  /* Notion decorative sticker palette */
+  --sticker-sky: #62aef0;
+  --sticker-purple: #d6b6f6;
+  --sticker-pink: #ff64c8;
+  --sticker-orange: #dd5b00;
+  --sticker-teal: #2a9d99;
+  --sticker-green: #1aae39;
+
+  /* Charts */
+  --chart-1: #0075de;
+  --chart-2: #2a9d99;
+  --chart-3: #dd5b00;
+  --chart-4: #1aae39;
+  --chart-5: #952fc6;
+
+  /* Sidebar */
+  --sidebar: #f6f5f4;
+  --sidebar-foreground: #31302e;
+  --sidebar-primary: #0075de;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ebe7e1;
-  --sidebar-accent-foreground: #111111;
-  --sidebar-border: #d3cec6;
-  --sidebar-ring: #111111;
+  --sidebar-accent: #eae8e5;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #e6e6e6;
+  --sidebar-ring: #0075de;
 }
 
 .dark {
-  /* Derived charcoal variant of the Intercom palette */
-  --background: #111111;
-  --foreground: #f5f1ec;
-  --card: #232322;
-  --card-foreground: #f5f1ec;
-  --popover: #232322;
-  --popover-foreground: #f5f1ec;
-  --primary: #f5f1ec;
-  --primary-foreground: #111111;
-  --secondary: #232322;
-  --secondary-foreground: #f5f1ec;
-  --muted: #313130;
-  --muted-foreground: #9c9fa5;
-  --accent: #313130;
-  --accent-foreground: #f5f1ec;
-  --destructive: #ff6161;
-  --destructive-foreground: #111111;
-  --border: #3a3a38;
-  --input: #3a3a38;
-  --ring: #f5f1ec;
+  /* =========================================================================
+     DARK MODE — NVIDIA DESIGN SYSTEM
+     Pure black canvas, elevated carbon panels, electric NVIDIA Green (#76b900)
+     with black ink, hyper-angular 2px geometry, zero shadows, crisp hairlines.
+     ========================================================================= */
+  --radius: 2px;
+  --radius-input: 2px;
+  --radius-button: 2px;
+  --radius-card: 2px;
+  --radius-modal: 2px;
+  --radius-cta: 2px;
+  --radius-badge: 2px;
 
-  --accent-blue: #65b5ff;
-  --accent-blue-soft: rgba(101, 181, 255, 0.15);
-  --accent-red: #ff6161;
-  --accent-red-soft: rgba(255, 97, 97, 0.15);
-  --accent-green: #0bdf50;
-  --accent-green-soft: rgba(11, 223, 80, 0.15);
-  --accent-yellow: #ffc533;
-  --accent-yellow-soft: rgba(255, 197, 51, 0.15);
-  --canvas: #0d0d0d;
-  --surface: #1a1a19;
-  --surface-elevated: #232322;
-  --surface-card: #232322;
-  --hairline: #3a3a38;
-  --hairline-soft: #313130;
-  --inverse-canvas: #f5f1ec;
-  --inverse-surface: #ffffff;
-  --inverse-foreground: #111111;
+  --shadow-soft: none;
+  --shadow-elevated: none;
 
-  --sidebar: #111111;
-  --sidebar-foreground: #f5f1ec;
-  --sidebar-primary: #f5f1ec;
-  --sidebar-primary-foreground: #111111;
-  --sidebar-accent: #313130;
-  --sidebar-accent-foreground: #f5f1ec;
-  --sidebar-border: #3a3a38;
-  --sidebar-ring: #f5f1ec;
+  --background: #000000;
+  --foreground: #ffffff;
+  --ink-secondary: rgba(255, 255, 255, 0.85);
+  --card: #121212;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+  --primary: #76b900;
+  --primary-active: #5a8d00;
+  --primary-foreground: #000000;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: rgba(255, 255, 255, 0.7);
+  --accent: #1f1f1f;
+  --accent-foreground: #ffffff;
+  --destructive: #e52020;
+  --destructive-foreground: #ffffff;
+  --border: #2e2e2e;
+  --input: #424242;
+  --ring: #76b900;
+
+  --canvas: #000000;
+  --canvas-soft: #0d0d0d;
+  --surface: #121212;
+  --surface-elevated: #1a1a1a;
+  --surface-card: #121212;
+  --hairline: #333333;
+  --hairline-soft: #242424;
+  --inverse-canvas: #ffffff;
+  --inverse-surface: #f7f7f7;
+  --inverse-foreground: #000000;
+
+  /* NVIDIA pure black hero */
+  --hero-bg: #000000;
+  --hero-fg: #ffffff;
+  --hero-muted: rgba(255, 255, 255, 0.72);
+
+  /* NVIDIA semantic accents */
+  --accent-blue: #62aef0;
+  --accent-blue-soft: rgba(98, 174, 240, 0.16);
+  --accent-red: #ff4d4d;
+  --accent-red-soft: rgba(229, 32, 32, 0.18);
+  --accent-green: #76b900;
+  --accent-green-soft: rgba(118, 185, 0, 0.18);
+  --accent-yellow: #ef9100;
+  --accent-yellow-soft: rgba(239, 145, 0, 0.18);
+
+  /* Editorial accents in dark mode */
+  --sticker-sky: #76b900;
+  --sticker-purple: #952fc6;
+  --sticker-pink: #76b900;
+  --sticker-orange: #ef9100;
+  --sticker-teal: #76b900;
+  --sticker-green: #bff230;
+
+  /* Charts */
+  --chart-1: #76b900;
+  --chart-2: #bff230;
+  --chart-3: #62aef0;
+  --chart-4: #ef9100;
+  --chart-5: #952fc6;
+
+  /* Sidebar */
+  --sidebar: #080808;
+  --sidebar-foreground: rgba(255, 255, 255, 0.85);
+  --sidebar-primary: #76b900;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2c2c2c;
+  --sidebar-ring: #76b900;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-@layer base {
   html {
     font-size: 16px;
   }
   body {
-    font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), var(--font-arabic), system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "calt" 1, "kern" 1, "liga" 1, "ss03" 1;
+    font-feature-settings: "lnum" 1, "locl" 1, "calt" 1, "kern" 1;
   }
+  html[dir="rtl"] body {
+    font-family: var(--font-arabic), var(--font-inter), system-ui, -apple-system, sans-serif;
+    letter-spacing: 0 !important;
+  }
+}
+
+/* Signature NVIDIA 12px green corner square (active in .dark mode only) */
+.dark .nvidia-corner-accent {
+  position: relative;
+}
+.dark .nvidia-corner-accent::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  width: 10px;
+  height: 10px;
+  background-color: var(--primary);
+  pointer-events: none;
+}
+
+/* NVIDIA flat tracking override in dark mode */
+.dark .text-display-xl,
+.dark .text-display-lg,
+.dark .text-display-md {
+  letter-spacing: -0.01em;
 }

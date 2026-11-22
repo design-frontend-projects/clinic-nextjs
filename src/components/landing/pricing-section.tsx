@@ -72,52 +72,41 @@ function PlanCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col rounded-lg border p-6",
+        "relative flex flex-col rounded-[var(--radius-card)] border p-6 transition-colors",
         popular
-          ? "border-foreground bg-primary text-primary-foreground"
-          : "border-hairline bg-card text-card-foreground",
+          ? "nvidia-corner-accent border-primary bg-surface shadow-[var(--shadow-elevated)] ring-1 ring-primary/20 dark:bg-surface-elevated"
+          : "border-hairline bg-card text-card-foreground shadow-[var(--shadow-soft)]",
       )}
     >
       {popular && (
-        <span className="absolute -top-3 start-6 rounded-full bg-fin px-3 py-1 text-xs font-medium text-white">
+        <span className="absolute -top-3 start-6 rounded-[var(--radius-badge)] bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground dark:font-bold dark:uppercase dark:tracking-wider">
           {labels.popular}
         </span>
       )}
-      <h3 className="text-card-title">{name}</h3>
+      <h3 className="text-card-title text-foreground">{name}</h3>
       {description && (
-        <p className={cn("mt-1 text-sm", popular ? "text-primary-foreground/70" : "text-muted-foreground")}>
-          {description}
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       )}
-      <p className="mt-5">
-        <span className="text-display-md">{priceLabel}</span>
+      <p className="mt-5 tabular-nums">
+        <span className="text-display-md text-foreground">{priceLabel}</span>
         {periodLabel && (
-          <span className={cn("text-sm", popular ? "text-primary-foreground/70" : "text-muted-foreground")}>
-            {periodLabel}
-          </span>
+          <span className="text-sm text-muted-foreground">{periodLabel}</span>
         )}
       </p>
       {labels.trial && (
-        <p className={cn("mt-1 text-xs", popular ? "text-primary-foreground/70" : "text-muted-foreground")}>
-          {labels.trial}
-        </p>
+        <p className="mt-1 text-xs font-medium text-primary">{labels.trial}</p>
       )}
       <ul className="mt-6 flex-1 space-y-3">
         {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2 text-sm">
-            <Check
-              className={cn(
-                "mt-0.5 h-4 w-4 shrink-0",
-                popular ? "text-primary-foreground" : "text-accent-green",
-              )}
-            />
-            {feature}
+          <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent-green dark:text-primary" />
+            <span>{feature}</span>
           </li>
         ))}
       </ul>
       <Button
         asChild
-        variant={popular ? "secondary" : "default"}
+        variant={popular ? "cta" : "secondary"}
         className="mt-8 w-full"
       >
         <Link href={href}>{labels.getStarted}</Link>
@@ -134,14 +123,14 @@ export function PricingSection({ plans }: PricingSectionProps) {
   const hasDbPlans = plans.length > 0;
 
   return (
-    <section id="pricing" className="mx-auto max-w-[1280px] px-4 py-16 sm:px-6">
+    <section id="pricing" className="mx-auto max-w-[1280px] px-4 py-16 sm:px-6 lg:py-20">
       <h2 className="mx-auto max-w-2xl text-center text-display-md text-foreground">
         {t("title")}
       </h2>
       <p className="mx-auto mt-4 max-w-2xl text-center text-subhead text-muted-foreground">
         {t("subtitle")}
       </p>
-      <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
         {hasDbPlans
           ? plans.map((plan, index) => {
               const popular = plans.length >= 3 ? index === 1 : index === 0;

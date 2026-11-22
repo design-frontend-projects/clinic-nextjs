@@ -66,31 +66,31 @@ export function UserRoleTable({
   };
 
   return (
-    <div className="space-y-4 font-inter">
+    <div className="space-y-4">
       <div className="rounded-md border border-hairline bg-surface">
         <Table>
           <TableHeader>
             <TableRow className="border-b border-hairline hover:bg-transparent">
-              <TableHead className="font-semibold text-ink text-xs uppercase font-mono">Full Name</TableHead>
-              <TableHead className="font-semibold text-ink text-xs uppercase font-mono">Email</TableHead>
-              <TableHead className="font-semibold text-ink text-xs uppercase font-mono">Mapped Roles</TableHead>
-              <TableHead className="text-right font-semibold text-ink text-xs uppercase font-mono">Actions</TableHead>
+              <TableHead className="font-semibold text-foreground text-xs uppercase font-mono">Full Name</TableHead>
+              <TableHead className="font-semibold text-foreground text-xs uppercase font-mono">Email</TableHead>
+              <TableHead className="font-semibold text-foreground text-xs uppercase font-mono">Mapped Roles</TableHead>
+              <TableHead className="text-right font-semibold text-foreground text-xs uppercase font-mono">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {profiles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-mute text-xs italic">
+                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground text-xs italic">
                   No staff profiles found.
                 </TableCell>
               </TableRow>
             ) : (
               profiles.map((profile) => (
                 <TableRow key={profile.id} className="border-b border-hairline hover:bg-surface-elevated transition-colors">
-                  <TableCell className="font-medium text-ink text-xs font-mono">
+                  <TableCell className="font-medium text-foreground text-xs font-mono">
                     {profile.full_name || "Unnamed User"}
                   </TableCell>
-                  <TableCell className="text-mute text-xs font-mono">{profile.email || "No email"}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs font-mono">{profile.email || "No email"}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1.5">
                       {profile.user_roles.length === 0 ? (
@@ -99,7 +99,7 @@ export function UserRoleTable({
                         </Badge>
                       ) : (
                         profile.user_roles.map((ur) => (
-                          <Badge key={ur.roles.id} variant="outline" className="border-hairline text-mute text-[10px] uppercase font-mono">
+                          <Badge key={ur.roles.id} variant="outline" className="border-hairline text-muted-foreground text-[10px] uppercase font-mono">
                             {ur.roles.name}
                           </Badge>
                         ))
@@ -126,13 +126,13 @@ export function UserRoleTable({
 
       {/* Role Assignment Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-surface border-hairline font-inter">
+        <DialogContent className="sm:max-w-md bg-surface border-hairline">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold tracking-tight text-ink flex items-center gap-2">
+            <DialogTitle className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
               Manage Staff Roles
             </DialogTitle>
-            <DialogDescription className="text-mute text-xs">
+            <DialogDescription className="text-muted-foreground text-xs">
               Assign one or more roles to {selectedProfile?.full_name || "this user"}. Permissions will merge automatically.
             </DialogDescription>
           </DialogHeader>
@@ -160,7 +160,7 @@ export function UserRoleTable({
                   />
                   <Label
                     htmlFor={`assign-role-${role.id}`}
-                    className="text-xs font-semibold text-ink font-mono cursor-pointer"
+                    className="text-xs font-semibold text-foreground font-mono cursor-pointer"
                   >
                     {role.name}
                   </Label>

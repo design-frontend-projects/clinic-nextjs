@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getSupabaseSession, getTenantInfo } from "@/lib/auth";
+import { isSecureCookieContext } from "@/lib/cookie-options";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { roleHomePath, DEFAULT_HOME_PATH } from "@/lib/role-routes";
 import * as z from "zod";
@@ -19,17 +20,24 @@ import * as z from "zod";
  * their own onboarding resumes.
  */
 export async function syncOnboardingCookie() {
-  const tenant = await getTenantInfo();
-  if (!tenant?.clinicId) return;
-  if (tenant.is_owner && !tenant.is_profile_completed) return;
+  try {
+    const tenant = await getTenantInfo();
+    if (!tenant?.clinicId) return;
+    if (tenant.is_owner && !tenant.is_profile_completed) return;
 
-  const cookieStore = await cookies();
-  cookieStore.set("onboarding_complete", "1", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    sameSite: "lax",
-  });
+    const cookieStore = await cookies();
+    const secure = await isSecureCookieContext();
+    cookieStore.set("onboarding_complete", "1", {
+      httpOnly: true,
+      secure,
+      path: "/",
+      sameSite: "lax",
+    });
+  } catch (error) {
+    // Do not crash sign-in with an opaque 500 if the DB lookup fails; the
+    // middleware onboarding gate remains authoritative on subsequent navigation.
+    console.error("[auth] syncOnboardingCookie failed:", error);
+  }
 }
 
 /**
@@ -39,19 +47,35 @@ export async function syncOnboardingCookie() {
  * The client sign-in form reads roles from the Supabase JWT (`app_metadata.roles`),
  * which is frequently empty and omits several roles — so it silently misroutes
  * everyone to `/admin`. Resolving server-side from the DB fixes that. Falls back
- * to the JWT claim, then `/admin`, when no profile is linked yet.
+ * to the JWT claim, then `/admin`, when no profile is linked yet or when the DB
+ * is temporarily unreachable.
  */
 export async function getPostSignInRedirect(): Promise<string> {
-  const tenant = await getTenantInfo();
-  if (tenant) {
-    return roleHomePath(tenant.role);
+  try {
+    const tenant = await getTenantInfo();
+    if (tenant) {
+      return roleHomePath(tenant.role);
+    }
+  } catch (error) {
+    console.error(
+      "[auth] getPostSignInRedirect: getTenantInfo failed, falling back to JWT role:",
+      error,
+    );
   }
 
-  // No profile row yet (e.g. mid-provisioning): fall back to the JWT claim.
-  const session = await getSupabaseSession();
-  const roles = session?.user?.app_metadata?.roles as string[] | undefined;
-  const jwtRole = roles?.find((r) => roleHomePath(r) !== DEFAULT_HOME_PATH);
-  return jwtRole ? roleHomePath(jwtRole) : DEFAULT_HOME_PATH;
+  // No profile row yet (e.g. mid-provisioning) or DB unavailable: fall back to the JWT claim.
+  try {
+    const session = await getSupabaseSession();
+    const roles = session?.user?.app_metadata?.roles as string[] | undefined;
+    const jwtRole = roles?.find((r) => roleHomePath(r) !== DEFAULT_HOME_PATH);
+    return jwtRole ? roleHomePath(jwtRole) : DEFAULT_HOME_PATH;
+  } catch (error) {
+    console.error(
+      "[auth] getPostSignInRedirect: getSupabaseSession fallback failed:",
+      error,
+    );
+    return DEFAULT_HOME_PATH;
+  }
 }
 
 const signUpSchema = z.object({
@@ -97,8 +121,10 @@ export async function signUpAction(data: SignUpActionData) {
       ? `/onboarding?plan=${parsedData.planId}`
       : "/onboarding";
 
+    const normalizedEmail = parsedData.email.trim().toLowerCase();
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: parsedData.email,
+      email: normalizedEmail,
       password: parsedData.password,
       options: {
         data: {

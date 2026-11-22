@@ -18,8 +18,8 @@ export function StatsSection({ stats }: StatsSectionProps) {
   ];
 
   return (
-    <section className="mx-auto max-w-[1280px] px-4 py-16 sm:px-6">
-      <p className="text-center text-eyebrow font-medium text-muted-foreground">
+    <section className="mx-auto max-w-[1280px] px-4 py-16 sm:px-6 lg:py-20">
+      <p className="text-center text-eyebrow font-semibold uppercase text-primary">
         {t("eyebrow")}
       </p>
       <h2 className="mx-auto mt-3 max-w-2xl text-center text-display-md text-foreground">
@@ -29,11 +29,11 @@ export function StatsSection({ stats }: StatsSectionProps) {
         {items.map((item) => (
           <div
             key={item.label}
-            className="rounded-lg border border-hairline bg-card p-6 text-center"
+            className="nvidia-corner-accent rounded-[var(--radius-card)] border border-hairline bg-card p-6 text-center shadow-[var(--shadow-soft)]"
           >
-            <p className="text-display-md text-foreground">
+            <p className="text-display-md tabular-nums text-foreground">
               {formatter.format(item.value)}
-              <span className="text-fin">+</span>
+              <span className="text-primary">+</span>
             </p>
             <p className="mt-2 text-sm text-muted-foreground">{item.label}</p>
           </div>

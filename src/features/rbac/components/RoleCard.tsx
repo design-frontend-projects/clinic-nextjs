@@ -35,10 +35,10 @@ export function RoleCard({
   isLoading = false
 }: RoleCardProps) {
   return (
-    <Card className="flex flex-col h-full bg-surface border-hairline font-inter">
+    <Card className="flex flex-col h-full bg-surface border-hairline">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
             {role.name}
             {role.is_system && (
               <Badge variant="secondary" className="bg-sky-500/10 text-sky-500 border-sky-500/20 py-0 px-1.5 text-[10px] uppercase font-mono">
@@ -66,13 +66,13 @@ export function RoleCard({
             )}
           </button>
         </div>
-        <CardDescription className="text-mute line-clamp-2 mt-1 text-xs">
+        <CardDescription className="text-muted-foreground line-clamp-2 mt-1 text-xs">
           {role.description || "No description provided."}
         </CardDescription>
       </CardHeader>
       
       <CardContent className="flex-1 py-2">
-        <div className="flex items-center gap-2 text-xs text-mute font-mono">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
           <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
           <span>{permissionsCount} explicit permissions mapped</span>
         </div>

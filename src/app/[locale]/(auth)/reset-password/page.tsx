@@ -14,26 +14,22 @@ import { useTranslations } from "next-intl";
 export default function ResetPasswordPage() {
   const t = useTranslations();
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas p-4 relative overflow-hidden font-sans">
-      {/* Background Spotlight Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle_at_center,rgba(26,38,255,0.1)_0%,transparent_60%)] -z-10 pointer-events-none" />
-
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-4 font-sans">
       <div className="w-full max-w-md space-y-6">
-        {/* Brand Logo Header */}
         <div className="flex flex-col items-center gap-2 text-center">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary transition-transform group-hover:scale-105">
-              <Activity className="h-6 w-6 text-primary-foreground" />
+          <Link href="/" className="group flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-button)] bg-primary text-primary-foreground transition-transform group-hover:scale-105">
+              <Activity className="h-5 w-5" />
             </div>
           </Link>
-          <h2 className="text-xl font-medium tracking-tight text-foreground mt-2">
+          <h2 className="mt-1 text-xl font-bold tracking-tight text-foreground">
             {t("brand.name")}
           </h2>
         </div>
 
-        <Card className="rounded-xl">
+        <Card elevated cornerAccent>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+            <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
               {t("auth.resetPassword.title")}
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
@@ -43,11 +39,11 @@ export default function ResetPasswordPage() {
           <CardContent>
             <ResetPasswordForm />
           </CardContent>
-          <CardFooter className="flex justify-center text-sm text-muted-foreground border-t border-hairline-soft pt-4">
+          <CardFooter className="flex justify-center border-t border-hairline-soft pt-4 text-sm text-muted-foreground dark:border-hairline">
             {t("auth.resetPassword.rememberPassword")}{" "}
             <Link
               href="/sign-in"
-              className="ms-1 text-accent-blue hover:underline font-medium"
+              className="ms-1 font-medium text-primary hover:underline"
             >
               {t("auth.resetPassword.backToSignIn")}
             </Link>

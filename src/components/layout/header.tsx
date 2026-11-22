@@ -1,9 +1,9 @@
 "use client";
 
 import { useSidebarStore } from "@/stores/sidebar-store";
-import { Menu, Moon, Sun, LogOut, User, Globe } from "lucide-react";
+import { Menu, LogOut, User, Globe, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "next-themes";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,10 +23,10 @@ import { BranchSelector } from "./branch-selector";
 import { BranchDisplay } from "./branch-display";
 import { DoctorLocationSelector } from "./doctor-location-selector";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { openCommandPalette } from "@/components/layout/command-palette";
 
 export function Header() {
   const { setMobileOpen } = useSidebarStore();
-  const { theme, setTheme } = useTheme();
   const router = useRouter();
   const locale = useLocale();
   const { switchLocale } = useLocaleSwitcher();
@@ -48,15 +48,16 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 sm:px-6 backdrop-blur supports-backdrop-filter:bg-background/60 transition-all duration-300">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-hairline bg-surface/95 px-4 backdrop-blur supports-backdrop-filter:bg-surface/85 transition-colors sm:px-6 dark:bg-canvas/95 dark:supports-backdrop-filter:bg-canvas/85">
+      <div className="flex items-center gap-3">
         <Button
           variant="secondary"
-          size="icon"
+          size="icon-sm"
           onClick={() => setMobileOpen(true)}
           className="lg:hidden"
+          aria-label="Open menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4 w-4" />
         </Button>
 
         {tenant?.clinicId && (
@@ -82,38 +83,55 @@ export function Header() {
           </div>
         )}
 
-        <div className="hidden sm:block">
-          <h2 className="text-lg font-semibold text-foreground font-inter">
+        <div className="hidden xl:block">
+          <h2 className="text-sm font-semibold text-foreground">
             {t("header.welcomeBack")}
           </h2>
-          <p className="text-sm text-muted-foreground font-inter">
+          <p className="text-xs text-muted-foreground">
             {t("header.manageClinic")}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {/* Command Palette Trigger */}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={openCommandPalette}
+          className="hidden h-9 w-52 justify-between px-3 text-muted-foreground sm:inline-flex"
+        >
+          <span className="flex items-center gap-2 text-xs">
+            <Search className="h-3.5 w-3.5" />
+            <span>{t("commandPalette.trigger")}</span>
+          </span>
+          <kbd className="rounded-[var(--radius-input)] border border-hairline bg-canvas-soft px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            ⌘K
+          </kbd>
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon-sm"
+          onClick={openCommandPalette}
+          className="sm:hidden"
+          aria-label={t("commandPalette.trigger")}
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+
         {/* Language Toggle */}
         <Button
           variant="secondary"
-          size="icon"
+          size="icon-sm"
           onClick={toggleLanguage}
-          className="h-9 w-9"
-          title={locale === "en" ? "Arabic" : "English"}
+          title={locale === "en" ? "العربية" : "English"}
+          aria-label="Toggle language"
         >
           <Globe className="h-4 w-4" />
         </Button>
 
-        {/* Theme Toggle */}
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="h-9 w-9"
-        >
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-        </Button>
+        {/* Theme Toggle (Notion Light ↔ NVIDIA Dark) */}
+        <ThemeToggle variant="secondary" />
 
         {/* Notifications */}
         <NotificationBell />
@@ -121,29 +139,37 @@ export function Header() {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="icon" className="h-9 w-9 rounded-full overflow-hidden">
+            <Button
+              variant="secondary"
+              size="icon-sm"
+              className="overflow-hidden rounded-full dark:rounded-[var(--radius-button)]"
+            >
               <Avatar className="h-9 w-9">
-                <AvatarFallback>
+                <AvatarFallback className="bg-canvas-soft text-foreground dark:bg-surface-elevated">
                   <User className="h-4 w-4" />
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 bg-card border-border">
+          <DropdownMenuContent align="end" className="w-56">
             <div className="flex items-center justify-start gap-2 p-2">
               <div className="flex flex-col space-y-1 leading-none">
                 {tenant?.fullName && (
                   <p className="font-medium text-foreground">{tenant.fullName}</p>
                 )}
                 {tenant?.email && (
-                  <p className="w-[200px] truncate text-sm text-muted-foreground">
+                  <p className="w-[200px] truncate text-xs text-muted-foreground">
                     {tenant.email}
                   </p>
                 )}
               </div>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              variant="destructive"
+              className="cursor-pointer"
+            >
               <LogOut className="me-2 h-4 w-4" />
               <span>{t("header.logout")}</span>
             </DropdownMenuItem>

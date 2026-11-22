@@ -30,31 +30,51 @@ export default async function middleware(request: NextRequest) {
 
   const response = handleI18nRouting(request);
 
-  const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabaseEnv();
+  let user: { id: string } | null = null;
+  try {
+    const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabaseEnv();
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
+      }
+    );
+
+    const { data, error: authError } = await supabase.auth.getUser();
+    user = data.user;
+
+    // If the browser carries a stale JWT for a deleted/missing user (e.g. after
+    // DB reset or user deletion), purge the dead Supabase auth cookies so every
+    // subsequent request stops triggering 403 `user_not_found`.
+    if (
+      authError &&
+      (authError.code === "user_not_found" || authError.status === 403)
+    ) {
+      request.cookies.getAll().forEach(({ name }) => {
+        if (name.startsWith("sb-") || name === "onboarding_complete") {
+          response.cookies.delete(name);
+        }
+      });
     }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  } catch (error) {
+    // Never fail public routes (e.g. /ar/sign-in) with an unhandled 500 when
+    // Supabase auth check throws due to a transient network/config error.
+    console.error("[proxy] Supabase auth check failed:", error);
+  }
 
   const pathname = request.nextUrl.pathname;
   const localeMatch = pathname.match(new RegExp(`^/(${routing.locales.join("|")})/?`));

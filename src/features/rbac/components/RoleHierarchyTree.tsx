@@ -50,13 +50,13 @@ export function RoleHierarchyTree({
   };
 
   return (
-    <div className="rounded-lg border border-hairline bg-surface p-4 space-y-4 font-inter">
+    <div className="rounded-lg border border-hairline bg-surface p-4 space-y-4">
       <div className="flex items-center gap-2">
         <GitMerge className="h-5 w-5 text-primary" />
-        <h3 className="text-sm font-semibold tracking-tight text-ink uppercase">Role Inheritance Mappings</h3>
+        <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">Role Inheritance Mappings</h3>
       </div>
 
-      <p className="text-xs text-mute leading-relaxed">
+      <p className="text-xs text-muted-foreground leading-relaxed">
         Establish relations where a <strong>Parent Role</strong> automatically inherits all permissions mapped to the <strong>Child Role</strong>.
       </p>
 
@@ -69,7 +69,7 @@ export function RoleHierarchyTree({
       {/* Link Maker */}
       <div className="flex flex-col sm:flex-row gap-3 items-end bg-background border border-hairline rounded-md p-3">
         <div className="flex-1 space-y-1">
-          <label className="text-[10px] font-bold text-mute uppercase font-mono">Parent Role (Inherits)</label>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Parent Role (Inherits)</label>
           <Select value={parentSelect || ""} onValueChange={setParentSelect}>
             <SelectTrigger className="h-9 border-hairline font-mono text-xs">
               <SelectValue placeholder="Select Parent" />
@@ -82,12 +82,12 @@ export function RoleHierarchyTree({
           </Select>
         </div>
 
-        <div className="flex justify-center items-center h-9 pb-2 text-mute">
+        <div className="flex justify-center items-center h-9 pb-2 text-muted-foreground">
           <ArrowDown className="h-4 w-4 rotate-90 sm:rotate-0" />
         </div>
 
         <div className="flex-1 space-y-1">
-          <label className="text-[10px] font-bold text-mute uppercase font-mono">Child Role (Inherited)</label>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Child Role (Inherited)</label>
           <Select value={childSelect || ""} onValueChange={setChildSelect}>
             <SelectTrigger className="h-9 border-hairline font-mono text-xs">
               <SelectValue placeholder="Select Child" />
@@ -111,9 +111,9 @@ export function RoleHierarchyTree({
 
       {/* active links list */}
       <div className="space-y-2">
-        <h4 className="text-[11px] font-bold text-mute uppercase tracking-wide">Active Inheritance Rules</h4>
+        <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">Active Inheritance Rules</h4>
         {links.length === 0 ? (
-          <p className="text-xs text-mute italic py-3 text-center border border-dashed border-hairline rounded-md">No inheritance mappings defined.</p>
+          <p className="text-xs text-muted-foreground italic py-3 text-center border border-dashed border-hairline rounded-md">No inheritance mappings defined.</p>
         ) : (
           <div className="grid gap-2">
             {links.map((link) => (
@@ -123,7 +123,7 @@ export function RoleHierarchyTree({
               >
                 <div className="flex items-center gap-2 font-mono">
                   <Badge variant="outline" className="border-indigo-500/20 text-indigo-500 bg-indigo-500/5">{link.parent_role.name}</Badge>
-                  <span className="text-mute">inherits all permissions of</span>
+                  <span className="text-muted-foreground">inherits all permissions of</span>
                   <Badge variant="outline" className="border-sky-500/20 text-sky-500 bg-sky-500/5">{link.child_role.name}</Badge>
                 </div>
 

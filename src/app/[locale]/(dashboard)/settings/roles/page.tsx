@@ -145,13 +145,13 @@ export default function RolesSettingsPage() {
   const isLoading = rolesLoading || hierarchyLoading;
 
   return (
-    <div className="space-y-6 font-inter max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-ink flex items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Shield className="h-8 w-8 text-primary" /> Role Management
           </h1>
-          <p className="text-mute text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Configure clinic-wide security roles, assign default permissions, and design inheritance hierarchies.
           </p>
         </div>
@@ -181,11 +181,11 @@ export default function RolesSettingsPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Roles Cards grid */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-sm font-semibold tracking-tight text-ink uppercase">Active Roles</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">Active Roles</h3>
           {rolesLoading ? (
-            <div className="py-24 text-center text-sm text-mute">Loading roles...</div>
+            <div className="py-24 text-center text-sm text-muted-foreground">Loading roles...</div>
           ) : rolesData && rolesData.length === 0 ? (
-            <div className="py-24 text-center text-sm text-mute border border-dashed border-hairline rounded-md">
+            <div className="py-24 text-center text-sm text-muted-foreground border border-dashed border-hairline rounded-md">
               No roles configured yet. Click Create Role to get started.
             </div>
           ) : (

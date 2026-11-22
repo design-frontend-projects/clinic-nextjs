@@ -83,25 +83,30 @@ function SidebarNav({
   const baseUrl = role === "owner" ? "/admin" : `/${role}`;
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        <Link href={baseUrl} className="flex items-center gap-2" onClick={onNavigate}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
-            <Activity className="h-5 w-5 text-primary-foreground" />
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+      {/* Brand header */}
+      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <Link
+          href={baseUrl}
+          className="flex items-center gap-2.5"
+          onClick={onNavigate}
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-button)] bg-primary text-primary-foreground">
+            <Activity className="h-4 w-4" />
           </div>
           {expanded && (
-            <span className="text-lg font-semibold tracking-tight text-foreground font-inter">
+            <span className="text-base font-bold tracking-tight text-foreground">
               {t("brand.name")}
             </span>
           )}
         </Link>
         {showCollapseButton && (
           <Button
-            variant="secondary"
-            size="icon"
+            variant="ghost"
+            size="icon-sm"
             onClick={toggle}
-            className="h-8 w-8"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            aria-label="Toggle sidebar"
           >
             <ChevronLeft
               className={cn(
@@ -114,8 +119,8 @@ function SidebarNav({
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 py-4">
-        <nav className="flex flex-col gap-1 px-2">
+      <ScrollArea className="flex-1 py-3">
+        <nav className="flex flex-col gap-0.5 px-2.5">
           {items.map((item) => {
             const Icon = ICONS[item.iconKey] ?? Activity;
             const isActive =
@@ -126,16 +131,30 @@ function SidebarNav({
                 key={item.href}
                 href={item.href}
                 onClick={onNavigate}
+                title={!expanded ? t(item.titleKey) : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors font-inter",
+                  "group relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    ? "bg-surface text-foreground shadow-[var(--shadow-soft)] dark:bg-sidebar-accent dark:text-foreground dark:font-semibold"
+                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                   !expanded && "justify-center px-2",
                 )}
               >
-                <Icon className="h-5 w-5 shrink-0" />
-                {expanded && <span>{t(item.titleKey)}</span>}
+                {isActive && (
+                  <span
+                    className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary dark:rounded-none"
+                    aria-hidden
+                  />
+                )}
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-colors",
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground group-hover:text-foreground",
+                  )}
+                />
+                {expanded && <span className="truncate">{t(item.titleKey)}</span>}
               </Link>
             );
           })}
@@ -143,10 +162,10 @@ function SidebarNav({
       </ScrollArea>
 
       {/* Footer */}
-      <Separator />
-      <div className="p-4">
+      <Separator className="bg-sidebar-border" />
+      <div className="p-3.5">
         {expanded && (
-          <p className="text-xs text-muted-foreground text-center font-inter">
+          <p className="text-center text-xs text-muted-foreground">
             © 2026 {t("brand.name")}
           </p>
         )}
@@ -171,18 +190,23 @@ export function Sidebar({
       {/* Desktop rail */}
       <aside
         className={cn(
-          "fixed inset-y-0 inset-s-0 z-40 hidden lg:flex h-screen flex-col border-e border-border bg-sidebar transition-all duration-300",
+          "fixed inset-y-0 inset-s-0 z-40 hidden h-screen flex-col border-e border-sidebar-border bg-sidebar transition-all duration-300 lg:flex",
           isOpen ? "w-64" : "w-16",
         )}
       >
-        <SidebarNav role={role} items={items} expanded={isOpen} showCollapseButton />
+        <SidebarNav
+          role={role}
+          items={items}
+          expanded={isOpen}
+          showCollapseButton
+        />
       </aside>
 
       {/* Mobile drawer */}
       <Sheet open={isMobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side={locale === "ar" ? "right" : "left"}
-          className="w-72 p-0 lg:hidden"
+          className="w-72 border-sidebar-border bg-sidebar p-0 lg:hidden"
         >
           <SheetTitle className="sr-only">{t("brand.name")}</SheetTitle>
           <SidebarNav
