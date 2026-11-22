@@ -65,6 +65,6 @@ EXPOSE 4000
 
 # Lightweight liveness probe against /api/health (bypasses Supabase/i18n proxy).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:4000/api/health >/dev/null 2>&1 || exit 1
+  CMD sh -c 'wget -qO- "http://127.0.0.1:${PORT:-4000}/api/health" >/dev/null 2>&1 || exit 1'
 
 CMD ["node", "server.js"]

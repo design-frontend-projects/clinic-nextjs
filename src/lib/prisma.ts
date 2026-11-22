@@ -6,7 +6,20 @@ import { softDeleteExtension } from "./prisma-soft-delete";
 
 // Setup adapter inside PrismaClient to fulfill Prisma 7 requirements
 const connectionString = `${process.env.DATABASE_URL}`;
-const pool = new Pool({ connectionString });
+const parsedPoolMax = Number.parseInt(process.env.PG_POOL_MAX ?? "", 10);
+const pool = new Pool({
+  connectionString,
+  max: Number.isFinite(parsedPoolMax) && parsedPoolMax > 0 ? parsedPoolMax : 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
+});
+
+// Prevent unhandled EventEmitter errors from crashing the Node.js process when
+// Supabase PgBouncer terminates an idle backend connection.
+pool.on("error", (err) => {
+  console.error("[pg.Pool] Unexpected error on idle client:", err);
+});
+
 const adapter = new PrismaPg(pool);
 
 const globalForPrisma = globalThis as unknown as {

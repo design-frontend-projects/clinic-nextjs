@@ -27,10 +27,15 @@ export interface AccountMetadata {
 
 /** Base site URL used to build absolute email redirect targets. */
 function getSiteUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "http://localhost:4000"
-  );
+  // Dynamic lookup prevents Webpack DefinePlugin from statically inlining ""
+  // when NEXT_PUBLIC_SITE_URL is supplied only at runtime (e.g. Coolify).
+  const publicKey = "NEXT_PUBLIC_SITE_URL";
+  const runtimeUrl =
+    process.env[publicKey]?.trim() ||
+    process.env["SITE_URL"]?.trim() ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+  return runtimeUrl ? runtimeUrl.replace(/\/$/, "") : "http://localhost:4000";
 }
 
 /**

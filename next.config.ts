@@ -39,6 +39,19 @@ const nextConfig: NextConfig = {
   // Emit a self-contained server bundle (`.next/standalone/server.js`) so the
   // Docker runner stage stays slim (no full node_modules / `next start`).
   output: "standalone",
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return UNPREFIXED_AUTH_ROUTES.map((route) => ({
       source: route,
