@@ -3,14 +3,19 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
-import fr from "@/messages/fr.json";
 
-function flattenKeys(obj: Record<string, unknown>, prefix = ""): Record<string, unknown> {
+function flattenKeys(
+  obj: Record<string, unknown>,
+  prefix = "",
+): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const fullPath = prefix ? `${prefix}.${key}` : key;
     if (value && typeof value === "object" && !Array.isArray(value)) {
-      Object.assign(result, flattenKeys(value as Record<string, unknown>, fullPath));
+      Object.assign(
+        result,
+        flattenKeys(value as Record<string, unknown>, fullPath),
+      );
     } else {
       result[fullPath] = value;
     }
@@ -21,7 +26,11 @@ function flattenKeys(obj: Record<string, unknown>, prefix = ""): Record<string, 
 function getByPath(obj: Record<string, unknown>, keyPath: string): unknown {
   if (!keyPath) return obj;
   return keyPath.split(".").reduce<unknown>((acc, key) => {
-    if (acc && typeof acc === "object" && key in (acc as Record<string, unknown>)) {
+    if (
+      acc &&
+      typeof acc === "object" &&
+      key in (acc as Record<string, unknown>)
+    ) {
       return (acc as Record<string, unknown>)[key];
     }
     return undefined;
@@ -45,10 +54,9 @@ function walkSourceFiles(dir: string): string[] {
 describe("i18n locale messages integrity", () => {
   const flatEn = flattenKeys(en as Record<string, unknown>);
   const flatAr = flattenKeys(ar as Record<string, unknown>);
-  const flatFr = flattenKeys(fr as Record<string, unknown>);
 
   it("includes required pages.admin and pages.staff dashboard namespaces in all locales", () => {
-    for (const localeObj of [en, ar, fr]) {
+    for (const localeObj of [en, ar]) {
       expect(localeObj.pages.admin).toBeDefined();
       expect(localeObj.pages.admin.title).toBeTruthy();
       expect(localeObj.pages.admin.subtitle).toBeTruthy();
@@ -58,9 +66,9 @@ describe("i18n locale messages integrity", () => {
     }
   });
 
-  it("maintains full key parity between en.json, ar.json, and fr.json", () => {
+  it("maintains full key parity between en.json, ar.json", () => {
     const missingInAr = Object.keys(flatEn).filter((k) => !(k in flatAr));
-    const missingInFr = Object.keys(flatEn).filter((k) => !(k in flatFr));
+    const missingInFr = Object.keys(flatEn).filter((k) => !(k in flatAr));
 
     expect(missingInAr).toEqual([]);
     expect(missingInFr).toEqual([]);
@@ -70,13 +78,16 @@ describe("i18n locale messages integrity", () => {
     for (const [localeName, flatLocale] of [
       ["en", flatEn],
       ["ar", flatAr],
-      ["fr", flatFr],
     ] as const) {
       const corrupted = Object.entries(flatLocale).filter(
         ([, val]) =>
-          typeof val === "string" && (val.includes("\ufffd") || val.includes("???")),
+          typeof val === "string" &&
+          (val.includes("\ufffd") || val.includes("???")),
       );
-      expect(corrupted, `Corrupted strings found in ${localeName}.json`).toEqual([]);
+      expect(
+        corrupted,
+        `Corrupted strings found in ${localeName}.json`,
+      ).toEqual([]);
     }
   });
 
@@ -96,7 +107,10 @@ describe("i18n locale messages integrity", () => {
         if (ns && getByPath(en as Record<string, unknown>, ns) === undefined) {
           missing.push({ file: path.relative(srcDir, file), fullKey: ns });
         }
-        const callRegex = new RegExp(`\\b${varName}\\(\\s*["']([^"']+)["']`, "g");
+        const callRegex = new RegExp(
+          `\\b${varName}\\(\\s*["']([^"']+)["']`,
+          "g",
+        );
         let callMatch: RegExpExecArray | null;
         while ((callMatch = callRegex.exec(content)) !== null) {
           const key = callMatch[1];
@@ -111,4 +125,3 @@ describe("i18n locale messages integrity", () => {
     expect(missing).toEqual([]);
   });
 });
-

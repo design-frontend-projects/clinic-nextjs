@@ -2,23 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Command } from "cmdk";
-import {
-  Search,
-  Moon,
-  Sun,
-  Globe,
-  ArrowRight,
-  Compass,
-} from "lucide-react";
+import { Search, Moon, Sun, Globe, ArrowRight, Compass } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useLocaleSwitcher } from "@/components/providers/intl-provider";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { ResolvedNavItem } from "@/components/layout/nav.config";
 
 export const OPEN_COMMAND_PALETTE_EVENT = "clinicpro:open-command-palette";
@@ -141,7 +130,7 @@ export function CommandPalette({ items }: CommandPaletteProps) {
               heading={t("commandPalette.language")}
               className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-muted-foreground"
             >
-              {(["en", "ar", "fr"] as const).map((lang) => (
+              {(["en", "ar"] as const).map((lang) => (
                 <Command.Item
                   key={lang}
                   value={`language ${lang}`}

@@ -33,7 +33,7 @@ High-contrast engineering precision designed for low-light environments and shar
 ---
 
 ## Typography
-- **LTR (`en`, `fr`)**: `Inter` (`--font-inter`, weights `400`, `500`, `600`, `700`) with OpenType `lnum` and `locl` enabled.
+- **LTR (`en`, `ar`)**: `Inter` (`--font-inter`, weights `400`, `500`, `600`, `700`) with OpenType `lnum` and `locl` enabled.
 - **RTL (`ar`)**: `IBM Plex Sans Arabic` (`--font-arabic`, weights `400`, `500`, `600`, `700`), automatically prioritized under `html[dir="rtl"]`.
 - **Scale**: `text-display-xl` (64px/700), `text-display-lg` (54px/700), `text-display-md` (40px/700), `text-headline` (26px/700), `text-card-title` (20px/600), `text-subhead` (18px/400), `text-eyebrow` (12px/600).
 

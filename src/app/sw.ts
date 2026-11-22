@@ -1,6 +1,10 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
-import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from "serwist";
+import type {
+  PrecacheEntry,
+  RuntimeCaching,
+  SerwistGlobalConfig,
+} from "serwist";
 import { NetworkOnly, Serwist } from "serwist";
 
 // This file is compiled by Serwist (not by the app's tsc — it is excluded in
@@ -19,7 +23,7 @@ declare const self: ServiceWorkerGlobalScope;
 // session responses and prevents `no-response` FetchEvent rejections when
 // navigations or RSC refreshes are aborted during sign-in redirects.
 const AUTH_PATH_RE =
-  /^(?:\/(?:en|ar|fr))?\/(?:sign-in|sign-up|forgot-password|reset-password|onboarding)(?:\/|$)|^\/auth(?:\/|$)/;
+  /^(?:\/(?:en|ar))?\/(?:sign-in|sign-up|forgot-password|reset-password|onboarding)(?:\/|$)|^\/auth(?:\/|$)/;
 
 function shouldBypassServiceWorker(request: Request): boolean {
   // Never intercept mutations / Next.js Server Actions (POST, PUT, PATCH, DELETE).
@@ -65,12 +69,6 @@ const serwist = new Serwist({
         matcher: ({ request }) =>
           request.destination === "document" &&
           new URL(request.url).pathname.startsWith("/ar"),
-      },
-      {
-        url: "/fr/offline",
-        matcher: ({ request }) =>
-          request.destination === "document" &&
-          new URL(request.url).pathname.startsWith("/fr"),
       },
       {
         url: "/en/offline",

@@ -25,7 +25,6 @@ const withSerwist = withSerwistInit({
   additionalPrecacheEntries: [
     { url: "/en/offline", revision: OFFLINE_REVISION },
     { url: "/ar/offline", revision: OFFLINE_REVISION },
-    { url: "/fr/offline", revision: OFFLINE_REVISION },
   ],
 });
 
@@ -46,7 +45,8 @@ function normalizeHost(raw: string | undefined): string | null {
   }
 }
 
-const normalizedProductionHost = normalizeHost(PRODUCTION_HOST) ?? PRODUCTION_HOST;
+const normalizedProductionHost =
+  normalizeHost(PRODUCTION_HOST) ?? PRODUCTION_HOST;
 
 const allowedServerActionOrigins = Array.from(
   new Set(

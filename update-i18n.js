@@ -188,4 +188,3 @@ const frUpdates = {
 
 updateTranslation('en', enUpdates);
 updateTranslation('ar', arUpdates);
-updateTranslation('fr', frUpdates);

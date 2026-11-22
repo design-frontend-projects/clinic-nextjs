@@ -17,6 +17,7 @@
       "signUp": "إنشاء حساب",
       "emailLabel": "البريد الإلكتروني",
       "emailPlaceholder": "doctor@clinic.com",
+      "phonePlaceholder": "رقم الهاتف",
       "passwordLabel": "كلمة المرور",
       "passwordPlaceholder": "••••••••",
       "forgotPassword": "نسيت كلمة المرور؟",
@@ -39,6 +40,8 @@
       "fullNamePlaceholder": "د. جون دو",
       "emailLabel": "البريد الإلكتروني",
       "emailPlaceholder": "doctor@clinic.com",
+      "phoneLabel": "رقم الهاتف",
+      "phonePlaceholder": "رقم الهاتف",
       "passwordLabel": "كلمة المرور",
       "passwordPlaceholder": "••••••••",
       "createAccountButton": "إنشاء حساب",
@@ -840,11 +843,7 @@
   "plans": {
     "basic": "أساسي",
     "basicPrice": "$29/شهر",
-    "basicFeatures": [
-      "1 فرع",
-      "حتى 3 موظفين",
-      "تقارير أساسية"
-    ],
+    "basicFeatures": ["1 فرع", "حتى 3 موظفين", "تقارير أساسية"],
     "pro": "برو",
     "proPrice": "$99/شهر",
     "proFeatures": [

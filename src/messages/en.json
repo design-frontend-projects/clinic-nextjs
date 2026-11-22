@@ -39,6 +39,8 @@
       "fullNamePlaceholder": "Dr. John Doe",
       "emailLabel": "Email address",
       "emailPlaceholder": "doctor@clinic.com",
+      "phoneabel": "Phone Number",
+      "phonePlaceholder": "Phone Number",
       "passwordLabel": "Password",
       "passwordPlaceholder": "••••••••",
       "createAccountButton": "Create account",
@@ -839,11 +841,7 @@
   "plans": {
     "basic": "Basic",
     "basicPrice": "$29/mo",
-    "basicFeatures": [
-      "1 Branch",
-      "Up to 3 Staff Users",
-      "Basic Reporting"
-    ],
+    "basicFeatures": ["1 Branch", "Up to 3 Staff Users", "Basic Reporting"],
     "pro": "Pro",
     "proPrice": "$99/mo",
     "proFeatures": [

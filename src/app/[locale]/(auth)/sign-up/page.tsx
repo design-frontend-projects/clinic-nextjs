@@ -19,14 +19,14 @@ export default async function SignUpPage({
 }) {
   const t = await getTranslations();
   const { plan } = await searchParams;
-  const planParse = z.string().uuid().safeParse(plan);
+  const planParse = z.uuid().safeParse(plan);
   const planId = planParse.success ? planParse.data : undefined;
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas p-4 font-sans">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <Link href="/" className="group flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-button)] bg-primary text-primary-foreground transition-transform group-hover:scale-105">
+            <div className="flex h-10 w-10 items-center justify-center rounded-(--radius-button) bg-primary text-primary-foreground transition-transform group-hover:scale-105">
               <Activity className="h-5 w-5" />
             </div>
           </Link>

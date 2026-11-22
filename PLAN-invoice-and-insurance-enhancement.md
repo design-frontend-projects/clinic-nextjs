@@ -51,6 +51,6 @@
 - Update `src/components/billing/create-invoice-dialog.tsx`, `src/app/[locale]/(dashboard)/admin/billing/page.tsx`, `src/app/[locale]/(dashboard)/doctor/billing/page.tsx`, and `src/components/layout/nav.config.ts`.
 
 ### Phase 5: Localization (`next-intl`) & Verification
-- Update `src/messages/en.json`, `src/messages/ar.json`, and `src/messages/fr.json`.
+- Update `src/messages/en.json`, `src/messages/ar.json`.
 - Add unit tests in `src/lib/__tests__/insurance.test.ts` and verify i18n parity.
 

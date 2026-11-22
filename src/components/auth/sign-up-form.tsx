@@ -13,11 +13,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-
 const signUpSchema = z.object({
-  fullName: z.string().min(2, ""),
-  email: z.string().email(""),
-  password: z.string().min(6, ""),
+  fullName: z.string().min(3, ""),
+  email: z.email(""),
+  phone: z.string(""),
+  password: z.string().min(8, ""),
 });
 
 type SignUpValues = z.infer<typeof signUpSchema>;
@@ -37,6 +37,7 @@ export function SignUpForm({ planId }: { planId?: string }) {
       fullName: "",
       email: "",
       password: "",
+      phone: "",
     },
   });
 
@@ -75,9 +76,7 @@ export function SignUpForm({ planId }: { planId?: string }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
       <div className="space-y-2">
-        <Label htmlFor="fullName">
-          {t("fullNameLabel")}
-        </Label>
+        <Label htmlFor="fullName">{t("fullNameLabel")}</Label>
         <Input
           id="fullName"
           type="text"
@@ -90,9 +89,7 @@ export function SignUpForm({ planId }: { planId?: string }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">
-          {t("emailLabel")}
-        </Label>
+        <Label htmlFor="email">{t("emailLabel")}</Label>
         <Input
           id="email"
           type="email"
@@ -103,11 +100,21 @@ export function SignUpForm({ planId }: { planId?: string }) {
           <p className="text-xs text-red-400">{errors.email.message}</p>
         )}
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="phone">{t("phoneLabel")}</Label>
+        <Input
+          id="phone"
+          type="tel"
+          placeholder={t("phonePlaceholder")}
+          {...register("phone")}
+        />
+        {errors.phone && (
+          <p className="text-xs text-red-400">{errors.phone.message}</p>
+        )}
+      </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">
-          {t("passwordLabel")}
-        </Label>
+        <Label htmlFor="password">{t("passwordLabel")}</Label>
         <PasswordInput
           id="password"
           placeholder={t("passwordPlaceholder")}
