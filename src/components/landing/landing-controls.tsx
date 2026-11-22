@@ -1,7 +1,7 @@
 "use client";
 
 import { Globe } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useLocaleSwitcher } from "@/components/providers/intl-provider";
@@ -9,6 +9,7 @@ import { useLocaleSwitcher } from "@/components/providers/intl-provider";
 export function LandingControls() {
   const locale = useLocale();
   const { switchLocale } = useLocaleSwitcher();
+  const t = useTranslations("layout.landingControls");
 
   return (
     <div className="flex items-center gap-1.5">
@@ -17,7 +18,7 @@ export function LandingControls() {
         size="icon-sm"
         onClick={() => void switchLocale(locale === "en" ? "ar" : "en")}
         title={locale === "en" ? "العربية" : "English"}
-        aria-label="Switch language"
+        aria-label={t("switchLanguage")}
         className="text-muted-foreground hover:text-foreground"
       >
         <Globe className="h-4 w-4" />

@@ -99,7 +99,7 @@ function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Row actions">
+          <Button variant="ghost" size="icon" aria-label={t("ariaRowActions")}>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>

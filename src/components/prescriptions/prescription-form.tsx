@@ -36,6 +36,7 @@ import {
 } from "@/app/actions/prescription";
 import { MedicationCombobox } from "./medication-combobox";
 import { PatientCombobox } from "./patient-combobox";
+import { useTranslations } from "next-intl";
 
 interface PrescriptionItemRecord {
   medication_id: string | null;
@@ -114,6 +115,8 @@ export function PrescriptionForm({
   onSuccess,
   onCancel,
 }: PrescriptionFormProps) {
+  const t = useTranslations("prescriptions.form");
+  const tStatus = useTranslations("enums.status");
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<PrescriptionFormData>({
@@ -140,7 +143,7 @@ export function PrescriptionForm({
       }
 
       toast.success(
-        prescription ? "Prescription updated" : "Prescription created",
+        prescription ? t("toastUpdated") : t("toastCreated"),
       );
       form.reset(toDefaultValues(patientId, null));
       onSuccess();
@@ -156,7 +159,7 @@ export function PrescriptionForm({
             name="patient_id"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Patient</FormLabel>
+                <FormLabel>{t("patientLabel")}</FormLabel>
                 <PatientCombobox
                   value={field.value}
                   onChange={(id) => field.onChange(id)}
@@ -173,10 +176,10 @@ export function PrescriptionForm({
             name="diagnosis"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Diagnosis</FormLabel>
+                <FormLabel>{t("diagnosisLabel")}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="e.g., Acute Pharyngitis"
+                    placeholder={t("diagnosisPlaceholder")}
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -191,17 +194,17 @@ export function PrescriptionForm({
             name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>{t("statusLabel")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue placeholder={t("statusPlaceholder")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="active">{tStatus("active")}</SelectItem>
+                    <SelectItem value="completed">{tStatus("completed")}</SelectItem>
+                    <SelectItem value="cancelled">{tStatus("cancelled")}</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -213,15 +216,15 @@ export function PrescriptionForm({
         {/* Medication line-items */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <FormLabel className="text-sm font-medium">Medications</FormLabel>
+            <FormLabel className="text-sm font-medium">{t("medicationsLabel")}</FormLabel>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => append({ ...EMPTY_ITEM })}
             >
-              <Plus className="mr-1 h-4 w-4" />
-              Add drug
+              <Plus className="me-1 h-4 w-4" />
+              {t("addDrug")}
             </Button>
           </div>
 
@@ -241,7 +244,7 @@ export function PrescriptionForm({
                   render={({ field }) => (
                     <FormItem className="flex-1">
                       <FormLabel className="text-xs text-muted-foreground">
-                        Medication
+                        {t("medicationLabel")}
                       </FormLabel>
                       <MedicationCombobox
                         value={field.value}
@@ -264,7 +267,7 @@ export function PrescriptionForm({
                   className="mt-5 text-muted-foreground hover:text-destructive"
                   onClick={() => (fields.length > 1 ? remove(index) : null)}
                   disabled={fields.length === 1}
-                  aria-label="Remove medication"
+                  aria-label={t("removeMedication")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -272,27 +275,27 @@ export function PrescriptionForm({
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Input
-                  placeholder="Dosage (500mg)"
+                  placeholder={t("dosagePlaceholder")}
                   {...form.register(`items.${index}.dosage`)}
                 />
                 <Input
-                  placeholder="Frequency (2x/day)"
+                  placeholder={t("frequencyPlaceholder")}
                   {...form.register(`items.${index}.frequency`)}
                 />
                 <Input
-                  placeholder="Duration (7 days)"
+                  placeholder={t("durationPlaceholder")}
                   {...form.register(`items.${index}.duration`)}
                 />
                 <Input
                   type="number"
                   min={1}
-                  placeholder="Qty"
+                  placeholder={t("qtyPlaceholder")}
                   {...form.register(`items.${index}.quantity`)}
                 />
               </div>
 
               <Textarea
-                placeholder="Instructions (e.g., take after meals)"
+                placeholder={t("instructionsPlaceholder")}
                 className="min-h-[60px]"
                 {...form.register(`items.${index}.instructions`)}
               />
@@ -305,10 +308,10 @@ export function PrescriptionForm({
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notes</FormLabel>
+              <FormLabel>{t("notesLabel")}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Additional notes for this prescription..."
+                  placeholder={t("notesPlaceholder")}
                   className="min-h-[60px]"
                   {...field}
                   value={field.value ?? ""}
@@ -322,12 +325,12 @@ export function PrescriptionForm({
         <div className="flex justify-end gap-2 border-t pt-4">
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
+              {t("cancel")}
             </Button>
           )}
           <Button type="submit" disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {prescription ? "Save changes" : "Create prescription"}
+            {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+            {prescription ? t("saveChanges") : t("createPrescription")}
           </Button>
         </div>
       </form>

@@ -106,7 +106,7 @@ function SidebarNav({
             size="icon-sm"
             onClick={toggle}
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            aria-label="Toggle sidebar"
+            aria-label={t("sidebar.toggleSidebar")}
           >
             <ChevronLeft
               className={cn(

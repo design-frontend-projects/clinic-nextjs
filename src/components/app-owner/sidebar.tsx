@@ -12,42 +12,44 @@ import {
   Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 const navItems = [
   {
-    title: "Dashboard",
+    titleKey: "dashboard",
     href: "/app-owner",
     icon: LayoutDashboard,
   },
   {
-    title: "Tenants",
+    titleKey: "tenants",
     href: "/app-owner/tenants",
     icon: Building2,
   },
   {
-    title: "Subscription Plans",
+    titleKey: "plans",
     href: "/app-owner/plans",
     icon: CreditCard,
   },
   {
-    title: "Specialties",
+    titleKey: "specialties",
     href: "/app-owner/specialties",
     icon: Stethoscope,
   },
   {
-    title: "Medications",
+    titleKey: "medications",
     href: "/app-owner/medications",
     icon: Pill,
   },
   {
-    title: "Notifications",
+    titleKey: "notifications",
     href: "/app-owner/notifications",
     icon: Bell,
   },
-];
+] as const;
 
 export function AppOwnerSidebar() {
   const pathname = usePathname();
+  const t = useTranslations("appOwner.sidebar");
 
   return (
     <aside className="flex min-h-screen w-64 flex-col border-e border-sidebar-border bg-sidebar text-sidebar-foreground">
@@ -56,7 +58,7 @@ export function AppOwnerSidebar() {
           <Activity className="h-4 w-4" />
         </div>
         <span className="font-bold tracking-tight text-foreground">
-          App Owner
+          {t("appOwnerTitle")}
         </span>
       </div>
       <nav className="flex-1 space-y-0.5 p-3">
@@ -89,7 +91,7 @@ export function AppOwnerSidebar() {
                     : "text-muted-foreground group-hover:text-foreground",
                 )}
               />
-              {item.title}
+              {t(item.titleKey)}
             </Link>
           );
         })}

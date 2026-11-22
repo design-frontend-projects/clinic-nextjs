@@ -15,11 +15,13 @@ import { updateRoleAction, getRoleDetailsAction, getPermissionsAction, getRolesA
 import { ArrowLeft, ShieldAlert, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 
 function EditRoleForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const t = useTranslations("settings.roles");
   const roleId = searchParams.get("id");
 
   const [name, setName] = useState("");
@@ -79,12 +81,12 @@ function EditRoleForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbacRoles"] });
       queryClient.invalidateQueries({ queryKey: ["rbacRoleDetails", roleId] });
-      toast.success("Role updated successfully");
+      toast.success(t("toastUpdated"));
       router.push("/settings/roles");
     },
     onError: (err: any) => {
-      setError(err.message || "Failed to update role");
-      toast.error(err.message || "Failed to update role");
+      setError(err.message || t("toastUpdateFailed"));
+      toast.error(err.message || t("toastUpdateFailed"));
     }
   });
 
@@ -97,7 +99,7 @@ function EditRoleForm() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Role name is required");
+      setError(t("errNameRequired"));
       return;
     }
 
@@ -112,13 +114,13 @@ function EditRoleForm() {
   if (!roleId) {
     return (
       <div className="py-24 text-center text-rose-500 font-mono text-sm">
-        Missing role identifier. Please go back to the Roles settings list.
+        {t("missingRoleId")}
       </div>
     );
   }
 
   if (detailsLoading) {
-    return <div className="py-24 text-center text-muted-foreground text-sm">Loading role details...</div>;
+    return <div className="py-24 text-center text-muted-foreground text-sm">{t("loadingDetails")}</div>;
   }
 
   const filteredRoles = roles.filter((r: any) => r.id !== roleId);
@@ -128,11 +130,11 @@ function EditRoleForm() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={() => router.push("/settings/roles")} className="h-9 w-9 border-hairline">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Edit Role: {roleDetails?.name}</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">Modify permission scopes and parent bindings.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("editTitle", { name: roleDetails?.name ?? "" })}</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">{t("editSubtitle")}</p>
           </div>
         </div>
 
@@ -141,7 +143,7 @@ function EditRoleForm() {
           disabled={updateMutation.isPending}
           className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90 flex gap-1.5"
         >
-          <Save className="h-4 w-4" /> Save Changes
+          <Save className="h-4 w-4" /> {t("saveChanges")}
         </Button>
       </div>
 
@@ -157,33 +159,33 @@ function EditRoleForm() {
         <div className="space-y-4 md:col-span-1">
           <Card className="bg-surface border-hairline">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold tracking-tight text-foreground uppercase">Role Details</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-tight text-foreground uppercase">{t("detailsTitle")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="role_name" className="text-xs font-semibold text-foreground uppercase">Role Name</Label>
+                <Label htmlFor="role_name" className="text-xs font-semibold text-foreground uppercase">{t("roleName")}</Label>
                 <Input
                   id="role_name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Senior Doctor"
+                  placeholder={t("editNamePlaceholder")}
                   disabled={roleDetails?.is_system || updateMutation.isPending}
                   className="h-9 border-hairline text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="parent_role" className="text-xs font-semibold text-foreground uppercase">Inherits From (Parent)</Label>
+                <Label htmlFor="parent_role" className="text-xs font-semibold text-foreground uppercase">{t("inheritsFrom")}</Label>
                 <Select
                   value={parentRoleId || "none"}
                   onValueChange={(val) => setParentRoleId(val === "none" ? null : val)}
                   disabled={updateMutation.isPending}
                 >
                   <SelectTrigger id="parent_role" className="h-9 border-hairline text-sm">
-                    <SelectValue placeholder="Select Parent" />
+                    <SelectValue placeholder={t("selectParent")} />
                   </SelectTrigger>
                   <SelectContent className="bg-surface border-hairline">
-                    <SelectItem value="none" className="font-mono text-xs">None (Base Role)</SelectItem>
+                    <SelectItem value="none" className="font-mono text-xs">{t("noneBaseRole")}</SelectItem>
                     {filteredRoles.map((r: any) => (
                       <SelectItem key={r.id} value={r.id} className="font-mono text-xs">{r.name}</SelectItem>
                     ))}
@@ -192,12 +194,12 @@ function EditRoleForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="role_desc" className="text-xs font-semibold text-foreground uppercase">Description</Label>
+                <Label htmlFor="role_desc" className="text-xs font-semibold text-foreground uppercase">{t("description")}</Label>
                 <Textarea
                   id="role_desc"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Summarize access privileges for this role"
+                  placeholder={t("descriptionPlaceholder")}
                   rows={4}
                   className="border-hairline text-sm resize-none"
                   disabled={updateMutation.isPending}
@@ -209,7 +211,7 @@ function EditRoleForm() {
 
         {/* Right col - permission matrix/tree */}
         <div className="md:col-span-2 space-y-3">
-          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">Map Role Permissions</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">{t("mapPermissions")}</h3>
           <PermissionTree
             permissions={permissions}
             selectedIds={selectedPermissionIds}
@@ -222,8 +224,9 @@ function EditRoleForm() {
 }
 
 export default function EditRolePage() {
+  const t = useTranslations("settings.roles");
   return (
-    <Suspense fallback={<div className="py-24 text-center text-muted-foreground text-sm">Loading editor context...</div>}>
+    <Suspense fallback={<div className="py-24 text-center text-muted-foreground text-sm">{t("loadingEditor")}</div>}>
       <EditRoleForm />
     </Suspense>
   );

@@ -20,6 +20,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { searchPatients } from "@/app/actions/admin";
+import { useTranslations } from "next-intl";
 
 interface PatientComboboxProps {
   value: string;
@@ -28,6 +29,7 @@ interface PatientComboboxProps {
 
 /** Searchable patient picker used when prescribing outside a patient context. */
 export function PatientCombobox({ value, onChange }: PatientComboboxProps) {
+  const t = useTranslations("prescriptions.combobox");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [label, setLabel] = useState("");
@@ -50,35 +52,35 @@ export function PatientCombobox({ value, onChange }: PatientComboboxProps) {
             !value && "text-muted-foreground",
           )}
         >
-          <span className="truncate">{label || "Select patient"}</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="truncate">{label || t("selectPatient")}</span>
+          <ChevronsUpDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Search patients..."
+            placeholder={t("searchPatientsPlaceholder")}
             value={query}
             onValueChange={setQuery}
           />
           <CommandList>
             {isFetching && (
               <div className="p-3 text-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                Searching...
+                <Loader2 className="me-2 inline h-4 w-4 animate-spin" />
+                {t("searching")}
               </div>
             )}
             {!isFetching && query.trim().length >= 2 && results.length === 0 && (
-              <CommandEmpty>No patients found.</CommandEmpty>
+              <CommandEmpty>{t("noPatientsFound")}</CommandEmpty>
             )}
             {!isFetching && query.trim().length < 2 && (
-              <CommandEmpty>Type at least 2 characters.</CommandEmpty>
+              <CommandEmpty>{t("typeAtLeastTwo")}</CommandEmpty>
             )}
             <CommandGroup>
               {results.map((patient) => {
                 const name =
                   `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim() ||
-                  "Unnamed patient";
+                  t("unnamedPatient");
                 return (
                   <CommandItem
                     key={patient.id}

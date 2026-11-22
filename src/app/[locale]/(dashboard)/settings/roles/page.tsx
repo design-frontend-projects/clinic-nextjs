@@ -20,10 +20,12 @@ import { RoleCard } from "@/features/rbac/components/RoleCard";
 import { RoleHierarchyTree } from "@/features/rbac/components/RoleHierarchyTree";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export default function RolesSettingsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("settings.roles");
 
   // Queries
   const { data: rolesData, isLoading: rolesLoading, refetch: refetchRoles } = useQuery({
@@ -53,10 +55,10 @@ export default function RolesSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbacRoles"] });
-      toast.success("Role status toggled successfully");
+      toast.success(t("toastStatusToggled"));
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to toggle role status");
+      toast.error(error.message || t("toastStatusFailed"));
     }
   });
 
@@ -69,10 +71,10 @@ export default function RolesSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbacRoles"] });
       queryClient.invalidateQueries({ queryKey: ["rbacHierarchy"] });
-      toast.success("Role deleted successfully");
+      toast.success(t("toastDeleted"));
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to delete role");
+      toast.error(error.message || t("toastDeleteFailed"));
     }
   });
 
@@ -84,10 +86,10 @@ export default function RolesSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbacRoles"] });
-      toast.success("Role cloned successfully");
+      toast.success(t("toastCloned"));
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to clone role");
+      toast.error(error.message || t("toastCloneFailed"));
     }
   });
 
@@ -99,10 +101,10 @@ export default function RolesSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbacHierarchy"] });
-      toast.success("Inheritance mapping added successfully");
+      toast.success(t("toastHierarchyAdded"));
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to link roles in hierarchy");
+      toast.error(error.message || t("toastHierarchyAddFailed"));
     }
   });
 
@@ -114,10 +116,10 @@ export default function RolesSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbacHierarchy"] });
-      toast.success("Inheritance mapping removed successfully");
+      toast.success(t("toastHierarchyRemoved"));
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to remove inheritance mapping");
+      toast.error(error.message || t("toastHierarchyRemoveFailed"));
     }
   });
 
@@ -126,14 +128,14 @@ export default function RolesSettingsPage() {
   };
 
   const handleClone = (role: any) => {
-    const newName = window.prompt(`Enter new name for cloned role:`, `Copy of ${role.name}`);
+    const newName = window.prompt(t("clonePrompt"), t("cloneDefaultName", { name: role.name }));
     if (newName && newName.trim()) {
       cloneMutation.mutate({ roleId: role.id, name: newName.trim() });
     }
   };
 
   const handleDelete = (role: any) => {
-    if (window.confirm(`Are you sure you want to delete role '${role.name}'?`)) {
+    if (window.confirm(t("confirmDelete", { name: role.name }))) {
       deleteMutation.mutate(role.id);
     }
   };
@@ -149,10 +151,10 @@ export default function RolesSettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" /> Role Management
+            <Shield className="h-8 w-8 text-primary" /> {t("title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Configure clinic-wide security roles, assign default permissions, and design inheritance hierarchies.
+            {t("subtitle")}
           </p>
         </div>
 
@@ -172,7 +174,7 @@ export default function RolesSettingsPage() {
 
           <Button asChild className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
             <Link href="/settings/roles/create" className="flex gap-1.5">
-              <Plus className="h-4 w-4" /> Create Role
+              <Plus className="h-4 w-4" /> {t("createRole")}
             </Link>
           </Button>
         </div>
@@ -181,12 +183,12 @@ export default function RolesSettingsPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Roles Cards grid */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">Active Roles</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">{t("activeRoles")}</h3>
           {rolesLoading ? (
-            <div className="py-24 text-center text-sm text-muted-foreground">Loading roles...</div>
+            <div className="py-24 text-center text-sm text-muted-foreground">{t("loading")}</div>
           ) : rolesData && rolesData.length === 0 ? (
             <div className="py-24 text-center text-sm text-muted-foreground border border-dashed border-hairline rounded-md">
-              No roles configured yet. Click Create Role to get started.
+              {t("empty")}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">

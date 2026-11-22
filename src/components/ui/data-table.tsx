@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -35,8 +36,10 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   searchKey,
-  searchPlaceholder = "Search...",
+  searchPlaceholder,
 }: DataTableProps<TData, TValue>) {
+  const t = useTranslations("common.table");
+  const resolvedPlaceholder = searchPlaceholder ?? t("searchPlaceholder");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
@@ -72,7 +75,7 @@ export function DataTable<TData, TValue>({
         <div className="relative max-w-sm">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder={searchPlaceholder}
+            placeholder={resolvedPlaceholder}
             value={
               (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
             }
@@ -126,7 +129,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No results found.
+                  {t("noResults")}
                 </TableCell>
               </TableRow>
             )}
@@ -137,7 +140,7 @@ export function DataTable<TData, TValue>({
       {/* Pagination */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm tabular-nums text-muted-foreground">
-          Showing {pageStart} to {pageEnd} of {totalRows} entries
+          {t("showing", { start: pageStart, end: pageEnd, total: totalRows })}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -147,7 +150,7 @@ export function DataTable<TData, TValue>({
             disabled={!table.getCanPreviousPage()}
           >
             <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
-            Previous
+            {t("previous")}
           </Button>
           <Button
             variant="secondary"
@@ -155,7 +158,7 @@ export function DataTable<TData, TValue>({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            {t("next")}
             <ChevronRight className="h-4 w-4 rtl:rotate-180" />
           </Button>
         </div>

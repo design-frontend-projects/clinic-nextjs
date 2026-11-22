@@ -26,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { createRole, updateRole, deleteRole } from "@/app/actions/rbac";
 import { toast } from "sonner";
 import { Edit2, Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Role = {
   id: string;
@@ -50,6 +51,7 @@ export default function RoleManagementTable({
   initialRoles: Role[];
   allPermissions: Permission[];
 }) {
+  const t = useTranslations("admin.rbac.roles");
   const [roles, setRoles] = useState<Role[]>(initialRoles);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -93,28 +95,28 @@ export default function RoleManagementTable({
       if (editingRole) {
         const res = await updateRole(editingRole.id, name, permissionIds);
         if (res.error) throw new Error(res.error);
-        toast.success("Role updated successfully");
+        toast.success(t("toastUpdated"));
       } else {
         const res = await createRole(name, permissionIds);
         if (res.error) throw new Error(res.error);
-        toast.success("Role created successfully");
+        toast.success(t("toastCreated"));
       }
       setIsDialogOpen(false);
       // Ideally we would trigger a router.refresh() here via a parent component or use action directly
       window.location.reload();
     } catch (error: unknown) {
-      toast.error((error as Error).message || "Failed to save role");
+      toast.error((error as Error).message || t("toastSaveFailed"));
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this role?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     try {
       const res = await deleteRole(id);
       if (res.error) throw new Error(res.error);
-      toast.success("Role deleted");
+      toast.success(t("toastDeleted"));
       setRoles(roles.filter((r) => r.id !== id));
     } catch (error: unknown) {
       toast.error((error as Error).message);
@@ -127,31 +129,31 @@ export default function RoleManagementTable({
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenDialog()}>
-              <Plus className="mr-2 h-4 w-4" /> Add Role
+              <Plus className="me-2 h-4 w-4" /> {t("addRole")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>
-                {editingRole ? "Edit Role" : "Create Role"}
+                {editingRole ? t("editRole") : t("createRole")}
               </DialogTitle>
               <DialogDescription>
-                Define a role and its permissions.
+                {t("dialogDesc")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Role Name</Label>
+                <Label htmlFor="name">{t("roleName")}</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Receptionist"
+                  placeholder={t("roleNamePlaceholder")}
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Permissions</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 h-48 overflow-y-auto pr-2">
+                <Label>{t("permissions")}</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 h-48 overflow-y-auto pe-2">
                   {allPermissions.map((perm) => (
                     <div key={perm.id} className="flex items-center space-x-2">
                       <Checkbox
@@ -172,7 +174,7 @@ export default function RoleManagementTable({
             </div>
             <DialogFooter>
               <Button disabled={!name || isLoading} onClick={handleSave}>
-                Save Role
+                {t("saveRole")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -183,9 +185,9 @@ export default function RoleManagementTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Role Name</TableHead>
-              <TableHead>Permissions</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("roleName")}</TableHead>
+              <TableHead>{t("permissions")}</TableHead>
+              <TableHead className="text-end">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -205,12 +207,12 @@ export default function RoleManagementTable({
                     ))}
                     {role.role_permissions.length === 0 && (
                       <span className="text-muted-foreground text-xs italic">
-                        No permissions
+                        {t("noPermissions")}
                       </span>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-end">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -234,7 +236,7 @@ export default function RoleManagementTable({
                   colSpan={3}
                   className="text-center text-muted-foreground h-24"
                 >
-                  No custom roles defined.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}

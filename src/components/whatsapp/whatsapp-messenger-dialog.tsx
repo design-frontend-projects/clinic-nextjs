@@ -39,17 +39,10 @@ import {
   type WhatsAppAudience,
   type WhatsAppTargetRole,
 } from "@/types/whatsapp.types";
+import { useTranslations } from "next-intl";
 
 /** Query key for invalidating the sent-history list after a send. */
 export const WHATSAPP_KEYS = { all: ["whatsapp-messages"] as const };
-
-const ROLE_LABELS: Record<WhatsAppTargetRole, string> = {
-  patient: "Patients",
-  doctor: "Doctors",
-  staff: "Staff",
-  pharmacist: "Pharmacists",
-  app_owner: "App owner",
-};
 
 /** Which recipient groups a given sender role may target. */
 export function allowedWhatsAppTargets(role?: string): WhatsAppTargetRole[] {
@@ -84,6 +77,7 @@ export function WhatsAppMessengerDialog({
   onOpenChange,
 }: WhatsAppMessengerDialogProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("whatsapp.dialog");
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -141,15 +135,15 @@ export function WhatsAppMessengerDialog({
         toast.error(result.error);
         return;
       }
-      const parts = [`${result.sent} sent`];
-      if (result.failed) parts.push(`${result.failed} failed`);
-      if (result.skipped) parts.push(`${result.skipped} skipped (no number)`);
-      toast.success(`WhatsApp: ${parts.join(", ")}.`);
+      const parts = [t("summarySent", { count: result.sent })];
+      if (result.failed) parts.push(t("summaryFailed", { count: result.failed }));
+      if (result.skipped) parts.push(t("summarySkipped", { count: result.skipped }));
+      toast.success(t("toastSummary", { summary: parts.join(", ") }));
       queryClient.invalidateQueries({ queryKey: WHATSAPP_KEYS.all });
       reset();
       setOpen(false);
     },
-    onError: () => toast.error("Failed to send the WhatsApp message."),
+    onError: () => toast.error(t("toastFailed")),
   });
 
   const handleSubmit = () => {
@@ -166,7 +160,7 @@ export function WhatsAppMessengerDialog({
     };
     const parsed = sendWhatsAppSchema.safeParse(payload);
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message || "Invalid message.");
+      toast.error(parsed.error.issues[0]?.message || t("toastInvalidMessage"));
       return;
     }
     send.mutate(parsed.data);
@@ -185,31 +179,31 @@ export function WhatsAppMessengerDialog({
           {trigger ?? (
             <Button size="sm" className="gap-2">
               <MessageCircle className="h-4 w-4" />
-              New WhatsApp
+              {t("newButton")}
             </Button>
           )}
         </DialogTrigger>
       )}
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Send WhatsApp message</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Send a message to patients, staff, doctors, or the app owner via WhatsApp.
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {templates.length > 0 && (
             <div className="space-y-1.5">
-              <Label>Template (optional)</Label>
+              <Label>{t("templateLabel")}</Label>
               <Select value={templateId || undefined} onValueChange={applyTemplate}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Start from a template" />
+                  <SelectValue placeholder={t("templatePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {templates.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
+                  {templates.map((tpl) => (
+                    <SelectItem key={tpl.id} value={tpl.id}>
+                      {tpl.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -218,19 +212,19 @@ export function WhatsAppMessengerDialog({
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="wa-body">Message</Label>
+            <Label htmlFor="wa-body">{t("messageLabel")}</Label>
             <Textarea
               id="wa-body"
               value={body}
               maxLength={4096}
               rows={4}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Type your message. Use {{name}} and {{clinic_name}} for per-recipient values."
+              placeholder={t("messagePlaceholder")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Recipients</Label>
+            <Label>{t("recipientsLabel")}</Label>
             <RadioGroup
               value={audience}
               onValueChange={(v) => {
@@ -242,20 +236,20 @@ export function WhatsAppMessengerDialog({
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="role_group" id="wa-aud-group" />
                 <Label htmlFor="wa-aud-group" className="font-normal">
-                  By group
+                  {t("byGroup")}
                 </Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="individual" id="wa-aud-individual" />
                 <Label htmlFor="wa-aud-individual" className="font-normal">
-                  Pick individuals
+                  {t("pickIndividuals")}
                 </Label>
               </div>
             </RadioGroup>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Recipient group</Label>
+            <Label>{t("recipientGroupLabel")}</Label>
             <Select
               value={targetRole || undefined}
               onValueChange={(v) => {
@@ -264,12 +258,12 @@ export function WhatsAppMessengerDialog({
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select a group" />
+                <SelectValue placeholder={t("recipientGroupPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {roles.map((r) => (
                   <SelectItem key={r} value={r}>
-                    {ROLE_LABELS[r]}
+                    {t(`roleLabels.${r}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -278,11 +272,11 @@ export function WhatsAppMessengerDialog({
 
           {audience === "individual" && targetRole && (
             <div className="space-y-1.5">
-              <Label>Select recipients</Label>
+              <Label>{t("selectRecipientsLabel")}</Label>
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name…"
+                placeholder={t("searchPlaceholder")}
               />
               <ScrollArea className="h-40 rounded-md border border-border">
                 <div className="flex flex-col gap-1 p-2">
@@ -292,7 +286,7 @@ export function WhatsAppMessengerDialog({
                     </div>
                   ) : candidates.length === 0 ? (
                     <p className="py-6 text-center text-xs text-muted-foreground">
-                      No recipients found.
+                      {t("noRecipients")}
                     </p>
                   ) : (
                     candidates.map((c) => (
@@ -307,7 +301,7 @@ export function WhatsAppMessengerDialog({
                         />
                         <span className="text-sm">{c.full_name || c.id.slice(0, 8)}</span>
                         {!c.has_phone && (
-                          <span className="text-xs text-muted-foreground">(no number)</span>
+                          <span className="text-xs text-muted-foreground">{t("noNumber")}</span>
                         )}
                       </label>
                     ))
@@ -316,7 +310,7 @@ export function WhatsAppMessengerDialog({
               </ScrollArea>
               {selectedIds.length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  {selectedIds.length} selected
+                  {t("selectedCount", { count: selectedIds.length })}
                 </p>
               )}
             </div>
@@ -325,7 +319,7 @@ export function WhatsAppMessengerDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => (setOpen(false), reset())}>
-            Cancel
+            {t("cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={send.isPending} className="gap-2">
             {send.isPending ? (
@@ -333,7 +327,7 @@ export function WhatsAppMessengerDialog({
             ) : (
               <Send className="h-4 w-4" />
             )}
-            Send
+            {t("send")}
           </Button>
         </DialogFooter>
       </DialogContent>

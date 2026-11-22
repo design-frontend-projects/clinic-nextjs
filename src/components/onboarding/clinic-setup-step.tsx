@@ -139,7 +139,7 @@ export function ClinicSetupStep({
           onValueChange={(val) => setValue("subscription_plan", val)}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a plan" />
+            <SelectValue placeholder={t("selectPlan")} />
           </SelectTrigger>
           <SelectContent>
             {subscriptionPlans.map((plan) => (

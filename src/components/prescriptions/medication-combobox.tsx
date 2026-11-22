@@ -20,6 +20,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { searchMedications } from "@/app/actions/prescription";
+import { useTranslations } from "next-intl";
 
 interface MedicationSelection {
   name: string;
@@ -52,8 +53,10 @@ function formatMedicationLabel(med: {
 export function MedicationCombobox({
   value,
   onChange,
-  placeholder = "Search or type a medication...",
+  placeholder,
 }: MedicationComboboxProps) {
+  const t = useTranslations("prescriptions.combobox");
+  const resolvedPlaceholder = placeholder ?? t("searchMedicationPlaceholder");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -80,31 +83,31 @@ export function MedicationCombobox({
             !value && "text-muted-foreground",
           )}
         >
-          <span className="truncate">{value || "Select medication"}</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="truncate">{value || t("selectMedication")}</span>
+          <ChevronsUpDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             value={query}
             onValueChange={setQuery}
           />
           <CommandList>
             {isFetching && (
               <div className="p-3 text-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                Searching...
+                <Loader2 className="me-2 inline h-4 w-4 animate-spin" />
+                {t("searching")}
               </div>
             )}
 
             {!isFetching && trimmed.length < 2 && (
-              <CommandEmpty>Type at least 2 characters.</CommandEmpty>
+              <CommandEmpty>{t("typeAtLeastTwo")}</CommandEmpty>
             )}
 
             {results.length > 0 && (
-              <CommandGroup heading="Catalog">
+              <CommandGroup heading={t("catalogHeading")}>
                 {results.map((med) => {
                   const label = formatMedicationLabel(med);
                   return (
@@ -118,7 +121,7 @@ export function MedicationCombobox({
                     >
                       <Check
                         className={cn(
-                          "mr-2 h-4 w-4",
+                          "me-2 h-4 w-4",
                           value === label ? "opacity-100" : "opacity-0",
                         )}
                       />
@@ -130,7 +133,7 @@ export function MedicationCombobox({
             )}
 
             {trimmed.length >= 2 && !hasExactMatch && !isFetching && (
-              <CommandGroup heading="Free text">
+              <CommandGroup heading={t("freeTextHeading")}>
                 <CommandItem
                   value={`__freetext__${trimmed}`}
                   onSelect={() => {
@@ -138,8 +141,8 @@ export function MedicationCombobox({
                     setOpen(false);
                   }}
                 >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Use &quot;{trimmed}&quot;
+                  <Pencil className="me-2 h-4 w-4" />
+                  {t("useCustom", { value: trimmed })}
                 </CommandItem>
               </CommandGroup>
             )}

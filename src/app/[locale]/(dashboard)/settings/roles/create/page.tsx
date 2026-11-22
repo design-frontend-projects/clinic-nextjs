@@ -14,9 +14,11 @@ import { createRoleAction, getPermissionsAction, getRolesAction } from "@/featur
 import { ArrowLeft, ShieldAlert, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 
 export default function CreateRolePage() {
   const router = useRouter();
+  const t = useTranslations("settings.roles");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [parentRoleId, setParentRoleId] = useState<string | null>(null);
@@ -49,12 +51,12 @@ export default function CreateRolePage() {
       return res;
     },
     onSuccess: () => {
-      toast.success("Role created successfully");
+      toast.success(t("toastCreated"));
       router.push("/settings/roles");
     },
     onError: (err: any) => {
-      setError(err.message || "Failed to create role");
-      toast.error(err.message || "Failed to create role");
+      setError(err.message || t("toastCreateFailed"));
+      toast.error(err.message || t("toastCreateFailed"));
     }
   });
 
@@ -67,7 +69,7 @@ export default function CreateRolePage() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Role name is required");
+      setError(t("errNameRequired"));
       return;
     }
 
@@ -84,11 +86,11 @@ export default function CreateRolePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={() => router.push("/settings/roles")} className="h-9 w-9 border-hairline">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Create Custom Role</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">Initialize a custom role with permissions and hierarchy links.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("createTitle")}</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">{t("createSubtitle")}</p>
           </div>
         </div>
 
@@ -97,7 +99,7 @@ export default function CreateRolePage() {
           disabled={createMutation.isPending}
           className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary/90 flex gap-1.5"
         >
-          <Save className="h-4 w-4" /> Save Role
+          <Save className="h-4 w-4" /> {t("saveRole")}
         </Button>
       </div>
 
@@ -113,31 +115,31 @@ export default function CreateRolePage() {
         <div className="space-y-4 md:col-span-1">
           <Card className="bg-surface border-hairline">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold tracking-tight text-foreground uppercase">Role Configuration</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-tight text-foreground uppercase">{t("configTitle")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="role_name" className="text-xs font-semibold text-foreground uppercase">Role Name</Label>
+                <Label htmlFor="role_name" className="text-xs font-semibold text-foreground uppercase">{t("roleName")}</Label>
                 <Input
                   id="role_name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Pharmacy Assistant"
+                  placeholder={t("roleNamePlaceholder")}
                   className="h-9 border-hairline text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="parent_role" className="text-xs font-semibold text-foreground uppercase">Inherits From (Parent)</Label>
+                <Label htmlFor="parent_role" className="text-xs font-semibold text-foreground uppercase">{t("inheritsFrom")}</Label>
                 <Select
                   value={parentRoleId || "none"}
                   onValueChange={(val) => setParentRoleId(val === "none" ? null : val)}
                 >
                   <SelectTrigger id="parent_role" className="h-9 border-hairline text-sm">
-                    <SelectValue placeholder="Select Parent" />
+                    <SelectValue placeholder={t("selectParent")} />
                   </SelectTrigger>
                   <SelectContent className="bg-surface border-hairline">
-                    <SelectItem value="none" className="font-mono text-xs">None (Base Role)</SelectItem>
+                    <SelectItem value="none" className="font-mono text-xs">{t("noneBaseRole")}</SelectItem>
                     {roles.map((r: any) => (
                       <SelectItem key={r.id} value={r.id} className="font-mono text-xs">{r.name}</SelectItem>
                     ))}
@@ -146,12 +148,12 @@ export default function CreateRolePage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="role_desc" className="text-xs font-semibold text-foreground uppercase">Description</Label>
+                <Label htmlFor="role_desc" className="text-xs font-semibold text-foreground uppercase">{t("description")}</Label>
                 <Textarea
                   id="role_desc"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Summarize access privileges for this role"
+                  placeholder={t("descriptionPlaceholder")}
                   rows={4}
                   className="border-hairline text-sm resize-none"
                 />
@@ -162,7 +164,7 @@ export default function CreateRolePage() {
 
         {/* Right Col - permissions */}
         <div className="md:col-span-2 space-y-3">
-          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">Map Role Permissions</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground uppercase">{t("mapPermissions")}</h3>
           <PermissionTree
             permissions={permissions}
             selectedIds={selectedPermissionIds}

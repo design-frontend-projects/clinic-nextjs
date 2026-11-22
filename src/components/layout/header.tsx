@@ -55,7 +55,7 @@ export function Header() {
           size="icon-sm"
           onClick={() => setMobileOpen(true)}
           className="lg:hidden"
-          aria-label="Open menu"
+          aria-label={t("header.openMenu")}
         >
           <Menu className="h-4 w-4" />
         </Button>
@@ -125,7 +125,7 @@ export function Header() {
           size="icon-sm"
           onClick={toggleLanguage}
           title={locale === "en" ? "العربية" : "English"}
-          aria-label="Toggle language"
+          aria-label={t("header.toggleLanguage")}
         >
           <Globe className="h-4 w-4" />
         </Button>

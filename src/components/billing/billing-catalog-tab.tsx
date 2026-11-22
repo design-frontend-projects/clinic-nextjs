@@ -255,7 +255,7 @@ export function BillingCatalogTab() {
                 <Input
                   id="name_en"
                   {...form.register("name_en")}
-                  placeholder="e.g. General Consultation"
+                  placeholder={t("catalog.nameEnPlaceholder")}
                 />
                 {form.formState.errors.name_en && (
                   <p className="text-xs text-destructive">

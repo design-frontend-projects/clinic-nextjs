@@ -10,6 +10,7 @@ import {
   WhatsAppMessengerDialog,
   WHATSAPP_KEYS,
 } from "@/components/whatsapp/whatsapp-messenger-dialog";
+import { useTranslations } from "next-intl";
 
 /**
  * Full-page WhatsApp messaging screen. Reused verbatim by every role's
@@ -17,6 +18,7 @@ import {
  * signed-in role may target.
  */
 export function WhatsAppMessenger() {
+  const t = useTranslations("whatsapp");
   const { data } = useQuery({
     queryKey: WHATSAPP_KEYS.all,
     queryFn: () => getSentWhatsAppMessages({ page: 1, pageSize: 20 }),
@@ -28,18 +30,18 @@ export function WhatsAppMessenger() {
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between">
         <Heading
-          title="WhatsApp Messages"
-          description="Send WhatsApp messages to patients, staff, doctors, and the app owner."
+          title={t("title")}
+          description={t("description")}
         />
         <WhatsAppMessengerDialog />
       </div>
       <Separator />
 
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-muted-foreground">Recent messages</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">{t("recentMessages")}</h3>
         {items.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            No messages sent yet.
+            {t("empty")}
           </p>
         ) : (
           <div className="space-y-2">
@@ -57,7 +59,7 @@ export function WhatsAppMessenger() {
                   )}
                 </div>
                 <Badge variant={m.status === "sent" ? "default" : "destructive"}>
-                  {m.status}
+                  {m.status === "sent" ? t("statusSent") : t("statusFailed")}
                 </Badge>
               </Card>
             ))}

@@ -11,8 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ClipboardList, Search, ChevronLeft, ChevronRight, Calendar, Laptop, Smartphone, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useTranslations } from "next-intl";
 
 export default function AuditLogsPage() {
+  const t = useTranslations("settings.audit");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -53,22 +55,22 @@ export default function AuditLogsPage() {
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <ClipboardList className="h-8 w-8 text-primary" /> Security Audit Logs
+          <ClipboardList className="h-8 w-8 text-primary" /> {t("title")}
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Review a complete administrative log showing role creations, user assignments, permission updates, and IP locations.
+          {t("subtitle")}
         </p>
       </div>
 
       {/* Filters */}
       <div className="flex gap-4 items-center bg-surface border border-hairline rounded-md p-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by action, email, or device..."
-            className="pl-9 h-9 border-hairline text-sm"
+            placeholder={t("searchPlaceholder")}
+            className="ps-9 h-9 border-hairline text-sm"
           />
         </div>
       </div>
@@ -76,18 +78,18 @@ export default function AuditLogsPage() {
       {/* Logs Table */}
       <div className="rounded-md border border-hairline bg-surface overflow-hidden">
         {isLoading ? (
-          <div className="py-32 text-center text-sm text-muted-foreground">Loading security audit trails...</div>
+          <div className="py-32 text-center text-sm text-muted-foreground">{t("loading")}</div>
         ) : logs.length === 0 ? (
-          <div className="py-32 text-center text-sm text-muted-foreground italic">No audit records match your query.</div>
+          <div className="py-32 text-center text-sm text-muted-foreground italic">{t("empty")}</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-b border-hairline hover:bg-transparent">
-                <TableHead className="w-[180px] font-semibold text-foreground text-xs uppercase font-mono">Timestamp</TableHead>
-                <TableHead className="w-[200px] font-semibold text-foreground text-xs uppercase font-mono">Action</TableHead>
-                <TableHead className="w-[220px] font-semibold text-foreground text-xs uppercase font-mono">Actor (Who)</TableHead>
-                <TableHead className="w-[150px] font-semibold text-foreground text-xs uppercase font-mono">Client Details</TableHead>
-                <TableHead className="text-right font-semibold text-foreground text-xs uppercase font-mono">Metadata</TableHead>
+                <TableHead className="w-[180px] font-semibold text-foreground text-xs uppercase font-mono">{t("colTimestamp")}</TableHead>
+                <TableHead className="w-[200px] font-semibold text-foreground text-xs uppercase font-mono">{t("colAction")}</TableHead>
+                <TableHead className="w-[220px] font-semibold text-foreground text-xs uppercase font-mono">{t("colActor")}</TableHead>
+                <TableHead className="w-[150px] font-semibold text-foreground text-xs uppercase font-mono">{t("colClientDetails")}</TableHead>
+                <TableHead className="text-end font-semibold text-foreground text-xs uppercase font-mono">{t("colMetadata")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -140,23 +142,23 @@ export default function AuditLogsPage() {
                           <div className="rounded-md border border-hairline bg-background p-4 space-y-4 font-mono text-[11px] leading-relaxed text-muted-foreground">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
-                                <span className="font-bold text-foreground uppercase">IP Address:</span> {log.ip_address || "Localhost"}
+                                <span className="font-bold text-foreground uppercase">{t("ipAddress")}:</span> {log.ip_address || t("localhost")}
                               </div>
                               <div>
-                                <span className="font-bold text-foreground uppercase">Device Class:</span> {log.device}
+                                <span className="font-bold text-foreground uppercase">{t("deviceClass")}:</span> {log.device}
                               </div>
                             </div>
                             <Separator className="border-hairline" />
                             <div className="space-y-1">
-                              <span className="font-bold text-foreground uppercase">User Agent:</span>
-                              <p className="font-sans break-all">{log.user_agent || "Not captured"}</p>
+                              <span className="font-bold text-foreground uppercase">{t("userAgent")}:</span>
+                              <p className="font-sans break-all">{log.user_agent || t("notCaptured")}</p>
                             </div>
                             <Separator className="border-hairline" />
 
                             <div className="grid md:grid-cols-2 gap-4">
                               {log.old_values && (
                                 <div className="space-y-1">
-                                  <span className="font-bold text-rose-500 uppercase">Old Values:</span>
+                                  <span className="font-bold text-rose-500 uppercase">{t("oldValues")}:</span>
                                   <pre className="p-2 rounded bg-surface border border-hairline overflow-x-auto text-[10px]">
                                     {JSON.stringify(log.old_values, null, 2)}
                                   </pre>
@@ -164,7 +166,7 @@ export default function AuditLogsPage() {
                               )}
                               {log.new_values && (
                                 <div className="space-y-1">
-                                  <span className="font-bold text-emerald-500 uppercase">New Values:</span>
+                                  <span className="font-bold text-emerald-500 uppercase">{t("newValues")}:</span>
                                   <pre className="p-2 rounded bg-surface border border-hairline overflow-x-auto text-[10px]">
                                     {JSON.stringify(log.new_values, null, 2)}
                                   </pre>
@@ -186,7 +188,7 @@ export default function AuditLogsPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between py-2 font-mono text-xs text-muted-foreground">
-          <span>Page {page} of {totalPages} ({total} entries)</span>
+          <span>{t("pageSummary", { page, totalPages, total })}</span>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -195,7 +197,7 @@ export default function AuditLogsPage() {
               disabled={page === 1}
               className="h-8 text-[11px]"
             >
-              <ChevronLeft className="h-4 w-4" /> Previous
+              <ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t("previous")}
             </Button>
             <Button
               variant="outline"
@@ -204,7 +206,7 @@ export default function AuditLogsPage() {
               disabled={page === totalPages}
               className="h-8 text-[11px]"
             >
-              Next <ChevronRight className="h-4 w-4" />
+              {t("next")} <ChevronRight className="h-4 w-4 rtl:rotate-180" />
             </Button>
           </div>
         </div>

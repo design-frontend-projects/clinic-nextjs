@@ -38,12 +38,12 @@ export default async function PlansPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Plan Name</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Billing Period</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Active Subs</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t('planName')}</TableHead>
+              <TableHead>{t('price')}</TableHead>
+              <TableHead>{t('billingPeriod')}</TableHead>
+              <TableHead>{t('status')}</TableHead>
+              <TableHead>{t('activeSubs')}</TableHead>
+              <TableHead className="text-end">{t('actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -56,11 +56,11 @@ export default async function PlansPage() {
                 <TableCell className="capitalize">{plan.billing_period.replace('_', ' ')}</TableCell>
                 <TableCell>
                   <Badge variant={plan.status === "active" ? "default" : "secondary"}>
-                    {plan.status}
+                    {plan.status === "active" ? t('active') : t('inactive')}
                   </Badge>
                 </TableCell>
                 <TableCell>{plan._count?.tenant_subscriptions || 0}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-end">
                   <Button variant="ghost" size="icon" asChild>
                     <Link href={`/app-owner/plans/${plan.id}`}>
                       <Edit2 className="h-4 w-4" />
@@ -72,7 +72,7 @@ export default async function PlansPage() {
             {plans.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                  No subscription plans found. Create one to get started.
+                  {t('noPlansFound')}
                 </TableCell>
               </TableRow>
             )}

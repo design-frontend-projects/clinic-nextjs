@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 
 interface SpecialtyEditorProps {
   specialty?: Partial<SpecialtyFormData> & { id?: string };
@@ -25,6 +26,7 @@ interface SpecialtyEditorProps {
 
 export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
   const router = useRouter();
+  const t = useTranslations("appOwner.specialtyEditor");
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<SpecialtyFormData>({
@@ -46,7 +48,7 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
         toast.error(result.error);
         return;
       }
-      toast.success(specialty?.id ? "Specialty updated." : "Specialty created.");
+      toast.success(specialty?.id ? t("toastUpdated") : t("toastCreated"));
       router.push("/app-owner/specialties");
       router.refresh();
     });
@@ -56,16 +58,16 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Specialty Details</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Name (English) *</Label>
+              <Label htmlFor="name">{t("nameEnLabel")}</Label>
               <Input
                 id="name"
                 {...form.register("name")}
-                placeholder="Cardiology"
+                placeholder={t("nameEnPlaceholder")}
               />
               {form.formState.errors.name && (
                 <p className="text-xs text-destructive">
@@ -74,28 +76,28 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name_ar">Name (Arabic)</Label>
+              <Label htmlFor="name_ar">{t("nameArLabel")}</Label>
               <Input
                 id="name_ar"
                 dir="rtl"
                 {...form.register("name_ar")}
-                placeholder="أمراض القلب"
+                placeholder={t("nameArPlaceholder")}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t("descriptionLabel")}</Label>
             <Textarea
               id="description"
               {...form.register("description")}
-              placeholder="Short description of the specialty"
+              placeholder={t("descriptionPlaceholder")}
             />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="display_order">Display Order</Label>
+              <Label htmlFor="display_order">{t("displayOrderLabel")}</Label>
               <Input
                 id="display_order"
                 type="number"
@@ -110,7 +112,7 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
                     form.setValue("is_active", Boolean(c))
                   }
                 />
-                Active (available for selection)
+                {t("activeLabel")}
               </label>
             </div>
           </div>
@@ -123,11 +125,11 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
           variant="outline"
           onClick={() => router.push("/app-owner/specialties")}
         >
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {specialty?.id ? "Save Specialty" : "Create Specialty"}
+          {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+          {specialty?.id ? t("saveSpecialty") : t("createSpecialty")}
         </Button>
       </div>
     </form>

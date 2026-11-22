@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { updateProfileBranch } from "@/app/actions/profile";
 import { createSupabaseClient } from "@/lib/supabase/client";
+import { useTranslations } from "next-intl";
 
 interface BranchSelectorProps {
   currentBranchId: string | null;
@@ -27,6 +28,7 @@ export function BranchSelector({
 }: BranchSelectorProps) {
   const queryClient = useQueryClient();
   const supabase = createSupabaseClient();
+  const t = useTranslations("layout.branchSelector");
 
   const { data: branches, isLoading } = useQuery({
     queryKey: ["branches", clinicId],
@@ -46,12 +48,12 @@ export function BranchSelector({
     mutationFn: (branchId: string) => updateProfileBranch(branchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-info"] });
-      toast.success("Branch switched successfully");
+      toast.success(t("switchedSuccess"));
       // Optionally refresh the page or trigger a data reload across the app
       window.location.reload();
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to switch branch");
+      toast.error(error.message || t("switchedError"));
     },
   });
 
@@ -71,7 +73,7 @@ export function BranchSelector({
           <div className="flex items-center gap-2 truncate">
             <Building2 className="h-4 w-4 text-primary shrink-0" />
             <span className="truncate">
-              {currentBranch?.name || "Select Branch"}
+              {currentBranch?.name || t("selectBranch")}
             </span>
           </div>
           <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
@@ -80,7 +82,7 @@ export function BranchSelector({
       <DropdownMenuContent align="start" className="w-[240px]">
         <DropdownMenuLabel className="flex items-center gap-2">
           <MapPin className="h-4 w-4" />
-          Switch Branch
+          {t("switchBranch")}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {branches?.map((branch: any) => (
@@ -99,7 +101,7 @@ export function BranchSelector({
         ))}
         {branches?.length === 0 && (
           <div className="p-2 text-xs text-center text-muted-foreground italic">
-            No branches available
+            {t("noBranches")}
           </div>
         )}
       </DropdownMenuContent>

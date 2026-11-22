@@ -134,7 +134,7 @@ export function PatientPrescriptions({
                       size="icon"
                       className="h-7 w-7 rounded-lg hover:bg-accent-blue-soft hover:text-accent-blue"
                       onClick={() => openEdit(rx)}
-                      aria-label="Edit prescription"
+                      aria-label={t("ariaEdit")}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -143,7 +143,7 @@ export function PatientPrescriptions({
                       size="icon"
                       className="h-7 w-7 rounded-lg text-muted-foreground hover:text-accent-red hover:bg-accent-red-soft"
                       onClick={() => setDeleteId(rx.id)}
-                      aria-label="Delete prescription"
+                      aria-label={t("ariaDelete")}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

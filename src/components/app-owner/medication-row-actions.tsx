@@ -7,6 +7,7 @@ import { Edit2, Power, PowerOff, Loader2 } from "lucide-react";
 
 import { toggleMedicationActive } from "@/app/actions/app-owner/medications";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface MedicationRowActionsProps {
   id: string;
@@ -22,16 +23,17 @@ export function MedicationRowActions({
   deactivateLabel,
 }: MedicationRowActionsProps) {
   const router = useRouter();
+  const t = useTranslations("appOwner.medications");
   const [isPending, startTransition] = useTransition();
 
   const onToggle = () => {
     startTransition(async () => {
       const result = await toggleMedicationActive(id, !isActive);
       if (result && "error" in result) {
-        toast.error("Failed to update medication.");
+        toast.error(t("toastUpdateFailed"));
         return;
       }
-      toast.success(isActive ? "Medication deactivated." : "Medication activated.");
+      toast.success(isActive ? t("toastDeactivated") : t("toastActivated"));
       router.refresh();
     });
   };

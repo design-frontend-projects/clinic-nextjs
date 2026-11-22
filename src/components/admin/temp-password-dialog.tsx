@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export interface TempPasswordInfo {
   tempPassword: string;
@@ -30,6 +31,7 @@ interface TempPasswordDialogProps {
  * the only place the credential is surfaced — the admin must share it securely.
  */
 export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
+  const t = useTranslations("admin.tempPassword");
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -37,10 +39,10 @@ export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
     try {
       await navigator.clipboard.writeText(info.tempPassword);
       setCopied(true);
-      toast.success("Password copied to clipboard");
+      toast.success(t("toastCopied"));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Could not copy — copy it manually");
+      toast.error(t("toastCopyFailed"));
     }
   };
 
@@ -58,12 +60,12 @@ export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5" />
-            Temporary password
+            {t("title")}
           </DialogTitle>
           <DialogDescription>
-            {info?.fullName ? `${info.fullName}'s account is ready. ` : "Account created. "}
-            Share this password securely — it will not be shown again. The user
-            can change it after signing in.
+            {info?.fullName
+              ? t("descWithName", { name: info.fullName })
+              : t("descGeneric")}
           </DialogDescription>
         </DialogHeader>
 
@@ -82,13 +84,14 @@ export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
 
         {info?.email && (
           <p className="text-xs text-muted-foreground">
-            Sign-in email: <span className="font-medium">{info.email}</span>
+            {t("signInEmail")}{" "}
+            <span className="font-medium">{info.email}</span>
           </p>
         )}
 
         <DialogFooter>
           <Button type="button" onClick={onClose}>
-            Done
+            {t("done")}
           </Button>
         </DialogFooter>
       </DialogContent>

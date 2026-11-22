@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslations } from "next-intl";
 
 const BILLING_PERIODS = [
   "monthly",
@@ -35,14 +36,14 @@ const BILLING_PERIODS = [
 ] as const;
 const PLAN_STATUSES = ["active", "inactive", "archived"] as const;
 
-const LIMIT_FIELDS: { name: keyof SubscriptionPlanFormData; label: string }[] = [
-  { name: "max_users", label: "Max Users" },
-  { name: "max_doctors", label: "Max Doctors" },
-  { name: "max_branches", label: "Max Branches" },
-  { name: "max_patients", label: "Max Patients" },
-  { name: "max_appointments", label: "Max Appointments" },
-  { name: "max_storage_mb", label: "Max Storage (MB)" },
-  { name: "api_limits", label: "API Limit" },
+const LIMIT_FIELDS: { name: keyof SubscriptionPlanFormData; labelKey: string }[] = [
+  { name: "max_users", labelKey: "maxUsers" },
+  { name: "max_doctors", labelKey: "maxDoctors" },
+  { name: "max_branches", labelKey: "maxBranches" },
+  { name: "max_patients", labelKey: "maxPatients" },
+  { name: "max_appointments", labelKey: "maxAppointments" },
+  { name: "max_storage_mb", labelKey: "maxStorageMb" },
+  { name: "api_limits", labelKey: "apiLimits" },
 ];
 
 interface PlanEditorProps {
@@ -51,6 +52,7 @@ interface PlanEditorProps {
 
 export function PlanEditor({ plan }: PlanEditorProps) {
   const router = useRouter();
+  const t = useTranslations("appOwner.planEditor");
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<SubscriptionPlanFormData>({
@@ -90,7 +92,7 @@ export function PlanEditor({ plan }: PlanEditorProps) {
         toast.error(result.error);
         return;
       }
-      toast.success(plan?.id ? "Plan updated." : "Plan created.");
+      toast.success(plan?.id ? t("toastUpdated") : t("toastCreated"));
       router.push("/app-owner/plans");
       router.refresh();
     });
@@ -100,13 +102,13 @@ export function PlanEditor({ plan }: PlanEditorProps) {
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Plan Details</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input id="name" {...form.register("name")} placeholder="Pro" />
+              <Label htmlFor="name">{t("nameLabel")}</Label>
+              <Input id="name" {...form.register("name")} placeholder={t("namePlaceholder")} />
               {form.formState.errors.name && (
                 <p className="text-xs text-destructive">
                   {form.formState.errors.name.message}
@@ -114,7 +116,7 @@ export function PlanEditor({ plan }: PlanEditorProps) {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>{t("statusLabel")}</Label>
               <Select
                 defaultValue={form.getValues("status")}
                 onValueChange={(v) =>
@@ -126,8 +128,8 @@ export function PlanEditor({ plan }: PlanEditorProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {PLAN_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s} className="capitalize">
-                      {s}
+                    <SelectItem key={s} value={s}>
+                      {t(`statuses.${s}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -136,17 +138,17 @@ export function PlanEditor({ plan }: PlanEditorProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t("descriptionLabel")}</Label>
             <Textarea
               id="description"
               {...form.register("description")}
-              placeholder="Short description of the plan"
+              placeholder={t("descriptionPlaceholder")}
             />
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="price">Price *</Label>
+              <Label htmlFor="price">{t("priceLabel")}</Label>
               <Input
                 id="price"
                 type="number"
@@ -160,11 +162,11 @@ export function PlanEditor({ plan }: PlanEditorProps) {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
+              <Label htmlFor="currency">{t("currencyLabel")}</Label>
               <Input id="currency" {...form.register("currency")} />
             </div>
             <div className="space-y-2">
-              <Label>Billing Period</Label>
+              <Label>{t("billingPeriodLabel")}</Label>
               <Select
                 defaultValue={form.getValues("billing_period")}
                 onValueChange={(v) =>
@@ -179,8 +181,8 @@ export function PlanEditor({ plan }: PlanEditorProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {BILLING_PERIODS.map((p) => (
-                    <SelectItem key={p} value={p} className="capitalize">
-                      {p.replace("_", " ")}
+                    <SelectItem key={p} value={p}>
+                      {t(`periods.${p}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -190,11 +192,11 @@ export function PlanEditor({ plan }: PlanEditorProps) {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="trial_days">Trial Days</Label>
+              <Label htmlFor="trial_days">{t("trialDaysLabel")}</Label>
               <Input id="trial_days" type="number" {...form.register("trial_days")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="display_order">Display Order</Label>
+              <Label htmlFor="display_order">{t("displayOrderLabel")}</Label>
               <Input
                 id="display_order"
                 type="number"
@@ -207,17 +209,17 @@ export function PlanEditor({ plan }: PlanEditorProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Limits</CardTitle>
+          <CardTitle>{t("limitsTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             {LIMIT_FIELDS.map((f) => (
               <div key={f.name} className="space-y-2">
-                <Label htmlFor={f.name}>{f.label}</Label>
+                <Label htmlFor={f.name}>{t(`limits.${f.labelKey}`)}</Label>
                 <Input
                   id={f.name}
                   type="number"
-                  placeholder="Unlimited"
+                  placeholder={t("unlimitedPlaceholder")}
                   {...form.register(f.name)}
                 />
               </div>
@@ -228,25 +230,25 @@ export function PlanEditor({ plan }: PlanEditorProps) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle>Features</CardTitle>
+          <CardTitle>{t("featuresTitle")}</CardTitle>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => append({ feature_name: "", is_enabled: true })}
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Feature
+            <Plus className="me-2 h-4 w-4" />
+            {t("addFeature")}
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
           {fields.length === 0 && (
-            <p className="text-sm text-muted-foreground">No features added.</p>
+            <p className="text-sm text-muted-foreground">{t("noFeatures")}</p>
           )}
           {fields.map((field, index) => (
             <div key={field.id} className="flex items-center gap-3">
               <Input
-                placeholder="Feature name"
+                placeholder={t("featureNamePlaceholder")}
                 {...form.register(`features.${index}.feature_name`)}
               />
               <label className="flex shrink-0 items-center gap-2 text-sm">
@@ -256,7 +258,7 @@ export function PlanEditor({ plan }: PlanEditorProps) {
                     form.setValue(`features.${index}.is_enabled`, Boolean(c))
                   }
                 />
-                Enabled
+                {t("enabled")}
               </label>
               <Button
                 type="button"
@@ -277,11 +279,11 @@ export function PlanEditor({ plan }: PlanEditorProps) {
           variant="outline"
           onClick={() => router.push("/app-owner/plans")}
         >
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {plan?.id ? "Save Plan" : "Create Plan"}
+          {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+          {plan?.id ? t("savePlan") : t("createPlan")}
         </Button>
       </div>
     </form>

@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Building2, MapPin, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DoctorBranchAssignment } from "@/types/clinic.types";
+import { useTranslations } from "next-intl";
 
 export interface OwnerClinicWithBranches {
   id: string;
@@ -36,6 +37,7 @@ export function DoctorAssignmentEditor({
   primaryBranchId,
   onChange,
 }: DoctorAssignmentEditorProps) {
+  const t = useTranslations("admin.personnel.assignmentEditor");
   const isSelected = (branchId: string) =>
     assignments.some((a) => a.branch_id === branchId);
 
@@ -64,7 +66,7 @@ export function DoctorAssignmentEditor({
   if (clinics.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No clinics with active branches are available.
+        {t("noClinics")}
       </p>
     );
   }
@@ -79,12 +81,12 @@ export function DoctorAssignmentEditor({
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 {clinic.name}
                 {clinic.is_primary && (
-                  <span className="text-xs text-muted-foreground">(Default)</span>
+                  <span className="text-xs text-muted-foreground">({t("defaultLabel")})</span>
                 )}
               </div>
               {clinic.branches.length === 0 ? (
                 <p className="ps-6 text-xs text-muted-foreground italic">
-                  No active branches
+                  {t("noActiveBranches")}
                 </p>
               ) : (
                 <div className="ps-6 space-y-1.5">
@@ -118,8 +120,8 @@ export function DoctorAssignmentEditor({
                             )}
                             title={
                               isPrimary
-                                ? "Default (home) branch"
-                                : "Set as default (home) branch"
+                                ? t("defaultBranchTitle")
+                                : t("setDefaultBranchTitle")
                             }
                           >
                             <Star
@@ -128,7 +130,7 @@ export function DoctorAssignmentEditor({
                                 isPrimary && "fill-current",
                               )}
                             />
-                            {isPrimary ? "Default" : "Set default"}
+                            {isPrimary ? t("defaultLabel") : t("setDefault")}
                           </button>
                         )}
                       </div>
@@ -141,9 +143,7 @@ export function DoctorAssignmentEditor({
         </div>
       </ScrollArea>
       <p className="text-xs text-muted-foreground">
-        Select every clinic/branch this doctor can work in. The{" "}
-        <Star className="inline h-3 w-3 -mt-0.5 fill-current text-primary" />{" "}
-        default is where they land on login; they can switch from the top bar.
+        {t("hint")}
       </p>
     </div>
   );

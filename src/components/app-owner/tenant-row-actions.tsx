@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslations } from "next-intl";
 
 const BILLING_CYCLES = [
   "monthly",
@@ -61,6 +62,8 @@ interface TenantRowActionsProps {
 
 export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
   const router = useRouter();
+  const t = useTranslations("appOwner.tenantActions");
+  const tPeriods = useTranslations("appOwner.planEditor.periods");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -82,14 +85,14 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
         toast.error(result.error);
         return;
       }
-      toast.success("Done.");
+      toast.success(t("toastDone"));
       router.refresh();
     });
   };
 
   const handleAssignPlan = () => {
     if (!planId) {
-      toast.error("Select a plan first.");
+      toast.error(t("toastSelectPlan"));
       return;
     }
     run(() =>
@@ -118,15 +121,15 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
         <SheetHeader>
           <SheetTitle>{tenant.name}</SheetTitle>
           <SheetDescription>
-            Manage this tenant&apos;s status, owner, and subscription.
+            {t("sheetDescription")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-6 py-6">
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Tenant Status</h3>
+            <h3 className="text-sm font-semibold">{t("tenantStatusTitle")}</h3>
             <p className="text-sm text-muted-foreground capitalize">
-              Current: {tenant.status}
+              {t("currentStatus", { status: tenant.status })}
             </p>
             {isSuspended ? (
               <Button
@@ -134,7 +137,7 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                 disabled={isPending}
                 onClick={() => run(() => activateTenant(tenant.id))}
               >
-                Activate Tenant
+                {t("activateTenant")}
               </Button>
             ) : (
               <Button
@@ -142,7 +145,7 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                 disabled={isPending}
                 onClick={() => run(() => suspendTenant(tenant.id))}
               >
-                Suspend Tenant
+                {t("suspendTenant")}
               </Button>
             )}
           </section>
@@ -150,11 +153,11 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
           <Separator />
 
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Owner</h3>
+            <h3 className="text-sm font-semibold">{t("ownerTitle")}</h3>
             {owner ? (
               <>
                 <p className="text-sm text-muted-foreground">
-                  {owner.full_name || "—"} ({owner.email || "no email"}) —{" "}
+                  {owner.full_name || "—"} ({owner.email || t("noEmail")}) —{" "}
                   <span className="capitalize">{owner.status}</span>
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -165,7 +168,7 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                       disabled={isPending}
                       onClick={() => run(() => unblockUser(owner.id))}
                     >
-                      Unblock
+                      {t("unblock")}
                     </Button>
                   ) : (
                     <Button
@@ -174,7 +177,7 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                       disabled={isPending}
                       onClick={() => run(() => blockUser(owner.id))}
                     >
-                      Block
+                      {t("block")}
                     </Button>
                   )}
                   <Button
@@ -183,13 +186,13 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                     disabled={isPending || !owner.email}
                     onClick={() => run(() => emailUser(owner.id))}
                   >
-                    Email set-password link
+                    {t("emailSetPasswordLink")}
                   </Button>
                 </div>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No owner profile found for this tenant.
+                {t("noOwnerProfile")}
               </p>
             )}
           </section>
@@ -197,12 +200,12 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
           <Separator />
 
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold">Assign / Change Plan</h3>
+            <h3 className="text-sm font-semibold">{t("assignPlanTitle")}</h3>
             <div className="space-y-2">
-              <Label>Plan</Label>
+              <Label>{t("planLabel")}</Label>
               <Select value={planId} onValueChange={setPlanId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a plan" />
+                  <SelectValue placeholder={t("selectPlanPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {plans.map((p) => (
@@ -215,7 +218,7 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Billing Cycle</Label>
+                <Label>{t("billingCycleLabel")}</Label>
                 <Select
                   value={billingCycle}
                   onValueChange={(v) => setBillingCycle(v as BillingCycle)}
@@ -225,15 +228,15 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {BILLING_CYCLES.map((v) => (
-                      <SelectItem key={v} value={v} className="capitalize">
-                        {v.replace("_", " ")}
+                      <SelectItem key={v} value={v}>
+                        {tPeriods(v)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Price</Label>
+                <Label>{t("priceLabel")}</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -244,7 +247,7 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>{t("statusLabel")}</Label>
               <Select
                 value={subStatus}
                 onValueChange={(v) => setSubStatus(v as SubStatus)}
@@ -254,8 +257,8 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {SUB_STATUSES.map((v) => (
-                    <SelectItem key={v} value={v} className="capitalize">
-                      {v.replace("_", " ")}
+                    <SelectItem key={v} value={v}>
+                      {t(`subStatuses.${v}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -266,8 +269,8 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
               disabled={isPending}
               onClick={handleAssignPlan}
             >
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Assign Plan
+              {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {t("assignPlanButton")}
             </Button>
           </section>
         </div>

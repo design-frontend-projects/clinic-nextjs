@@ -19,9 +19,11 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StarRating } from "@/components/ui/star-rating";
+import { useTranslations } from "next-intl";
 
 export function ReviewsModeration() {
   const queryClient = useQueryClient();
+  const t = useTranslations("admin.reviews");
   const [statusFilter, setStatusFilter] = useState<ReviewStatus>("pending");
 
   const { data, isLoading } = useQuery({
@@ -41,11 +43,11 @@ export function ReviewsModeration() {
         return;
       }
       toast.success(
-        input.status === "approved" ? "Review approved." : "Review rejected.",
+        input.status === "approved" ? t("toastApproved") : t("toastRejected"),
       );
       queryClient.invalidateQueries({ queryKey: ["clinic-reviews"] });
     },
-    onError: () => toast.error("Failed to update the review."),
+    onError: () => toast.error(t("toastFailed")),
   });
 
   return (
@@ -55,22 +57,22 @@ export function ReviewsModeration() {
         onValueChange={(value) => setStatusFilter(value as ReviewStatus)}
       >
         <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+          <TabsTrigger value="pending">{t("tabPending")}</TabsTrigger>
+          <TabsTrigger value="approved">{t("tabApproved")}</TabsTrigger>
+          <TabsTrigger value="rejected">{t("tabRejected")}</TabsTrigger>
         </TabsList>
       </Tabs>
 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Rating</TableHead>
-            <TableHead>Comment</TableHead>
-            <TableHead>Patient</TableHead>
-            <TableHead>Doctor</TableHead>
-            <TableHead>Visit date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-end">Actions</TableHead>
+            <TableHead>{t("colRating")}</TableHead>
+            <TableHead>{t("colComment")}</TableHead>
+            <TableHead>{t("colPatient")}</TableHead>
+            <TableHead>{t("colDoctor")}</TableHead>
+            <TableHead>{t("colVisitDate")}</TableHead>
+            <TableHead>{t("colStatus")}</TableHead>
+            <TableHead className="text-end">{t("colActions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -89,7 +91,11 @@ export function ReviewsModeration() {
           ) : reviews.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center text-muted-foreground">
-                No {statusFilter} reviews.
+                {statusFilter === "pending"
+                  ? t("emptyPending")
+                  : statusFilter === "approved"
+                    ? t("emptyApproved")
+                    : t("emptyRejected")}
               </TableCell>
             </TableRow>
           ) : (
@@ -124,7 +130,7 @@ export function ReviewsModeration() {
                         }
                       >
                         <Check className="me-1.5 h-3.5 w-3.5" />
-                        Approve
+                        {t("approve")}
                       </Button>
                       <Button
                         size="sm"
@@ -135,7 +141,7 @@ export function ReviewsModeration() {
                         }
                       >
                         <X className="me-1.5 h-3.5 w-3.5" />
-                        Reject
+                        {t("reject")}
                       </Button>
                     </div>
                   ) : (

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
+import { useTranslations } from "next-intl";
 
 interface LandingUserNavProps {
   fullName?: string | null;
@@ -27,6 +28,7 @@ export function LandingUserNav({
   dashboardPath,
 }: LandingUserNavProps) {
   const router = useRouter();
+  const t = useTranslations("layout.landingUserNav");
 
   const handleSignOut = async () => {
     const supabase = createSupabaseClient();
@@ -40,7 +42,7 @@ export function LandingUserNav({
     <div className="flex items-center gap-4">
       <Link href={dashboardPath}>
         <Button variant="secondary" className="text-sm">
-          Dashboard
+          {t("dashboard")}
         </Button>
       </Link>
       
@@ -57,7 +59,7 @@ export function LandingUserNav({
         <DropdownMenuContent align="end" className="w-56">
           <div className="flex items-center justify-start gap-2 p-2">
             <div className="flex flex-col space-y-1 leading-none">
-              <p className="font-medium">{fullName || "User"}</p>
+              <p className="font-medium">{fullName || t("userFallback")}</p>
               {email && (
                 <p className="w-[200px] truncate text-sm text-muted-foreground">
                   {email}
@@ -67,15 +69,15 @@ export function LandingUserNav({
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link href="/settings">Settings</Link>
+            <Link href="/settings">{t("settings")}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link href={dashboardPath}>Dashboard</Link>
+            <Link href={dashboardPath}>{t("dashboard")}</Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive cursor-pointer">
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
+            <LogOut className="me-2 h-4 w-4" />
+            <span>{t("logout")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

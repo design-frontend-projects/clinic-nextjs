@@ -15,9 +15,11 @@ import { ShieldCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export default function PermissionsSettingsPage() {
   const queryClient = useQueryClient();
+  const t = useTranslations("settings.permissions");
 
   // Queries
   const { data: roles = [], isLoading: rolesLoading, refetch: refetchRoles } = useQuery({
@@ -73,10 +75,10 @@ export default function PermissionsSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbacMatrixData"] });
-      toast.success("Permissions updated successfully");
+      toast.success(t("toastUpdated"));
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to update permission mapping");
+      toast.error(err.message || t("toastFailed"));
     }
   });
 
@@ -94,10 +96,10 @@ export default function PermissionsSettingsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShieldCheck className="h-8 w-8 text-primary" /> Permission Matrix
+            <ShieldCheck className="h-8 w-8 text-primary" /> {t("title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Map clinical and administrative permissions across all system roles. Changes apply instantly.
+            {t("subtitle")}
           </p>
         </div>
 
@@ -113,7 +115,7 @@ export default function PermissionsSettingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="py-32 text-center text-sm text-muted-foreground">Loading permission matrix...</div>
+        <div className="py-32 text-center text-sm text-muted-foreground">{t("loading")}</div>
       ) : (
         <PermissionMatrix
           roles={roles}

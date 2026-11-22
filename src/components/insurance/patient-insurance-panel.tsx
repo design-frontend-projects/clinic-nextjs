@@ -12,6 +12,7 @@ import {
   PatientInsuranceDialog,
   PolicySummary,
 } from "@/components/insurance/patient-insurance-dialog";
+import { useTranslations } from "next-intl";
 
 interface PatientInsurancePanelProps {
   patientId: string;
@@ -31,6 +32,7 @@ export function PatientInsurancePanel({
   emptyLabel,
   manageLabel,
 }: PatientInsurancePanelProps) {
+  const t = useTranslations("insurance.patientDialog");
   const [manageOpen, setManageOpen] = useState(false);
 
   const { data: policies = [] } = useQuery({
@@ -61,16 +63,16 @@ export function PatientInsurancePanel({
                 variant={policy.is_eligible ? "default" : "outline"}
                 className="text-[10px]"
               >
-                {policy.is_eligible ? "Eligible" : "Not eligible"}
+                {policy.is_eligible ? t("eligible") : t("notEligible")}
               </Badge>
             </div>
             <PolicySummary policy={policy} />
             <p className="text-xs text-muted-foreground">
               {policy.policy_number
-                ? `Policy #${policy.policy_number}`
-                : "No policy number"}
+                ? t("policyNumberPrefix", { number: policy.policy_number })
+                : t("noPolicyNumber")}
               {policy.valid_to
-                ? ` · expires ${format(new Date(policy.valid_to), "MMM d, yyyy")}`
+                ? ` · ${t("expiresOn", { date: format(new Date(policy.valid_to), "MMM d, yyyy") })}`
                 : ""}
             </p>
             {(policy.contact_phone || policy.contact_email) && (

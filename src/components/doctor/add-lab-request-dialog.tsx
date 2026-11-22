@@ -26,13 +26,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { createLabOrder } from "@/app/actions/doctor";
+import { useTranslations } from "next-intl";
 
-const formSchema = z.object({
-  test_name: z.string().trim().min(1, "Test name is required"),
-  external_lab_provider: z.string().trim().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
+type FormData = {
+  test_name: string;
+  external_lab_provider?: string;
+};
 
 interface AddLabRequestDialogProps {
   appointmentId: string | null;
@@ -48,6 +47,12 @@ export function AddLabRequestDialog({
   onOpenChange,
 }: AddLabRequestDialogProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("doctor.labRequestDialog");
+
+  const formSchema = z.object({
+    test_name: z.string().trim().min(1, t("errTestNameRequired")),
+    external_lab_provider: z.string().trim().optional(),
+  });
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -60,9 +65,9 @@ export function AddLabRequestDialog({
   }, [open, appointmentId, form]);
 
   const mutation = useMutation({
-    mutationFn: (data: FormData) => {
+    mutationFn: async (data: FormData) => {
       if (!appointmentId) {
-        return Promise.resolve({ error: "No appointment selected" });
+        return { error: t("errNoAppointment") };
       }
       return createLabOrder({
         appointment_id: appointmentId,
@@ -71,17 +76,17 @@ export function AddLabRequestDialog({
       });
     },
     onSuccess: (result) => {
-      if (result && "error" in result) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["doctor-lab-orders"] });
-      toast.success("Lab request added");
+      toast.success(t("toastAdded"));
       onOpenChange(false);
     },
     onError: () => {
-      toast.error("Failed to add lab request");
+      toast.error(t("toastFailed"));
     },
   });
 
@@ -93,9 +98,9 @@ export function AddLabRequestDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Lab Request</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Request a lab test for {patientName || "this patient"}.
+            {t("description", { patient: patientName || t("thisPatient") })}
           </DialogDescription>
         </DialogHeader>
 
@@ -107,10 +112,10 @@ export function AddLabRequestDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Test Name <span className="text-destructive">*</span>
+                    {t("testNameLabel")} <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Complete Blood Count" {...field} />
+                    <Input placeholder={t("testNamePlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,9 +127,9 @@ export function AddLabRequestDialog({
               name="external_lab_provider"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>External Lab Provider</FormLabel>
+                  <FormLabel>{t("externalLabLabel")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Optional" {...field} />
+                    <Input placeholder={t("optionalPlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -137,13 +142,13 @@ export function AddLabRequestDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t("cancel")}
               </Button>
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 )}
-                Add Request
+                {t("addRequest")}
               </Button>
             </div>
           </form>

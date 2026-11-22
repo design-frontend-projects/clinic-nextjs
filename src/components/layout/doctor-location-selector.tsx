@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getMyAssignments, setActiveClinic } from "@/app/actions/profile";
 import { updateProfileBranch } from "@/app/actions/profile";
 import { BranchDisplay } from "./branch-display";
+import { useTranslations } from "next-intl";
 
 interface DoctorLocationSelectorProps {
   activeClinicId: string | null;
@@ -37,6 +38,7 @@ export function DoctorLocationSelector({
   branchName,
 }: DoctorLocationSelectorProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("layout.doctorLocation");
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-assignments"],
@@ -47,11 +49,11 @@ export function DoctorLocationSelector({
     mutationFn: (clinicId: string) => setActiveClinic(clinicId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-info"] });
-      toast.success("Clinic switched");
+      toast.success(t("clinicSwitched"));
       window.location.reload();
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to switch clinic");
+      toast.error(error.message || t("clinicSwitchError"));
     },
   });
 
@@ -59,11 +61,11 @@ export function DoctorLocationSelector({
     mutationFn: (branchId: string) => updateProfileBranch(branchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-info"] });
-      toast.success("Branch switched");
+      toast.success(t("branchSwitched"));
       window.location.reload();
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to switch branch");
+      toast.error(error.message || t("branchSwitchError"));
     },
   });
 
@@ -96,7 +98,7 @@ export function DoctorLocationSelector({
             <div className="flex items-center gap-2 truncate">
               <Building2 className="h-4 w-4 text-primary shrink-0" />
               <span className="truncate">
-                {activeClinic?.name || clinicName || "Select Clinic"}
+                {activeClinic?.name || clinicName || t("selectClinic")}
               </span>
             </div>
             <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
@@ -105,7 +107,7 @@ export function DoctorLocationSelector({
         <DropdownMenuContent align="start" className="w-[240px]">
           <DropdownMenuLabel className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
-            Switch Clinic
+            {t("switchClinic")}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {clinics.map((c) => (
@@ -131,7 +133,7 @@ export function DoctorLocationSelector({
             <div className="flex items-center gap-2 truncate">
               <MapPin className="h-4 w-4 text-primary shrink-0" />
               <span className="truncate">
-                {activeBranch?.name || branchName || "Select Branch"}
+                {activeBranch?.name || branchName || t("selectBranch")}
               </span>
             </div>
             <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
@@ -140,7 +142,7 @@ export function DoctorLocationSelector({
         <DropdownMenuContent align="start" className="w-[240px]">
           <DropdownMenuLabel className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            Switch Branch
+            {t("switchBranch")}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {clinicBranches.map((b) => (
@@ -159,7 +161,7 @@ export function DoctorLocationSelector({
           ))}
           {clinicBranches.length === 0 && (
             <div className="p-2 text-xs text-center text-muted-foreground italic">
-              No branches available
+              {t("noBranches")}
             </div>
           )}
         </DropdownMenuContent>

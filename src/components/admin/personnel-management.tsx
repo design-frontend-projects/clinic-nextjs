@@ -46,7 +46,7 @@ import {
   type Profile,
   type DoctorBranchAssignment,
 } from "@/types/clinic.types";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Edit2, MapPin, Plus, Trash2, User } from "lucide-react";
@@ -83,6 +83,9 @@ const roleLabel = (r: string) => r.charAt(0).toUpperCase() + r.slice(1);
 export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   const queryClient = useQueryClient();
   const locale = useLocale();
+  const t = useTranslations("admin.personnel");
+  const tStatus = useTranslations("enums.status");
+  const tRoles = useTranslations("notifications.roles");
   const [isOpen, setIsOpen] = useState(false);
   const [editingPersonnel, setEditingPersonnel] = useState<Profile | null>(
     null,
@@ -169,11 +172,11 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
           email: variables.email,
         });
       } else {
-        toast.success(`${title} updated`);
+        toast.success(t("toastUpdated", { title }));
       }
     },
     onError: (error) => {
-      toast.error(error.message || "Operation failed");
+      toast.error(error.message || t("toastOperationFailed"));
     },
   });
 
@@ -183,11 +186,11 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
       queryClient.invalidateQueries({
         queryKey: ["personnel", role],
       });
-      toast.success(`${title} deleted`);
+      toast.success(t("toastDeleted", { title }));
       setPersonnelToDelete(null);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete");
+      toast.error(error.message || t("toastDeleteFailed"));
     },
   });
 
@@ -241,7 +244,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     // Multi-branch roles (doctor): submit the (clinic, branch) assignment set.
     if (isMultiBranchRole(data.role)) {
       if (assignments.length === 0) {
-        toast.error("Select at least one clinic and branch");
+        toast.error(t("toastSelectClinicBranch"));
         return;
       }
       upsertMutation.mutate({
@@ -259,7 +262,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
       isBranchLockedRole(data.role) &&
       !data.branch_id
     ) {
-      toast.error("Please select a branch");
+      toast.error(t("toastSelectBranch"));
       return;
     }
     // New invites use the role selected in the form; edits keep the stored
@@ -298,16 +301,16 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
         ]
       : (specialties ?? []);
 
-  if (!authUserId) return <div>Initializing...</div>;
-  if (isLoading) return <div>Loading {role}s...</div>;
+  if (!authUserId) return <div>{t("initializing")}</div>;
+  if (isLoading) return <div>{t("loading", { role: role === "doctor" ? t("doctorsPlural") : t("staffPlural") })}</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{title}s</h3>
+        <h3 className="text-lg font-semibold">{role === "doctor" ? t("doctorsPlural") : t("staffPlural")}</h3>
         <Button size="sm" onClick={onOpenAdd}>
-          <Plus className="mr-2 h-4 w-4" />
-          Invite {title}
+          <Plus className="me-2 h-4 w-4" />
+          {t("inviteButton", { title })}
         </Button>
       </div>
 
@@ -315,12 +318,12 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Contact</TableHead>
-              {role === "doctor" && <TableHead>Specialty</TableHead>}
-              <TableHead>Branch</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("colName")}</TableHead>
+              <TableHead>{t("colContact")}</TableHead>
+              {role === "doctor" && <TableHead>{t("colSpecialty")}</TableHead>}
+              <TableHead>{t("colBranch")}</TableHead>
+              <TableHead>{t("colStatus")}</TableHead>
+              <TableHead className="text-end">{t("colActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -339,7 +342,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   </div>
                 </TableCell>
                 {role === "doctor" && (
-                  <TableCell>{p.specialty || "General"}</TableCell>
+                  <TableCell>{p.specialty || t("generalSpecialty")}</TableCell>
                 )}
                 <TableCell>
                   <span className="text-sm text-muted-foreground">
@@ -350,14 +353,18 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   <Badge
                     variant={p.status === "active" ? "default" : "secondary"}
                   >
-                    {p.status}
+                    {p.status === "active"
+                      ? tStatus("active")
+                      : p.status === "blocked"
+                        ? tStatus("blocked")
+                        : tStatus("inactive")}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell className="text-end space-x-2">
                   {p.role === "owner" ? (
                     // The clinic owner appears on the Doctors page but is
                     // view-only here — never editable/deletable from this screen.
-                    <Badge variant="secondary">Owner</Badge>
+                    <Badge variant="secondary">{t("ownerBadge")}</Badge>
                   ) : (
                     <>
                       <Button
@@ -386,7 +393,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   colSpan={role === "doctor" ? 6 : 5}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  No {role}s found. Invite one to get started.
+                  {t("empty", { role: role === "doctor" ? t("doctorsPlural") : t("staffPlural") })}
                 </TableCell>
               </TableRow>
             )}
@@ -398,22 +405,22 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
-              {editingPersonnel ? `Edit ${title}` : `Invite ${title}`}
+              {editingPersonnel ? t("editTitle", { title }) : t("inviteTitle", { title })}
             </DialogTitle>
             <DialogDescription>
               {editingPersonnel
-                ? `Update the details for this ${role}.`
-                : `Enter details to create a new ${role}. You'll get a temporary password to share with them.`}
+                ? t("editDesc", { title })
+                : t("inviteDesc", { title })}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="full_name">Full Name</Label>
+                <Label htmlFor="full_name">{t("formFullName")}</Label>
                 <Input
                   id="full_name"
                   {...register("full_name")}
-                  placeholder="e.g. Dr. John Doe"
+                  placeholder={t("formFullNamePlaceholder")}
                 />
                 {errors.full_name && (
                   <p className="text-xs text-destructive">
@@ -423,7 +430,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">
-                  Email{" "}
+                  {t("formEmail")}{" "}
                   {!editingPersonnel && (
                     <span className="text-destructive">*</span>
                   )}
@@ -432,7 +439,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   id="email"
                   type="email"
                   {...register("email")}
-                  placeholder="doctor@clinic.com"
+                  placeholder={t("formEmailPlaceholder")}
                   disabled={!!editingPersonnel}
                 />
                 {errors.email && (
@@ -442,18 +449,18 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                 )}
                 {!editingPersonnel && (
                   <p className="text-xs text-muted-foreground">
-                    Used as the sign-in email for the new account.
+                    {t("formEmailHint")}
                   </p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{t("formPhone")}</Label>
                 <Input id="phone" {...register("phone")} />
               </div>
               {isDoctorForm ? (
                 <div className="space-y-2 col-span-2">
                   <Label>
-                    Clinics &amp; Branches{" "}
+                    {t("formClinicsBranches")}{" "}
                     <span className="text-destructive">*</span>
                   </Label>
                   <DoctorAssignmentEditor
@@ -469,13 +476,13 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               ) : (
                 <>
                   <div className="space-y-2 col-span-2">
-                    <Label>Clinic</Label>
+                    <Label>{t("formClinic")}</Label>
                     <Select
                       value={displayClinicId ?? ""}
                       onValueChange={(val) => setSelectedClinicId(val)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Clinic" />
+                        <SelectValue placeholder={t("formSelectClinic")} />
                       </SelectTrigger>
                       <SelectContent>
                         {(ownerClinics ?? []).map((c) => (
@@ -485,7 +492,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                               {c.name}
                               {c.is_primary && (
                                 <span className="text-xs text-muted-foreground">
-                                  (Default)
+                                  ({t("defaultLabel")})
                                 </span>
                               )}
                             </span>
@@ -494,13 +501,12 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      New {role}s are created under your default clinic;
-                      branches below are from that clinic.
+                      {t("formClinicHint")}
                     </p>
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label>
-                      Branch <span className="text-destructive">*</span>
+                      {t("formBranch")} <span className="text-destructive">*</span>
                     </Label>
                     <Select
                       value={watch("branch_id") ?? ""}
@@ -509,7 +515,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Branch" />
+                        <SelectValue placeholder={t("formSelectBranch")} />
                       </SelectTrigger>
                       <SelectContent>
                         {branchOptions.map((b) => (
@@ -528,21 +534,20 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      The {role} will be locked to this branch and cannot change
-                      it.
+                      {t("formBranchLockedHint")}
                     </p>
                   </div>
                 </>
               )}
               {role === "doctor" && (
                 <div className="space-y-2 col-span-2">
-                  <Label>Specialty</Label>
+                  <Label>{t("formSpecialty")}</Label>
                   <Select
                     value={watch("specialty") ?? ""}
                     onValueChange={(val) => setValue("specialty", val)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Specialty" />
+                      <SelectValue placeholder={t("formSelectSpecialty")} />
                     </SelectTrigger>
                     <SelectContent>
                       {specialtyOptions.map((s) => (
@@ -555,7 +560,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                 </div>
               )}
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label>{t("formStatus")}</Label>
                 <Select
                   value={watch("status")}
                   onValueChange={(val) =>
@@ -563,35 +568,35 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Status" />
+                    <SelectValue placeholder={t("formSelectStatus")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="blocked">Blocked</SelectItem>
+                    <SelectItem value="active">{tStatus("active")}</SelectItem>
+                    <SelectItem value="inactive">{tStatus("inactive")}</SelectItem>
+                    <SelectItem value="blocked">{tStatus("blocked")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {!editingPersonnel && (
                 <div className="space-y-2">
-                  <Label>Role</Label>
+                  <Label>{t("formRole")}</Label>
                   <Select
                     value={watch("role") || role}
                     onValueChange={(val) => setValue("role", val)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Role" />
+                      <SelectValue placeholder={t("formSelectRole")} />
                     </SelectTrigger>
                     <SelectContent>
                       {INVITABLE_PROFILE_ROLES.map((r) => (
                         <SelectItem key={r} value={r}>
-                          {roleLabel(r)}
+                          {tRoles.has(r) ? tRoles(r) : roleLabel(r)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Determines the permissions this {role} will have.
+                    {t("formRoleHint")}
                   </p>
                 </div>
               )}
@@ -602,10 +607,10 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               disabled={upsertMutation.isPending}
             >
               {upsertMutation.isPending
-                ? "Processing..."
+                ? t("processing")
                 : editingPersonnel
-                  ? "Save Changes"
-                  : `Invite & Create ${title}`}
+                  ? t("saveChanges")
+                  : t("inviteAndCreate", { title })}
             </Button>
           </form>
         </DialogContent>
@@ -617,14 +622,13 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              {role} profile.
+              {t("deleteDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() =>
@@ -632,7 +636,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
               }
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? "Deleting..." : "Delete Profile"}
+              {deleteMutation.isPending ? t("deleting") : t("deleteProfile")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

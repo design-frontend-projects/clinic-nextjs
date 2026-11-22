@@ -11,6 +11,7 @@ import {
   PrescriptionForm,
   type PrescriptionRecord,
 } from "./prescription-form";
+import { useTranslations } from "next-intl";
 
 interface PrescriptionDialogProps {
   open: boolean;
@@ -30,17 +31,16 @@ export function PrescriptionDialog({
   prescription,
   onSaved,
 }: PrescriptionDialogProps) {
+  const t = useTranslations("prescriptions.dialog");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {prescription ? "Edit Prescription" : "New Prescription"}
+            {prescription ? t("editTitle") : t("newTitle")}
           </DialogTitle>
           <DialogDescription>
-            {prescription
-              ? "Update the diagnosis, status, and prescribed medications."
-              : "Record a diagnosis and one or more prescribed medications."}
+            {prescription ? t("editDescription") : t("newDescription")}
           </DialogDescription>
         </DialogHeader>
 

@@ -71,6 +71,7 @@ import {
   type AppointmentFormData,
   type CreateAppointmentWithPatientData,
 } from "@/types/appointment.types";
+import { useTranslations } from "next-intl";
 
 type CreateAppointmentFn = (data: {
   patient_id: string;
@@ -104,6 +105,8 @@ export function NewAppointmentDialog({
   onRegisterPatient = registerPatientAndCreateAppointment,
   invalidateKeys = ["appointments", "patients"],
 }: NewAppointmentDialogProps) {
+  const t = useTranslations("appointments.newDialog");
+  const tGender = useTranslations("enums.gender");
   const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
   const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
@@ -208,9 +211,9 @@ export function NewAppointmentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Appointment</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Book an appointment for an existing patient or register a new one.
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -220,8 +223,8 @@ export function NewAppointmentDialog({
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="existing">Existing Patient</TabsTrigger>
-            <TabsTrigger value="new">New Patient</TabsTrigger>
+            <TabsTrigger value="existing">{t("tabExisting")}</TabsTrigger>
+            <TabsTrigger value="new">{t("tabNew")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="existing" className="mt-4">
@@ -235,7 +238,7 @@ export function NewAppointmentDialog({
                   name="patient_id"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Patient</FormLabel>
+                      <FormLabel>{t("patientLabel")}</FormLabel>
                       <Popover
                         open={isPatientDropdownOpen}
                         onOpenChange={setIsPatientDropdownOpen}
@@ -257,16 +260,16 @@ export function NewAppointmentDialog({
                                   " " +
                                   patientSearchResults.find(
                                     (patient) => patient.id === field.value
-                                  )?.last_name || "Patient selected"
-                                : "Select patient"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  )?.last_name || t("patientSelected")
+                                : t("selectPatient")}
+                              <ChevronsUpDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-[400px] p-0">
                           <Command shouldFilter={false}>
                             <CommandInput
-                              placeholder="Search patients..."
+                              placeholder={t("searchPatientsPlaceholder")}
                               value={patientSearchQuery}
                               onValueChange={setPatientSearchQuery}
                             />
@@ -274,12 +277,12 @@ export function NewAppointmentDialog({
                               {patientSearchResults.length === 0 &&
                               patientSearchQuery.length >= 2 &&
                               !isSearchingPatients ? (
-                                <CommandEmpty>No patients found.</CommandEmpty>
+                                <CommandEmpty>{t("noPatientsFound")}</CommandEmpty>
                               ) : null}
                               {isSearchingPatients && (
                                 <div className="p-4 text-center text-sm text-muted-foreground">
-                                  <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                                  Searching...
+                                  <Loader2 className="me-2 inline h-4 w-4 animate-spin" />
+                                  {t("searching")}
                                 </div>
                               )}
                               <CommandGroup>
@@ -297,14 +300,14 @@ export function NewAppointmentDialog({
                                   >
                                     <Check
                                       className={cn(
-                                        "mr-2 h-4 w-4",
+                                        "me-2 h-4 w-4",
                                         patient.id === field.value
                                           ? "opacity-100"
                                           : "opacity-0"
                                       )}
                                     />
                                     {patient.first_name} {patient.last_name}
-                                    <span className="ml-2 text-xs text-muted-foreground">
+                                    <span className="ms-2 text-xs text-muted-foreground">
                                       {patient.phone || patient.email}
                                     </span>
                                   </CommandItem>
@@ -325,20 +328,20 @@ export function NewAppointmentDialog({
                     name="doctor_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Doctor</FormLabel>
+                        <FormLabel>{t("doctorLabel")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a doctor" />
+                              <SelectValue placeholder={t("selectDoctor")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {doctors.map((doctor) => (
                               <SelectItem key={doctor.id} value={doctor.id}>
-                                {doctor.full_name || doctor.email || "Unnamed"}
+                                {doctor.full_name || doctor.email || t("unnamed")}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -353,23 +356,23 @@ export function NewAppointmentDialog({
                     name="appointment_date"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Date & Time</FormLabel>
+                        <FormLabel>{t("dateTimeLabel")}</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant={"outline"}
                                 className={cn(
-                                  "w-full pl-3 text-left font-normal",
+                                  "w-full ps-3 text-start font-normal",
                                   !field.value && "text-muted-foreground"
                                 )}
                               >
                                 {field.value ? (
                                   format(field.value, "PPp")
                                 ) : (
-                                  <span>Pick a date and time</span>
+                                  <span>{t("pickDateTime")}</span>
                                 )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                <CalendarIcon className="ms-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
@@ -424,10 +427,10 @@ export function NewAppointmentDialog({
                   name="notes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Notes</FormLabel>
+                      <FormLabel>{t("notesLabel")}</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Reason for visit..."
+                          placeholder={t("notesPlaceholder")}
                           className="resize-none"
                           {...field}
                         />
@@ -443,16 +446,16 @@ export function NewAppointmentDialog({
                     variant="outline"
                     onClick={() => onOpenChange(false)}
                   >
-                    Cancel
+                    {t("cancel")}
                   </Button>
                   <Button
                     type="submit"
                     disabled={createAppointmentMutation.isPending}
                   >
                     {createAppointmentMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
                     )}
-                    Create Appointment
+                    {t("createAppointment")}
                   </Button>
                 </div>
               </form>
@@ -473,7 +476,7 @@ export function NewAppointmentDialog({
                 
                 <div className="space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
-                    Patient Details
+                    {t("patientDetailsTitle")}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
@@ -481,9 +484,9 @@ export function NewAppointmentDialog({
                       name="patient.first_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>First Name <span className="text-destructive">*</span></FormLabel>
+                          <FormLabel>{t("firstNameLabel")} <span className="text-destructive">*</span></FormLabel>
                           <FormControl>
-                            <Input placeholder="John" {...field} />
+                            <Input placeholder={t("firstNamePlaceholder")} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -494,9 +497,9 @@ export function NewAppointmentDialog({
                       name="patient.last_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Last Name <span className="text-destructive">*</span></FormLabel>
+                          <FormLabel>{t("lastNameLabel")} <span className="text-destructive">*</span></FormLabel>
                           <FormControl>
-                            <Input placeholder="Doe" {...field} />
+                            <Input placeholder={t("lastNamePlaceholder")} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -509,9 +512,9 @@ export function NewAppointmentDialog({
                       name="patient.email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email <span className="text-destructive">*</span></FormLabel>
+                          <FormLabel>{t("emailLabel")} <span className="text-destructive">*</span></FormLabel>
                           <FormControl>
-                            <Input placeholder="john.doe@example.com" type="email" {...field} />
+                            <Input placeholder={t("emailPlaceholder")} type="email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -522,7 +525,7 @@ export function NewAppointmentDialog({
                       name="patient.phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone</FormLabel>
+                          <FormLabel>{t("phoneLabel")}</FormLabel>
                           <FormControl>
                             <Input placeholder="+1..." {...field} />
                           </FormControl>
@@ -537,20 +540,20 @@ export function NewAppointmentDialog({
                       name="patient.gender"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Gender</FormLabel>
+                          <FormLabel>{t("genderLabel")}</FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select gender" />
+                                <SelectValue placeholder={t("selectGender")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
+                              <SelectItem value="male">{tGender("male")}</SelectItem>
+                              <SelectItem value="female">{tGender("female")}</SelectItem>
+                              <SelectItem value="other">{tGender("other")}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -562,23 +565,23 @@ export function NewAppointmentDialog({
                       name="patient.date_of_birth"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Date of Birth</FormLabel>
+                          <FormLabel>{t("dobLabel")}</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant={"outline"}
                                   className={cn(
-                                    "w-full pl-3 text-left font-normal",
+                                    "w-full ps-3 text-start font-normal",
                                     !field.value && "text-muted-foreground"
                                   )}
                                 >
                                   {field.value ? (
                                     format(field.value, "PPP")
                                   ) : (
-                                    <span>Pick a date</span>
+                                    <span>{t("pickDate")}</span>
                                   )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  <CalendarIcon className="ms-auto h-4 w-4 opacity-50" />
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
@@ -603,7 +606,7 @@ export function NewAppointmentDialog({
 
                 <div className="space-y-4 pt-4 border-t">
                   <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
-                    Appointment Details
+                    {t("appointmentDetailsTitle")}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
@@ -611,20 +614,20 @@ export function NewAppointmentDialog({
                       name="appointment.doctor_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Doctor <span className="text-destructive">*</span></FormLabel>
+                          <FormLabel>{t("doctorLabel")} <span className="text-destructive">*</span></FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a doctor" />
+                                <SelectValue placeholder={t("selectDoctor")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               {doctors.map((doctor) => (
                                 <SelectItem key={doctor.id} value={doctor.id}>
-                                  {doctor.full_name || doctor.email || "Unnamed"}
+                                  {doctor.full_name || doctor.email || t("unnamed")}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -639,23 +642,23 @@ export function NewAppointmentDialog({
                       name="appointment.appointment_date"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Date & Time <span className="text-destructive">*</span></FormLabel>
+                          <FormLabel>{t("dateTimeLabel")} <span className="text-destructive">*</span></FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant={"outline"}
                                   className={cn(
-                                    "w-full pl-3 text-left font-normal",
+                                    "w-full ps-3 text-start font-normal",
                                     !field.value && "text-muted-foreground"
                                   )}
                                 >
                                   {field.value ? (
                                     format(field.value, "PPp")
                                   ) : (
-                                    <span>Pick a date and time</span>
+                                    <span>{t("pickDateTime")}</span>
                                   )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  <CalendarIcon className="ms-auto h-4 w-4 opacity-50" />
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
@@ -710,10 +713,10 @@ export function NewAppointmentDialog({
                     name="appointment.notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Notes</FormLabel>
+                        <FormLabel>{t("notesLabel")}</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Reason for visit..."
+                            placeholder={t("notesPlaceholder")}
                             className="resize-none"
                             {...field}
                           />
@@ -730,16 +733,16 @@ export function NewAppointmentDialog({
                     variant="outline"
                     onClick={() => onOpenChange(false)}
                   >
-                    Cancel
+                    {t("cancel")}
                   </Button>
                   <Button
                     type="submit"
                     disabled={registerPatientMutation.isPending}
                   >
                     {registerPatientMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
                     )}
-                    Register & Book
+                    {t("registerAndBook")}
                   </Button>
                 </div>
               </form>

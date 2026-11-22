@@ -245,7 +245,7 @@ export default function PatientsPage() {
                   <Input
                     id="first_name"
                     {...form.register("first_name")}
-                    placeholder="John"
+                    placeholder={t("phFirstName")}
                   />
                   {form.formState.errors.first_name && (
                     <p className="text-xs text-destructive">
@@ -258,7 +258,7 @@ export default function PatientsPage() {
                   <Input
                     id="last_name"
                     {...form.register("last_name")}
-                    placeholder="Doe"
+                    placeholder={t("phLastName")}
                   />
                   {form.formState.errors.last_name && (
                     <p className="text-xs text-destructive">
@@ -274,7 +274,7 @@ export default function PatientsPage() {
                     id="email"
                     type="email"
                     {...form.register("email")}
-                    placeholder="john@example.com"
+                    placeholder={t("phEmail")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -282,7 +282,7 @@ export default function PatientsPage() {
                   <Input
                     id="phone"
                     {...form.register("phone")}
-                    placeholder="+1 234 567 890"
+                    placeholder={t("phPhone")}
                   />
                 </div>
               </div>
@@ -318,7 +318,7 @@ export default function PatientsPage() {
                 <Input
                   id="address"
                   {...form.register("address")}
-                  placeholder="123 Main St..."
+                  placeholder={t("phAddress")}
                 />
               </div>
               <DialogFooter>

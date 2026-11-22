@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { useTranslations } from "next-intl";
 
 function formatRuleShort(
   type: DeductionType | null | undefined,
@@ -97,6 +98,7 @@ const emptyForm: InsuranceProviderData = {
 };
 
 export function InsuranceProvidersClient() {
+  const t = useTranslations("insurance.providers");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<InsuranceProviderRow | null>(null);
   const [deleting, setDeleting] = useState<InsuranceProviderRow | null>(null);
@@ -152,7 +154,7 @@ export function InsuranceProvidersClient() {
         return;
       }
       toast.success(
-        editing ? "Insurance company updated." : "Insurance company added.",
+        editing ? t("toastUpdated") : t("toastAdded"),
       );
       setDialogOpen(false);
       refetch();
@@ -166,17 +168,22 @@ export function InsuranceProvidersClient() {
       if ("error" in result) {
         toast.error(result.error);
       } else {
-        toast.success("Insurance company removed.");
+        toast.success(t("toastRemoved"));
         refetch();
       }
       setDeleting(null);
     });
   };
 
+  const formatDeductionLabel = (row: InsuranceProviderRow): string =>
+    row.deduction_type === "fixed"
+      ? t("perVisit", { amount: row.deduction_value.toFixed(2) })
+      : t("percentOfInvoice", { percent: row.deduction_value });
+
   const columns: ColumnDef<InsuranceProviderRow>[] = [
     {
       accessorKey: "name",
-      header: "Company",
+      header: t("colCompany"),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
@@ -187,7 +194,7 @@ export function InsuranceProvidersClient() {
             <p className="text-xs text-muted-foreground">
               {row.original.contact_email ||
                 row.original.contact_phone ||
-                "No contact"}
+                t("noContact")}
             </p>
           </div>
         </div>
@@ -195,7 +202,7 @@ export function InsuranceProvidersClient() {
     },
     {
       id: "deduction",
-      header: "Deduction Rules (Default & Per Category)",
+      header: t("colDeductionRules"),
       cell: ({ row }) => {
         const r = row.original;
         const consultLabel = formatRuleShort(
@@ -217,21 +224,21 @@ export function InsuranceProvidersClient() {
         return (
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="secondary" className="font-normal">
-              Default: {deductionLabel(r)}
+              {t("badgeDefault", { rule: formatDeductionLabel(r) })}
             </Badge>
             {consultLabel && (
               <Badge variant="outline" className="text-xs font-normal">
-                Consultation: {consultLabel}
+                {t("badgeConsultation", { value: consultLabel })}
               </Badge>
             )}
             {labLabel && (
               <Badge variant="outline" className="text-xs font-normal">
-                Lab: {labLabel}
+                {t("badgeLab", { value: labLabel })}
               </Badge>
             )}
             {pharmLabel && (
               <Badge variant="outline" className="text-xs font-normal">
-                Pharmacy: {pharmLabel}
+                {t("badgePharmacy", { value: pharmLabel })}
               </Badge>
             )}
           </div>
@@ -240,29 +247,29 @@ export function InsuranceProvidersClient() {
     },
     {
       accessorKey: "covered_visits",
-      header: "Covered Visits",
+      header: t("colCoveredVisits"),
       cell: ({ row }) =>
         row.original.covered_visits === null
-          ? "Unlimited"
+          ? t("unlimited")
           : row.original.covered_visits,
     },
     {
       accessorKey: "patients_count",
-      header: "Patients",
+      header: t("colPatients"),
       cell: ({ row }) => row.original.patients_count,
     },
     {
       accessorKey: "is_active",
-      header: "Status",
+      header: t("colStatus"),
       cell: ({ row }) => (
         <Badge variant={row.original.is_active ? "default" : "outline"}>
-          {row.original.is_active ? "Active" : "Inactive"}
+          {row.original.is_active ? t("active") : t("inactive")}
         </Badge>
       ),
     },
     {
       accessorKey: "created_at",
-      header: "Added",
+      header: t("colAdded"),
       cell: ({ row }) =>
         format(new Date(row.original.created_at), "MMM d, yyyy"),
     },
@@ -275,7 +282,7 @@ export function InsuranceProvidersClient() {
             variant="ghost"
             size="icon"
             onClick={() => openEdit(row.original)}
-            aria-label="Edit company"
+            aria-label={t("ariaEditCompany")}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -283,7 +290,7 @@ export function InsuranceProvidersClient() {
             variant="ghost"
             size="icon"
             onClick={() => setDeleting(row.original)}
-            aria-label="Delete company"
+            aria-label={t("ariaDeleteCompany")}
           >
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
@@ -303,16 +310,15 @@ export function InsuranceProvidersClient() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Insurance Companies
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Define insurance companies and deduction rules per visit,
-            consultation, lab, and pharmacy
+            {t("subtitle")}
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Company
+          <Plus className="me-2 h-4 w-4" />
+          {t("addCompany")}
         </Button>
       </div>
 
@@ -320,27 +326,26 @@ export function InsuranceProvidersClient() {
         columns={columns}
         data={providers}
         searchKey="name"
-        searchPlaceholder="Search companies..."
+        searchPlaceholder={t("searchPlaceholder")}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editing ? "Edit Insurance Company" : "Add Insurance Company"}
+              {editing ? t("editCompanyTitle") : t("addCompanyTitle")}
             </DialogTitle>
             <DialogDescription>
-              Set the company details, default deduction rule, and optional
-              deduction overrides for Consultation, Lab, and Pharmacy.
+              {t("dialogDescription")}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Company Name *</Label>
+              <Label htmlFor="name">{t("companyNameLabel")}</Label>
               <Input
                 id="name"
                 {...form.register("name")}
-                placeholder="e.g. MedCare Insurance"
+                placeholder={t("companyNamePlaceholder")}
               />
               {form.formState.errors.name && (
                 <p className="text-xs text-destructive">
@@ -351,7 +356,7 @@ export function InsuranceProvidersClient() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="contact_email">Contact Email</Label>
+                <Label htmlFor="contact_email">{t("contactEmailLabel")}</Label>
                 <Input
                   id="contact_email"
                   type="email"
@@ -360,7 +365,7 @@ export function InsuranceProvidersClient() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contact_phone">Contact Phone</Label>
+                <Label htmlFor="contact_phone">{t("contactPhoneLabel")}</Label>
                 <Input
                   id="contact_phone"
                   {...form.register("contact_phone")}
@@ -374,15 +379,14 @@ export function InsuranceProvidersClient() {
             {/* Default Deduction Rule */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">
-                Default / General Deduction Rule *
+                {t("defaultRuleTitle")}
               </h4>
               <p className="text-xs text-muted-foreground">
-                Applied to any invoice item whose category does not have a
-                specific override below.
+                {t("defaultRuleDesc")}
               </p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Deduction Type *</Label>
+                  <Label>{t("deductionTypeLabel")}</Label>
                   <Select
                     value={deductionType}
                     onValueChange={(v) =>
@@ -397,10 +401,10 @@ export function InsuranceProvidersClient() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="fixed">
-                        Fixed price ($ amount)
+                        {t("typeFixedFull")}
                       </SelectItem>
                       <SelectItem value="percentage">
-                        Percentage (% of amount)
+                        {t("typePercentageFull")}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -408,8 +412,8 @@ export function InsuranceProvidersClient() {
                 <div className="space-y-2">
                   <Label htmlFor="deduction_value">
                     {deductionType === "fixed"
-                      ? "Default Amount ($) *"
-                      : "Default Percentage (%) *"}
+                      ? t("defaultAmountLabel")
+                      : t("defaultPercentLabel")}
                   </Label>
                   <Input
                     id="deduction_value"
@@ -433,11 +437,10 @@ export function InsuranceProvidersClient() {
             <div className="space-y-3">
               <div>
                 <h4 className="text-sm font-semibold">
-                  Category-Specific Deductions (Consultation, Lab, Pharmacy)
+                  {t("categoryOverridesTitle")}
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Optional. Leave the value empty to fall back to the default
-                  deduction rule above.
+                  {t("categoryOverridesDesc")}
                 </p>
               </div>
 
@@ -445,11 +448,11 @@ export function InsuranceProvidersClient() {
               <div className="rounded-lg border p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Stethoscope className="h-4 w-4 text-sky-600" />
-                  <span>Consultation Deduction</span>
+                  <span>{t("consultationDeduction")}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs">Type</Label>
+                    <Label className="text-xs">{t("typeLabel")}</Label>
                     <Select
                       value={consultType}
                       onValueChange={(v) =>
@@ -463,9 +466,9 @@ export function InsuranceProvidersClient() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="fixed">Fixed ($)</SelectItem>
+                        <SelectItem value="fixed">{t("typeFixedShort")}</SelectItem>
                         <SelectItem value="percentage">
-                          Percentage (%)
+                          {t("typePercentageShort")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -476,15 +479,15 @@ export function InsuranceProvidersClient() {
                       className="text-xs"
                     >
                       {consultType === "fixed"
-                        ? "Consultation Amount ($)"
-                        : "Consultation Coverage (%)"}
+                        ? t("consultationAmountLabel")
+                        : t("consultationCoverageLabel")}
                     </Label>
                     <Input
                       id="consultation_deduction_value"
                       type="number"
                       step="0.01"
                       min="0"
-                      placeholder="Use default rule"
+                      placeholder={t("useDefaultRule")}
                       {...form.register("consultation_deduction_value", {
                         setValueAs: (v) =>
                           v === "" || v === null ? null : Number(v),
@@ -506,11 +509,11 @@ export function InsuranceProvidersClient() {
               <div className="rounded-lg border p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <FlaskConical className="h-4 w-4 text-amber-600" />
-                  <span>Lab Deduction</span>
+                  <span>{t("labDeduction")}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs">Type</Label>
+                    <Label className="text-xs">{t("typeLabel")}</Label>
                     <Select
                       value={labType}
                       onValueChange={(v) =>
@@ -524,9 +527,9 @@ export function InsuranceProvidersClient() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="fixed">Fixed ($)</SelectItem>
+                        <SelectItem value="fixed">{t("typeFixedShort")}</SelectItem>
                         <SelectItem value="percentage">
-                          Percentage (%)
+                          {t("typePercentageShort")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -534,15 +537,15 @@ export function InsuranceProvidersClient() {
                   <div className="space-y-1">
                     <Label htmlFor="lab_deduction_value" className="text-xs">
                       {labType === "fixed"
-                        ? "Lab Amount ($)"
-                        : "Lab Coverage (%)"}
+                        ? t("labAmountLabel")
+                        : t("labCoverageLabel")}
                     </Label>
                     <Input
                       id="lab_deduction_value"
                       type="number"
                       step="0.01"
                       min="0"
-                      placeholder="Use default rule"
+                      placeholder={t("useDefaultRule")}
                       {...form.register("lab_deduction_value", {
                         setValueAs: (v) =>
                           v === "" || v === null ? null : Number(v),
@@ -561,11 +564,11 @@ export function InsuranceProvidersClient() {
               <div className="rounded-lg border p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Pill className="h-4 w-4 text-emerald-600" />
-                  <span>Pharmacy & Prescription Deduction</span>
+                  <span>{t("pharmacyDeduction")}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs">Type</Label>
+                    <Label className="text-xs">{t("typeLabel")}</Label>
                     <Select
                       value={pharmType}
                       onValueChange={(v) =>
@@ -579,9 +582,9 @@ export function InsuranceProvidersClient() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="fixed">Fixed ($)</SelectItem>
+                        <SelectItem value="fixed">{t("typeFixedShort")}</SelectItem>
                         <SelectItem value="percentage">
-                          Percentage (%)
+                          {t("typePercentageShort")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -592,15 +595,15 @@ export function InsuranceProvidersClient() {
                       className="text-xs"
                     >
                       {pharmType === "fixed"
-                        ? "Pharmacy Amount ($)"
-                        : "Pharmacy Coverage (%)"}
+                        ? t("pharmacyAmountLabel")
+                        : t("pharmacyCoverageLabel")}
                     </Label>
                     <Input
                       id="pharmacy_deduction_value"
                       type="number"
                       step="0.01"
                       min="0"
-                      placeholder="Use default rule"
+                      placeholder={t("useDefaultRule")}
                       {...form.register("pharmacy_deduction_value", {
                         setValueAs: (v) =>
                           v === "" || v === null ? null : Number(v),
@@ -623,19 +626,19 @@ export function InsuranceProvidersClient() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="covered_visits">Covered Visits</Label>
+                <Label htmlFor="covered_visits">{t("colCoveredVisits")}</Label>
                 <Input
                   id="covered_visits"
                   type="number"
                   min="1"
-                  placeholder="Unlimited"
+                  placeholder={t("unlimited")}
                   {...form.register("covered_visits", {
                     setValueAs: (v) =>
                       v === "" || v === null ? null : Number(v),
                   })}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Leave empty for unlimited visits.
+                  {t("coveredVisitsHint")}
                 </p>
                 {form.formState.errors.covered_visits && (
                   <p className="text-xs text-destructive">
@@ -644,7 +647,7 @@ export function InsuranceProvidersClient() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="is_active">Active</Label>
+                <Label htmlFor="is_active">{t("active")}</Label>
                 <div className="flex h-9 items-center">
                   <Switch
                     id="is_active"
@@ -661,14 +664,14 @@ export function InsuranceProvidersClient() {
                 variant="outline"
                 onClick={() => setDialogOpen(false)}
               >
-                Cancel
+                {t("cancel")}
               </Button>
               <Button type="submit" disabled={isPending}>
                 {isPending
-                  ? "Saving..."
+                  ? t("saving")
                   : editing
-                    ? "Save Changes"
-                    : "Add Company"}
+                    ? t("saveChanges")
+                    : t("addCompany")}
               </Button>
             </DialogFooter>
           </form>
@@ -681,16 +684,15 @@ export function InsuranceProvidersClient() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {deleting?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>{t("removeTitle", { name: deleting?.name ?? "" })}</AlertDialogTitle>
             <AlertDialogDescription>
-              The company is removed from the list and can no longer be used at
-              billing. Existing invoices and claims are kept.
+              {t("removeDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={onDelete} disabled={isPending}>
-              Remove
+              {t("remove")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

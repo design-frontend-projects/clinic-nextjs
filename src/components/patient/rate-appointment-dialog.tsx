@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { submitReview } from "@/app/actions/reviews";
 import { submitReviewSchema } from "@/types/review.types";
+import { useTranslations } from "next-intl";
 
 type RateAppointmentDialogProps = {
   appointmentId: string | null;
@@ -28,6 +29,7 @@ export function RateAppointmentDialog({
   onOpenChange,
 }: RateAppointmentDialogProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("patient.rateDialog");
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
   const [comment, setComment] = useState("");
@@ -48,7 +50,7 @@ export function RateAppointmentDialog({
       comment: comment.trim() || undefined,
     });
     if (!parsed.success) {
-      toast.error("Please choose a star rating.");
+      toast.error(t("toastChooseRating"));
       return;
     }
 
@@ -59,12 +61,12 @@ export function RateAppointmentDialog({
         toast.error(result.error);
         return;
       }
-      toast.success("Thank you! Your review is awaiting approval.");
+      toast.success(t("toastSubmitted"));
       queryClient.invalidateQueries({ queryKey: ["my-reviews"] });
       reset();
       onOpenChange(false);
     } catch {
-      toast.error("Failed to submit your review.");
+      toast.error(t("toastFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -80,20 +82,20 @@ export function RateAppointmentDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Rate your appointment</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            How was your visit? Your feedback helps the clinic improve.
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex justify-center gap-1 py-4" role="radiogroup" aria-label="Rating">
+        <div className="flex justify-center gap-1 py-4" role="radiogroup" aria-label={t("ratingAriaLabel")}>
           {[1, 2, 3, 4, 5].map((value) => (
             <button
               key={value}
               type="button"
               role="radio"
               aria-checked={rating === value}
-              aria-label={`${value} star${value > 1 ? "s" : ""}`}
+              aria-label={t("starCount", { count: value })}
               className="flex h-11 w-11 items-center justify-center rounded-md transition-colors hover:bg-muted"
               onMouseEnter={() => setHovered(value)}
               onMouseLeave={() => setHovered(0)}
@@ -114,7 +116,7 @@ export function RateAppointmentDialog({
         <Textarea
           value={comment}
           onChange={(event) => setComment(event.target.value)}
-          placeholder="Share a few words about your visit (optional)"
+          placeholder={t("commentPlaceholder")}
           maxLength={1000}
           rows={4}
         />
@@ -125,11 +127,11 @@ export function RateAppointmentDialog({
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
-            Cancel
+            {t("cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={submitting || rating === 0}>
             {submitting && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-            Submit review
+            {t("submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

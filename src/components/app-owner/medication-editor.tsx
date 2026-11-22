@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 
 interface MedicationEditorProps {
   clinics: ClinicOption[];
@@ -38,6 +39,7 @@ export function MedicationEditor({
   defaultClinicId,
 }: MedicationEditorProps) {
   const router = useRouter();
+  const t = useTranslations("appOwner.medicationEditor");
   const [isPending, startTransition] = useTransition();
   const isEditing = Boolean(medication?.id);
 
@@ -69,7 +71,7 @@ export function MedicationEditor({
         toast.error(result.error);
         return;
       }
-      toast.success(isEditing ? "Medication updated." : "Medication created.");
+      toast.success(isEditing ? t("toastUpdated") : t("toastCreated"));
       router.push(`/app-owner/medications?clinic=${data.clinic_id}`);
       router.refresh();
     });
@@ -79,11 +81,11 @@ export function MedicationEditor({
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Medication Details</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="clinic_id">Clinic *</Label>
+            <Label htmlFor="clinic_id">{t("clinicLabel")}</Label>
             <Select
               value={clinicId}
               onValueChange={(val) =>
@@ -92,7 +94,7 @@ export function MedicationEditor({
               disabled={isEditing}
             >
               <SelectTrigger id="clinic_id">
-                <SelectValue placeholder="Select a clinic" />
+                <SelectValue placeholder={t("clinicPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {clinics.map((clinic) => (
@@ -111,11 +113,11 @@ export function MedicationEditor({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="generic_name">Generic Name *</Label>
+              <Label htmlFor="generic_name">{t("genericNameLabel")}</Label>
               <Input
                 id="generic_name"
                 {...form.register("generic_name")}
-                placeholder="Amoxicillin"
+                placeholder={t("genericNamePlaceholder")}
               />
               {form.formState.errors.generic_name && (
                 <p className="text-xs text-destructive">
@@ -124,37 +126,37 @@ export function MedicationEditor({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="brand_name">Brand Name</Label>
+              <Label htmlFor="brand_name">{t("brandNameLabel")}</Label>
               <Input
                 id="brand_name"
                 {...form.register("brand_name")}
-                placeholder="Amoxil"
+                placeholder={t("brandNamePlaceholder")}
               />
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="strength">Strength</Label>
-              <Input id="strength" {...form.register("strength")} placeholder="500mg" />
+              <Label htmlFor="strength">{t("strengthLabel")}</Label>
+              <Input id="strength" {...form.register("strength")} placeholder={t("strengthPlaceholder")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="form">Form</Label>
-              <Input id="form" {...form.register("form")} placeholder="Capsule" />
+              <Label htmlFor="form">{t("formLabel")}</Label>
+              <Input id="form" {...form.register("form")} placeholder={t("formPlaceholder")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="route">Route</Label>
-              <Input id="route" {...form.register("route")} placeholder="Oral" />
+              <Label htmlFor="route">{t("routeLabel")}</Label>
+              <Input id="route" {...form.register("route")} placeholder={t("routePlaceholder")} />
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="manufacturer">Manufacturer</Label>
+              <Label htmlFor="manufacturer">{t("manufacturerLabel")}</Label>
               <Input id="manufacturer" {...form.register("manufacturer")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price">Price</Label>
+              <Label htmlFor="price">{t("priceLabel")}</Label>
               <Input
                 id="price"
                 type="number"
@@ -173,15 +175,15 @@ export function MedicationEditor({
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="barcode">Barcode</Label>
+              <Label htmlFor="barcode">{t("barcodeLabel")}</Label>
               <Input id="barcode" {...form.register("barcode")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="code">Code</Label>
+              <Label htmlFor="code">{t("codeLabel")}</Label>
               <Input id="code" {...form.register("code")} placeholder="RxNorm / ATC" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="code_system">Code System</Label>
+              <Label htmlFor="code_system">{t("codeSystemLabel")}</Label>
               <Input
                 id="code_system"
                 {...form.register("code_system")}
@@ -196,7 +198,7 @@ export function MedicationEditor({
                 defaultChecked={form.getValues("is_active") ?? true}
                 onCheckedChange={(c) => form.setValue("is_active", Boolean(c))}
               />
-              Active (available for prescribing / dispensing)
+              {t("activeLabel")}
             </label>
           </div>
         </CardContent>
@@ -210,11 +212,11 @@ export function MedicationEditor({
             router.push(`/app-owner/medications?clinic=${clinicId}`)
           }
         >
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isEditing ? "Save Medication" : "Create Medication"}
+          {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+          {isEditing ? t("saveMedication") : t("createMedication")}
         </Button>
       </div>
     </form>

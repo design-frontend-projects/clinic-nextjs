@@ -299,7 +299,7 @@ export function EditInvoiceDialog({
                             updateItem(index, { quantity: e.target.value })
                           }
                           className="w-20"
-                          aria-label="Quantity"
+                          aria-label={t("dialog.ariaQuantity")}
                         />
                         <span className="text-xs text-muted-foreground">×</span>
                         <Input
@@ -312,7 +312,7 @@ export function EditInvoiceDialog({
                           }
                           placeholder="0.00"
                           className="w-28"
-                          aria-label="Unit price"
+                          aria-label={t("dialog.ariaUnitPrice")}
                         />
                         <Badge
                           variant="outline"
@@ -329,7 +329,7 @@ export function EditInvoiceDialog({
                               prev.filter((_, i) => i !== index),
                             )
                           }
-                          aria-label="Remove item"
+                          aria-label={t("dialog.ariaRemoveItem")}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>

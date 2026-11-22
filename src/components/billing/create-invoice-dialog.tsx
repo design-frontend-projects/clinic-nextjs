@@ -171,7 +171,7 @@ export function CreateInvoiceDialog({
 
   const onSubmit = () => {
     if (!patient) {
-      toast.error("Select a patient first.");
+      toast.error(t("dialog.selectPatientFirst"));
       return;
     }
     startTransition(async () => {
@@ -192,8 +192,11 @@ export function CreateInvoiceDialog({
       }
       toast.success(
         result.deduction > 0
-          ? `Invoice created — insurance covers $${result.deduction.toFixed(2)}, patient pays $${result.net.toFixed(2)}.`
-          : "Invoice created.",
+          ? t("dialog.invoiceCreatedWithInsurance", {
+              deduction: result.deduction.toFixed(2),
+              net: result.net.toFixed(2),
+            })
+          : t("dialog.invoiceCreated"),
       );
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       reset();
@@ -367,7 +370,7 @@ export function CreateInvoiceDialog({
                             updateItem(index, { quantity: e.target.value })
                           }
                           className="w-20"
-                          aria-label="Quantity"
+                          aria-label={t("dialog.ariaQuantity")}
                         />
                         <span className="text-xs text-muted-foreground">×</span>
                         <Input
@@ -380,7 +383,7 @@ export function CreateInvoiceDialog({
                           }
                           placeholder="0.00"
                           className="w-28"
-                          aria-label="Unit price"
+                          aria-label={t("dialog.ariaUnitPrice")}
                         />
                         <Badge
                           variant="outline"
@@ -397,7 +400,7 @@ export function CreateInvoiceDialog({
                               prev.filter((_, i) => i !== index),
                             )
                           }
-                          aria-label="Remove item"
+                          aria-label={t("dialog.ariaRemoveItem")}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -436,10 +439,10 @@ export function CreateInvoiceDialog({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {preview.deduction_type === "fixed"
-                    ? `Covers $${preview.deduction_value.toFixed(2)} per visit`
-                    : `Covers ${preview.deduction_value}% of the invoice`}
+                    ? t("dialog.coversFixed", { amount: preview.deduction_value.toFixed(2) })
+                    : t("dialog.coversPercent", { percent: preview.deduction_value })}
                   {preview.remaining_visits !== null
-                    ? ` · ${preview.remaining_visits} visit${preview.remaining_visits === 1 ? "" : "s"} left`
+                    ? ` · ${t("dialog.visitsLeft", { count: preview.remaining_visits })}`
                     : ""}
                 </p>
                 {preview.breakdown && preview.breakdown.length > 0 && (

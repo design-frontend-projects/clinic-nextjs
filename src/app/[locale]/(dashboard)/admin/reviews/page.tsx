@@ -1,4 +1,4 @@
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "@/i18n/routing";
 import { getTenantInfo } from "@/lib/auth";
 import { isBypassRole } from "@/lib/rbac";
@@ -16,13 +16,15 @@ export default async function AdminReviewsPage() {
     return redirect({ href: `/${tenant.role || ""}`, locale: await getLocale() });
   }
 
+  const t = await getTranslations("admin.reviews");
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Patient Reviews</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Approve reviews to feature them as public testimonials.
+            {t("subtitle")}
           </p>
         </div>
       </div>

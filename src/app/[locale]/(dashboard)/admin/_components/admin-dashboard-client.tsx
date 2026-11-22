@@ -122,10 +122,10 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <motion.div variants={itemVariants}>
           <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="patients-doctors">Patients & Doctors</TabsTrigger>
-            <TabsTrigger value="insurance">Insurance</TabsTrigger>
+            <TabsTrigger value="overview">{t("tabOverview")}</TabsTrigger>
+            <TabsTrigger value="appointments">{t("tabAppointments")}</TabsTrigger>
+            <TabsTrigger value="patients-doctors">{t("tabPatientsDoctors")}</TabsTrigger>
+            <TabsTrigger value="insurance">{t("tabInsurance")}</TabsTrigger>
           </TabsList>
         </motion.div>
 
@@ -141,23 +141,23 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                   <StatCard
-                    title={t("totalPatients") || "Total Patients"}
+                    title={t("totalPatients")}
                     value={stats.totalPatients}
                     icon={Users}
-                    description="Registered patients"
+                    description={t("registeredPatientsDesc")}
                   />
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                   <StatCard
-                    title={t("activeDoctors") || "Active Doctors"}
+                    title={t("activeDoctors")}
                     value={stats.totalDoctors}
                     icon={Stethoscope}
-                    description="On staff"
+                    description={t("onStaffDesc")}
                   />
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                   <StatCard
-                    title={t("todaysAppointments") || "Today's Appointments"}
+                    title={t("todaysAppointments")}
                     value={stats.todayAppointments}
                     icon={CalendarDays}
                     description={format(new Date(), "EEEE, MMM d")}
@@ -165,10 +165,10 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                   <StatCard
-                    title={t("pendingPayments") || "Pending Payments"}
+                    title={t("pendingPayments")}
                     value={stats.pendingPayments}
                     icon={CreditCard}
-                    description="Awaiting collection"
+                    description={t("awaitingCollectionDesc")}
                   />
                 </motion.div>
               </div>
@@ -178,22 +178,22 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
                   <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 text-xl">
                       <Clock className="h-5 w-5 text-primary" />
-                      {t("recentAppointments") || "Recent Appointments"}
+                      {t("recentAppointments")}
                     </CardTitle>
-                    <CardDescription>Latest bookings across the clinic</CardDescription>
+                    <CardDescription>{t("recentAppointmentsDesc")}</CardDescription>
                   </div>
                   <div className="w-[180px]">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Filter by status" />
+                        <SelectValue placeholder={t("filterByStatus")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                        <SelectItem value="checked_in">Checked In</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                        <SelectItem value="no_show">No Show</SelectItem>
+                        <SelectItem value="all">{t("allStatuses")}</SelectItem>
+                        <SelectItem value="scheduled">{t("statusScheduled")}</SelectItem>
+                        <SelectItem value="checked_in">{t("statusCheckedIn")}</SelectItem>
+                        <SelectItem value="completed">{t("statusCompleted")}</SelectItem>
+                        <SelectItem value="cancelled">{t("statusCancelled")}</SelectItem>
+                        <SelectItem value="no_show">{t("statusNoShow")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -211,21 +211,21 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
               <Card className="border-none shadow-md bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-xl">All Appointments</CardTitle>
-                    <CardDescription>Manage and view all appointments ({stats.totalAppointments} total)</CardDescription>
+                    <CardTitle className="text-xl">{t("allAppointmentsTitle")}</CardTitle>
+                    <CardDescription>{t("allAppointmentsDesc", { count: stats.totalAppointments })}</CardDescription>
                   </div>
                   <div className="w-[180px]">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Filter by status" />
+                        <SelectValue placeholder={t("filterByStatus")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                        <SelectItem value="checked_in">Checked In</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                        <SelectItem value="no_show">No Show</SelectItem>
+                        <SelectItem value="all">{t("allStatuses")}</SelectItem>
+                        <SelectItem value="scheduled">{t("statusScheduled")}</SelectItem>
+                        <SelectItem value="checked_in">{t("statusCheckedIn")}</SelectItem>
+                        <SelectItem value="completed">{t("statusCompleted")}</SelectItem>
+                        <SelectItem value="cancelled">{t("statusCancelled")}</SelectItem>
+                        <SelectItem value="no_show">{t("statusNoShow")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -235,7 +235,7 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
                     columns={appointmentColumns}
                     data={filteredAppointments}
                     searchKey="patientName"
-                    searchPlaceholder="Search patients..."
+                    searchPlaceholder={t("searchPatients")}
                   />
                 </CardContent>
               </Card>
@@ -247,24 +247,24 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" />
-                      Patient Overview
+                      {t("patientOverviewTitle")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{stats.totalPatients}</div>
-                    <p className="text-sm text-muted-foreground mt-1">Total registered patients</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("totalRegisteredPatients")}</p>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-md bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Stethoscope className="h-5 w-5 text-primary" />
-                      Doctor Roster
+                      {t("doctorRosterTitle")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{stats.totalDoctors}</div>
-                    <p className="text-sm text-muted-foreground mt-1">Active doctors on staff</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("activeDoctorsOnStaff")}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -275,13 +275,13 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ShieldPlus className="h-5 w-5 text-primary" />
-                    Insurance Providers
+                    {t("insuranceProvidersTitle")}
                   </CardTitle>
-                  <CardDescription>Overview of linked insurance companies</CardDescription>
+                  <CardDescription>{t("insuranceProvidersDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{stats.totalInsurances}</div>
-                  <p className="text-sm text-muted-foreground mt-1">Active insurance providers</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t("activeInsuranceProviders")}</p>
                 </CardContent>
               </Card>
             </TabsContent>

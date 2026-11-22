@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { profileSchema, type ProfileFormData } from "@/types/onboarding.types";
+import { useTranslations } from "next-intl";
 
 type ProfileSetupStepProps = {
   defaultValues?: Partial<ProfileFormData>;
@@ -19,6 +20,7 @@ export function ProfileSetupStep({
   onSubmit,
   loading,
 }: ProfileSetupStepProps) {
+  const t = useTranslations("onboarding.profileStep");
   const {
     register,
     handleSubmit,
@@ -40,11 +42,11 @@ export function ProfileSetupStep({
       <div className="space-y-2">
         <Label htmlFor="full_name" className="flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />
-          Full Name
+          {t("fullNameLabel")}
         </Label>
         <Input
           id="full_name"
-          placeholder="Dr. John Doe"
+          placeholder={t("fullNamePlaceholder")}
           {...register("full_name")}
         />
         {errors.full_name && (
@@ -56,7 +58,7 @@ export function ProfileSetupStep({
       <div className="space-y-2">
         <Label htmlFor="profile_email" className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-muted-foreground" />
-          Email
+          {t("emailLabel")}
         </Label>
         <Input
           id="profile_email"
@@ -73,7 +75,7 @@ export function ProfileSetupStep({
       <div className="space-y-2">
         <Label htmlFor="phone" className="flex items-center gap-2">
           <Phone className="h-4 w-4 text-muted-foreground" />
-          Phone (optional)
+          {t("phoneLabel")}
         </Label>
         <Input
           id="phone"
@@ -86,11 +88,11 @@ export function ProfileSetupStep({
       <div className="space-y-2">
         <Label htmlFor="specialty" className="flex items-center gap-2">
           <Stethoscope className="h-4 w-4 text-muted-foreground" />
-          Specialty (optional)
+          {t("specialtyLabel")}
         </Label>
         <Input
           id="specialty"
-          placeholder="e.g. Dermatology, Pediatrics"
+          placeholder={t("specialtyPlaceholder")}
           {...register("specialty")}
         />
       </div>
@@ -99,7 +101,7 @@ export function ProfileSetupStep({
       <input type="hidden" {...register("role")} />
 
       <Button type="submit" className="w-full" disabled={loading}>
-        Continue to Clinic Setup →
+        {t("continueButton")}
       </Button>
     </form>
   );

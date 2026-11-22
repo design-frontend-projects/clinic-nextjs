@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +45,8 @@ interface BranchManagementProps {
 
 export function BranchManagement({ clinicId }: BranchManagementProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("admin.branches");
+  const tStatus = useTranslations("enums.status");
   const [isOpen, setIsOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [branchToDelete, setBranchToDelete] = useState<string | null>(null);
@@ -57,12 +60,12 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
     mutationFn: (data: Branch) => upsertBranch(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branches", clinicId] });
-      toast.success(editingBranch ? "Branch updated" : "Branch created");
+      toast.success(editingBranch ? t("toastUpdated") : t("toastCreated"));
       setIsOpen(false);
       setEditingBranch(null);
     },
     onError: (error) => {
-      toast.error(error.message || "Operation failed");
+      toast.error(error.message || t("toastOperationFailed"));
     },
   });
 
@@ -70,11 +73,11 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
     mutationFn: (id: string) => deleteBranch(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branches", clinicId] });
-      toast.success("Branch deleted");
+      toast.success(t("toastDeleted"));
       setBranchToDelete(null);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete branch");
+      toast.error(error.message || t("toastDeleteFailed"));
     },
   });
 
@@ -108,15 +111,15 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
     upsertMutation.mutate(data);
   };
 
-  if (isLoading) return <div>Loading branches...</div>;
+  if (isLoading) return <div>{t("loading")}</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Branches</h3>
+        <h3 className="text-lg font-semibold">{t("title")}</h3>
         <Button size="sm" onClick={onOpenAdd}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Branch
+          <Plus className="me-2 h-4 w-4" />
+          {t("addBranch")}
         </Button>
       </div>
 
@@ -124,11 +127,11 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("colName")}</TableHead>
+              <TableHead>{t("colAddress")}</TableHead>
+              <TableHead>{t("colPhone")}</TableHead>
+              <TableHead>{t("colStatus")}</TableHead>
+              <TableHead className="text-end">{t("colActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -139,9 +142,9 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
                   {branches.indexOf(branch) === 0 && (
                     <Badge
                       variant="outline"
-                      className="ml-2 bg-primary/5 text-primary border-primary/20"
+                      className="ms-2 bg-primary/5 text-primary border-primary/20"
                     >
-                      Main
+                      {t("mainBadge")}
                     </Badge>
                   )}
                 </TableCell>
@@ -153,10 +156,10 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
                       branch.status === "active" ? "default" : "secondary"
                     }
                   >
-                    {branch.status}
+                    {branch.status === "active" ? tStatus("active") : tStatus("inactive")}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell className="text-end space-x-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -181,7 +184,7 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
                   colSpan={5}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  No branches found. Add a branch to get started.
+                  {t("empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -193,19 +196,19 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingBranch ? "Edit Branch" : "Add Branch"}
+              {editingBranch ? t("editBranch") : t("addBranch")}
             </DialogTitle>
             <DialogDescription>
-              Configure branch details for this clinic.
+              {t("dialogDesc")}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="branch_name">Branch Name</Label>
+              <Label htmlFor="branch_name">{t("formName")}</Label>
               <Input
                 id="branch_name"
                 {...register("name")}
-                placeholder="e.g. Downtown Clinic"
+                placeholder={t("formNamePlaceholder")}
               />
               {errors.name && (
                 <p className="text-xs text-destructive">
@@ -214,11 +217,11 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">{t("formAddress")}</Label>
               <Input id="address" {...register("address")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="branch_phone">Phone</Label>
+              <Label htmlFor="branch_phone">{t("formPhone")}</Label>
               <Input id="branch_phone" {...register("phone")} />
             </div>
             <Button
@@ -226,7 +229,7 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
               className="w-full"
               disabled={upsertMutation.isPending}
             >
-              {upsertMutation.isPending ? "Saving..." : "Save Branch"}
+              {upsertMutation.isPending ? t("saving") : t("saveBranch")}
             </Button>
           </form>
         </DialogContent>
@@ -238,15 +241,13 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              branch. Note: Branches with assigned doctors or future
-              appointments cannot be deleted.
+              {t("deleteDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() =>
@@ -254,7 +255,7 @@ export function BranchManagement({ clinicId }: BranchManagementProps) {
               }
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? "Deleting..." : "Delete Branch"}
+              {deleteMutation.isPending ? t("deleting") : t("deleteBranch")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

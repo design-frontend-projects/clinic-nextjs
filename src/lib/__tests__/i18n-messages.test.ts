@@ -66,12 +66,27 @@ describe("i18n locale messages integrity", () => {
     }
   });
 
-  it("maintains full key parity between en.json, ar.json", () => {
+  it("maintains full bidirectional key parity between en.json and ar.json", () => {
     const missingInAr = Object.keys(flatEn).filter((k) => !(k in flatAr));
-    const missingInFr = Object.keys(flatEn).filter((k) => !(k in flatAr));
+    const missingInEn = Object.keys(flatAr).filter((k) => !(k in flatEn));
 
     expect(missingInAr).toEqual([]);
-    expect(missingInFr).toEqual([]);
+    expect(missingInEn).toEqual([]);
+  });
+
+  it("contains no empty or whitespace-only strings in any locale", () => {
+    for (const [localeName, flatLocale] of [
+      ["en", flatEn],
+      ["ar", flatAr],
+    ] as const) {
+      const emptyKeys = Object.entries(flatLocale).filter(
+        ([, val]) => typeof val === "string" && val.trim().length === 0,
+      );
+      expect(
+        emptyKeys,
+        `Empty strings found in ${localeName}.json`,
+      ).toEqual([]);
+    }
   });
 
   it("contains no corrupted encoding characters in any locale", () => {

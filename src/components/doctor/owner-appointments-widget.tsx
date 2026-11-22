@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 
 /**
  * "My Appointments Today" card for a clinic owner who also practises. Rendered
@@ -23,6 +24,7 @@ import { Link } from "@/i18n/routing";
  * so non-practising owners never see an empty widget.
  */
 export function OwnerAppointmentsWidget() {
+  const t = useTranslations("doctor.ownerWidget");
   const { data: stats } = useQuery({
     queryKey: ["owner-appointments-widget"],
     queryFn: () => getDoctorDashboardStats(),
@@ -43,15 +45,15 @@ export function OwnerAppointmentsWidget() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              My Appointments Today
+              {t("title")}
             </CardTitle>
             <CardDescription>
-              Appointments assigned to you as the doctor
+              {t("description")}
             </CardDescription>
           </div>
           <Link href="/doctor/appointments">
             <Button variant="outline" size="sm">
-              View All
+              {t("viewAll")}
             </Button>
           </Link>
         </div>
@@ -71,7 +73,7 @@ export function OwnerAppointmentsWidget() {
                 </div>
                 <div>
                   <p className="font-medium">
-                    {apt.patientName || "Unknown Patient"}
+                    {apt.patientName || t("unknownPatient")}
                   </p>
                   {apt.notes && (
                     <p className="w-40 truncate text-xs text-muted-foreground">
@@ -85,10 +87,10 @@ export function OwnerAppointmentsWidget() {
                 {apt.patientId && apt.status !== "completed" && (
                   <Link
                     href={`/doctor/patients/${apt.patientId}?appointmentId=${apt.id}`}
-                    title="Start consultation"
+                    title={t("startConsultation")}
                   >
                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-4 w-4 rtl:rotate-180" />
                     </Button>
                   </Link>
                 )}

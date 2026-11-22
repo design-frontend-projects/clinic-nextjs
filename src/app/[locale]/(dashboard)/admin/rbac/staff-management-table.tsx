@@ -24,6 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { assignStaffRoles } from "@/app/actions/rbac";
 import { toast } from "sonner";
 import { ShieldAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ProfileStaff = {
   id: string;
@@ -49,6 +50,7 @@ export default function StaffManagementTable({
   initialStaff: ProfileStaff[];
   allRoles: GlobalRole[];
 }) {
+  const t = useTranslations("admin.rbac.staff");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<ProfileStaff | null>(null);
 
@@ -82,11 +84,11 @@ export default function StaffManagementTable({
     try {
       const res = await assignStaffRoles(selectedStaff.id, roleIdsArray);
       if (res.error) throw new Error(res.error);
-      toast.success("Staff roles updated successfully");
+      toast.success(t("toastUpdated"));
       setIsDialogOpen(false);
       window.location.reload();
     } catch (error: unknown) {
-      toast.error((error as Error).message || "Failed to update staff roles");
+      toast.error((error as Error).message || t("toastUpdateFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -97,10 +99,9 @@ export default function StaffManagementTable({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Assign Custom Roles</DialogTitle>
+            <DialogTitle>{t("dialogTitle")}</DialogTitle>
             <DialogDescription>
-              Assign clinic-specific custom roles to{" "}
-              {selectedStaff?.full_name || "this user"}.
+              {t("dialogDesc", { name: selectedStaff?.full_name || t("thisUser") })}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -108,19 +109,18 @@ export default function StaffManagementTable({
               <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-3 rounded-md text-sm">
                 <ShieldAlert className="h-4 w-4" />
                 <span>
-                  This user is an Admin. They already have access to everything,
-                  regardless of assigned custom roles.
+                  {t("adminNotice")}
                 </span>
               </div>
             )}
             <div className="grid gap-2">
-              <Label>Roles</Label>
+              <Label>{t("rolesLabel")}</Label>
               {allRoles.length === 0 ? (
                 <p className="text-sm text-muted-foreground mt-2">
-                  No custom roles have been created yet.
+                  {t("noCustomRoles")}
                 </p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 h-48 overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 h-48 overflow-y-auto pe-2">
                   {allRoles.map((role) => (
                     <div key={role.id} className="flex items-center space-x-2">
                       <Checkbox
@@ -142,7 +142,7 @@ export default function StaffManagementTable({
           </div>
           <DialogFooter>
             <Button disabled={isLoading} onClick={handleSave}>
-              Update Roles
+              {t("updateRoles")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -152,18 +152,18 @@ export default function StaffManagementTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Staff Member</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Base System Role</TableHead>
-              <TableHead>Assigned Roles</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("colStaffMember")}</TableHead>
+              <TableHead>{t("colEmail")}</TableHead>
+              <TableHead>{t("colBaseRole")}</TableHead>
+              <TableHead>{t("colAssignedRoles")}</TableHead>
+              <TableHead className="text-end">{t("colActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {initialStaff.map((staff) => (
               <TableRow key={staff.id}>
                 <TableCell className="font-medium">
-                  {staff.full_name || "N/A"}
+                  {staff.full_name || t("na")}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {staff.email}
@@ -185,18 +185,18 @@ export default function StaffManagementTable({
                     {staff.assigned_roles.length === 0 &&
                       staff.role !== "admin" && (
                         <span className="text-muted-foreground text-xs italic">
-                          No specific roles
+                          {t("noSpecificRoles")}
                         </span>
                       )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-end">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleOpenDialog(staff)}
                   >
-                    Manage Access
+                    {t("manageAccess")}
                   </Button>
                 </TableCell>
               </TableRow>

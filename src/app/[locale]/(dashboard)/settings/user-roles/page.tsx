@@ -9,10 +9,12 @@ import { UserCog, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/routing";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export default function UserRolesSettingsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("settings.userRoles");
 
   // Queries
   const { data: profiles = [], isLoading: profilesLoading } = useQuery({
@@ -43,10 +45,10 @@ export default function UserRolesSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbacProfiles"] });
-      toast.success("Staff roles updated successfully");
+      toast.success(t("toastUpdated"));
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to assign roles");
+      toast.error(err.message || t("toastFailed"));
     }
   });
 
@@ -56,20 +58,20 @@ export default function UserRolesSettingsPage() {
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
         <Button variant="outline" size="icon" onClick={() => router.push("/settings/users")} className="h-9 w-9 border-hairline">
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <UserCog className="h-8 w-8 text-primary" /> Role Assignment
+            <UserCog className="h-8 w-8 text-primary" /> {t("title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Map staff profiles to clinic roles. A single staff member can hold multiple roles simultaneously.
+            {t("subtitle")}
           </p>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="py-24 text-center text-sm text-muted-foreground">Loading mapping console...</div>
+        <div className="py-24 text-center text-sm text-muted-foreground">{t("loading")}</div>
       ) : (
         <UserRoleTable
           profiles={profiles}
