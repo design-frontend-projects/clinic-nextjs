@@ -71,7 +71,7 @@ export async function getMyVisitHistory() {
 export async function invitePatientToPortal(patientId: string) {
   try {
     const tenant = await requireTenantInfo();
-    await requirePermission("patient.manage");
+    await requirePermission("patient.update");
 
     const patient = await prisma.patients.findFirst({
       where: { id: patientId, clinic_id: tenant.clinicId },

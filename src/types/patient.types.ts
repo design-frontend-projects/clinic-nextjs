@@ -1,25 +1,50 @@
 import { z } from "zod";
+import type { patients } from "@prisma/client";
 
-/** Patient self-service profile update (only fields a patient may edit). */
-export const patientProfileUpdateSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .min(6, "Please enter a valid phone number")
-    .max(30, "Phone number is too long"),
-});
+export const patientGenderEnum = z.enum(["male", "female", "other"]);
+export type PatientGender = z.infer<typeof patientGenderEnum>;
 
-export type PatientProfileUpdateData = z.infer<typeof patientProfileUpdateSchema>;
+export interface PatientValidationMessages {
+  firstNameRequired: string;
+  lastNameRequired: string;
+  emailInvalid: string;
+}
 
-/** Password change performed client-side via Supabase Auth. */
-export const passwordChangeSchema = z
-  .object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Please confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
+/**
+ * Build the patient creation Zod schema with optional localized messages.
+ * Shared between client forms (`CreatePatientDialog`) and server validation
+ * (`createPatient`).
+ */
+export function buildPatientFormSchema(
+  messages?: Partial<PatientValidationMessages>,
+) {
+  return z.object({
+    first_name: z
+      .string()
+      .trim()
+      .min(1, messages?.firstNameRequired ?? "First name is required"),
+    last_name: z
+      .string()
+      .trim()
+      .min(1, messages?.lastNameRequired ?? "Last name is required"),
+    email: z
+      .string()
+      .trim()
+      .email(messages?.emailInvalid ?? "Please enter a valid email address")
+      .optional()
+      .or(z.literal("")),
+    phone: z.string().trim().optional(),
+    gender: patientGenderEnum.optional(),
+    date_of_birth: z.string().optional(),
+    address: z.string().trim().optional(),
   });
+}
 
-export type PasswordChangeData = z.infer<typeof passwordChangeSchema>;
+export const createPatientSchema = buildPatientFormSchema();
+
+export type CreatePatientInput = z.infer<typeof createPatientSchema>;
+export type PatientRecord = patients;
+
+export type CreatePatientResult =
+  | { success: true; patient: PatientRecord }
+  | { error: string };

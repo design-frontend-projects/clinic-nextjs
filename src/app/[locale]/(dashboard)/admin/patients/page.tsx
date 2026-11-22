@@ -1,54 +1,22 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getPatients, createPatient } from "@/app/actions/admin";
+import { getPatients } from "@/app/actions/admin";
 import { invitePatientToPortal } from "@/app/actions/patient";
 import {
   TempPasswordDialog,
   type TempPasswordInfo,
 } from "@/components/admin/temp-password-dialog";
+import { CreatePatientDialog } from "@/components/patients/create-patient-dialog";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PatientInsuranceDialog } from "@/components/insurance/patient-insurance-dialog";
 import { ColumnDef } from "@tanstack/react-table";
-import { Plus, Users, Mail, Loader2, ShieldCheck } from "lucide-react";
+import { Users, Mail, Loader2, ShieldCheck } from "lucide-react";
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { format } from "date-fns";
 import { useTranslations } from "next-intl";
-
-const patientSchema = z.object({
-  first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().optional(),
-  gender: z.enum(["male", "female", "other"]).optional(),
-  date_of_birth: z.string().optional(),
-  address: z.string().optional(),
-});
-
-type PatientForm = z.infer<typeof patientSchema>;
 
 type Patient = {
   id: string;
@@ -155,8 +123,6 @@ function InsuranceCell({
 
 export default function PatientsPage() {
   const t = useTranslations("admin.patients");
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   const columns: ColumnDef<Patient>[] = [
     {
@@ -220,35 +186,6 @@ export default function PatientsPage() {
     queryFn: () => getPatients(),
   });
 
-  const form = useForm<PatientForm>({
-    resolver: zodResolver(patientSchema),
-    defaultValues: {
-      first_name: "",
-      last_name: "",
-      email: "",
-      phone: "",
-      gender: undefined,
-      date_of_birth: "",
-      address: "",
-    },
-  });
-
-  const onSubmit = (data: PatientForm) => {
-    startTransition(async () => {
-      try {
-        await createPatient(data);
-        toast.success(t("patientAdded"));
-        setOpen(false);
-        form.reset();
-        refetch();
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : t("failedToAdd"),
-        );
-      }
-    });
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -258,118 +195,11 @@ export default function PatientsPage() {
             {t("subtitle")}
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              {t("addPatient")}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{t("addNewPatient")}</DialogTitle>
-              <DialogDescription>
-                {t("registerDesc")}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="first_name">{t("form.firstName")}</Label>
-                  <Input
-                    id="first_name"
-                    {...form.register("first_name")}
-                    placeholder={t("form.firstNamePlaceholder")}
-                  />
-                  {form.formState.errors.first_name && (
-                    <p className="text-xs text-destructive">
-                      {form.formState.errors.first_name.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="last_name">{t("form.lastName")}</Label>
-                  <Input
-                    id="last_name"
-                    {...form.register("last_name")}
-                    placeholder={t("form.lastNamePlaceholder")}
-                  />
-                  {form.formState.errors.last_name && (
-                    <p className="text-xs text-destructive">
-                      {form.formState.errors.last_name.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t("form.email")}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    {...form.register("email")}
-                    placeholder={t("form.emailPlaceholder")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">{t("form.phone")}</Label>
-                  <Input
-                    id="phone"
-                    {...form.register("phone")}
-                    placeholder={t("form.phonePlaceholder")}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t("form.gender")}</Label>
-                  <Select
-                    onValueChange={(v) =>
-                      form.setValue("gender", v as "male" | "female" | "other")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("form.genderSelect")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">{t("form.male")}</SelectItem>
-                      <SelectItem value="female">{t("form.female")}</SelectItem>
-                      <SelectItem value="other">{t("form.other")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dob">{t("form.dob")}</Label>
-                  <Input
-                    id="dob"
-                    type="date"
-                    {...form.register("date_of_birth")}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">{t("form.address")}</Label>
-                <Input
-                  id="address"
-                  {...form.register("address")}
-                  placeholder={t("form.addressPlaceholder")}
-                />
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                >
-                  {t("cancel")}
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? t("saving") : t("savePatient")}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <CreatePatientDialog
+          onCreated={() => {
+            void refetch();
+          }}
+        />
       </div>
 
       <DataTable

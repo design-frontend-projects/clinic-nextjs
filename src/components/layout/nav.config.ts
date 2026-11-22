@@ -280,7 +280,13 @@ export async function resolveNavItems(
 ): Promise<ResolvedNavItem[]> {
   // Super admins are clinic super-users and share the admin dashboard/nav; the
   // nav items are authored for "admin"/"owner", so map super_admin onto them.
-  const navRole = role === "super_admin" ? "admin" : role;
+  // Receptionists share the /staff dashboard/nav.
+  const navRole =
+    role === "super_admin"
+      ? "admin"
+      : role === "receptionist"
+        ? "staff"
+        : role;
   const candidates = NAV_ITEMS.filter((item) => item.roles.includes(navRole));
 
   const resolved = await Promise.all(

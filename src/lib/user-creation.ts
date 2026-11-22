@@ -132,7 +132,7 @@ export function roleNameToProfileRole(roleName: string | null | undefined): Prof
 const PROFILE_ROLE_TO_RBAC_NAMES: Record<InvitableProfileRole, string[]> = {
   doctor: ["doctor"],
   admin: ["administrator", "tenant owner"],
-  staff: ["staff"],
+  staff: ["staff", "receptionist"],
   pharmacist: ["pharmacist", "staff"],
   receptionist: ["receptionist", "staff"],
 };

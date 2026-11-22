@@ -2,6 +2,7 @@
 "use server";
 
 import { requireTenantInfo, getTenantInfo } from "@/lib/auth";
+import { isBypassRole } from "@/lib/rbac";
 import { rbacService } from "./services/rbac.service";
 import { evaluationService } from "./services/evaluation.service";
 import { revalidatePath } from "next/cache";
@@ -51,11 +52,14 @@ export async function getUserAuthorizationAction() {
     );
     const roleNames = userRoles.map((ur) => ur.roles.name);
 
-    // Evaluate permissions
-    const permissions = await evaluationService.getUserActivePermissions(
-      tenant.clinicId,
-      tenant.profileId,
-    );
+    // Evaluate permissions — bypass roles (owner/admin/app_owner) have full
+    // access server-side via lib/rbac, so mirror that on the client.
+    const permissions = isBypassRole(tenant.role)
+      ? ["*"]
+      : await evaluationService.getUserActivePermissions(
+          tenant.clinicId,
+          tenant.profileId,
+        );
 
     return {
       data: {

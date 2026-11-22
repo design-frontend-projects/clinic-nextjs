@@ -13,6 +13,7 @@ import {
   findClinicDuplicate,
   duplicateMessage,
   roleNameToProfileRole,
+  findRbacRoleForProfileRole,
   generateTempPassword,
 } from "../user-creation";
 
@@ -140,5 +141,41 @@ describe("generateTempPassword", () => {
     const a = generateTempPassword();
     const b = generateTempPassword();
     expect(a).not.toBe(b);
+  });
+});
+
+describe("findRbacRoleForProfileRole", () => {
+  it("prefers Staff for staff profile role and falls back to Receptionist", () => {
+    const withStaff = [
+      { id: "r-rec", name: "Receptionist" },
+      { id: "r-staff", name: "Staff" },
+    ];
+    expect(findRbacRoleForProfileRole(withStaff, "staff")).toEqual({
+      id: "r-staff",
+      name: "Staff",
+    });
+
+    const withoutStaff = [{ id: "r-rec", name: "Receptionist" }];
+    expect(findRbacRoleForProfileRole(withoutStaff, "staff")).toEqual({
+      id: "r-rec",
+      name: "Receptionist",
+    });
+  });
+
+  it("prefers Receptionist for receptionist profile role and falls back to Staff", () => {
+    const withBoth = [
+      { id: "r-staff", name: "Staff" },
+      { id: "r-rec", name: "Receptionist" },
+    ];
+    expect(findRbacRoleForProfileRole(withBoth, "receptionist")).toEqual({
+      id: "r-rec",
+      name: "Receptionist",
+    });
+
+    const withoutRec = [{ id: "r-staff", name: "Staff" }];
+    expect(findRbacRoleForProfileRole(withoutRec, "receptionist")).toEqual({
+      id: "r-staff",
+      name: "Staff",
+    });
   });
 });

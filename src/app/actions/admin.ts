@@ -7,6 +7,11 @@ import { revalidatePath } from "next/cache";
 import { findClinicDuplicate, duplicateMessage } from "@/lib/user-creation";
 import { type CreateAppointmentWithPatientData } from "@/types/appointment.types";
 import {
+  createPatientSchema,
+  type CreatePatientInput,
+  type CreatePatientResult,
+} from "@/types/patient.types";
+import {
   createAppointmentForScope,
   registerPatientWithAppointmentForScope,
 } from "@/lib/appointment-service";
@@ -103,45 +108,55 @@ export async function getPatients(search?: string) {
   return patients;
 }
 
-export async function createPatient(data: {
-  first_name: string;
-  last_name: string;
-  email?: string;
-  phone?: string;
-  gender?: string;
-  date_of_birth?: string;
-  address?: string;
-}) {
-  const tenant = await requireTenantInfo();
-  await requirePermission("patient.manage");
+export async function createPatient(
+  data: CreatePatientInput,
+): Promise<CreatePatientResult> {
+  try {
+    const tenant = await requireTenantInfo();
+    await requirePermission("patient.create");
 
-  // Block duplicate patient records within the clinic (by email or phone).
-  const duplicate = await findClinicDuplicate({
-    clinicId: tenant.clinicId,
-    email: data.email,
-    phone: data.phone,
-  });
-  if (duplicate) {
-    throw new Error(duplicateMessage(duplicate));
+    const parsed = createPatientSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        error: parsed.error.issues[0]?.message || "Invalid patient data",
+      };
+    }
+
+    const input = parsed.data;
+
+    // Block duplicate patient records within the clinic (by email or phone).
+    const duplicate = await findClinicDuplicate({
+      clinicId: tenant.clinicId,
+      email: input.email,
+      phone: input.phone,
+    });
+    if (duplicate) {
+      return { error: duplicateMessage(duplicate) };
+    }
+
+    const patient = await prisma.patients.create({
+      data: {
+        clinic_id: tenant.clinicId,
+        branch_id: tenant.branchId,
+        first_name: input.first_name,
+        last_name: input.last_name,
+        email: input.email || null,
+        phone: input.phone || null,
+        gender: input.gender,
+        date_of_birth: input.date_of_birth ? new Date(input.date_of_birth) : null,
+        address: input.address || null,
+      },
+    });
+
+    revalidatePath("/admin/patients");
+    revalidatePath("/staff/patients");
+    return { success: true, patient };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
+    };
   }
-
-  const patient = await prisma.patients.create({
-    data: {
-      clinic_id: tenant.clinicId,
-      branch_id: tenant.branchId,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      email: data.email || null,
-      phone: data.phone || null,
-      gender: data.gender as "male" | "female" | "other" | undefined,
-      date_of_birth: data.date_of_birth ? new Date(data.date_of_birth) : null,
-      address: data.address || null,
-    },
-  });
-
-  revalidatePath("/admin/patients");
-  revalidatePath("/staff/patients");
-  return patient;
 }
 
 export async function updatePatient(
@@ -157,7 +172,7 @@ export async function updatePatient(
   },
 ) {
   const tenant = await requireTenantInfo();
-  await requirePermission("patient.manage");
+  await requirePermission("patient.update");
 
   const patient = await prisma.patients.update({
     where: { id, clinic_id: tenant.clinicId },
