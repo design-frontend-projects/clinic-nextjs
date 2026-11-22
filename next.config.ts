@@ -21,6 +21,28 @@ const withSerwist = withSerwistInit({
 
 // Must match routing.defaultLocale in src/i18n/routing.ts.
 const DEFAULT_LOCALE = "en";
+const PRODUCTION_HOST = "rkkbqnzxzkhmn4gof16rwwbn.79.72.6.5.sslip.io";
+
+function getConfiguredHost(): string | null {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!raw) return null;
+  try {
+    return new URL(raw).host;
+  } catch {
+    return null;
+  }
+}
+
+const allowedServerActionOrigins = Array.from(
+  new Set(
+    [
+      PRODUCTION_HOST,
+      getConfiguredHost(),
+      "localhost:4000",
+      "localhost:4005",
+    ].filter((origin): origin is string => Boolean(origin))
+  )
+);
 
 // All pages live under the [locale] segment and there is no i18n middleware,
 // so unprefixed auth URLs (typed directly, bookmarked, or from external
@@ -39,8 +61,53 @@ const nextConfig: NextConfig = {
   // Emit a self-contained server bundle (`.next/standalone/server.js`) so the
   // Docker runner stage stays slim (no full node_modules / `next start`).
   output: "standalone",
+  poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      allowedOrigins: allowedServerActionOrigins,
+    },
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: PRODUCTION_HOST,
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+        pathname: "/storage/v1/object/**",
+      },
+    ],
+  },
   async headers() {
     return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(self)",
+          },
+        ],
+      },
       {
         source: "/sw.js",
         headers: [

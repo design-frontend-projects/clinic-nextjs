@@ -17,10 +17,12 @@ const publicRoutes = [
 ];
 
 export default async function middleware(request: NextRequest) {
-  // Health probes and the Supabase auth callback live outside the [locale] tree
-  // and must not be locale-redirected by next-intl or auth-gated below.
+  // Health probes, SEO metadata files, and the Supabase auth callback live
+  // outside the [locale] tree and must not be locale-redirected or auth-gated.
   if (
     request.nextUrl.pathname === "/api/health" ||
+    request.nextUrl.pathname === "/robots.txt" ||
+    request.nextUrl.pathname === "/sitemap.xml" ||
     request.nextUrl.pathname.startsWith("/auth/")
   ) {
     return NextResponse.next();
