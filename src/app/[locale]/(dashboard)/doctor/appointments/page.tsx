@@ -43,6 +43,7 @@ type Appointment = {
   status: string;
   notes: string | null;
   patients: Patient | null;
+  lab_orders?: { id: string; status: string }[];
 };
 
 export default function DoctorAppointmentsPage() {
@@ -145,6 +146,12 @@ export default function DoctorAppointmentsPage() {
           const patientName = `${row.original.patients?.first_name ?? ""} ${
             row.original.patients?.last_name ?? ""
           }`.trim();
+          const activeLabs = (row.original.lab_orders ?? []).filter(
+            (l) => l.status !== "cancelled",
+          );
+          const unconfirmedCount = activeLabs.filter(
+            (l) => l.status !== "confirmed",
+          ).length;
 
           return (
             <div className="flex items-center justify-end gap-1">
@@ -157,6 +164,17 @@ export default function DoctorAppointmentsPage() {
                 >
                   <TestTube className="h-4 w-4 md:mr-2" />
                   <span className="hidden md:inline font-semibold">{t("actionViewLabs")}</span>
+                  {activeLabs.length > 0 && (
+                    <span
+                      className={
+                        unconfirmedCount > 0
+                          ? "ml-1.5 inline-flex items-center justify-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400"
+                          : "ml-1.5 inline-flex items-center justify-center rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400"
+                      }
+                    >
+                      {unconfirmedCount > 0 ? unconfirmedCount : activeLabs.length}
+                    </span>
+                  )}
                 </Button>
               </Link>
 

@@ -564,7 +564,27 @@
         "colOrderDate": "Order Date",
         "colStatus": "Status",
         "inHouse": "In-house",
-        "unknownPatient": "Unknown patient"
+        "unknownPatient": "Unknown patient",
+        "colNotes": "Doctor Notes",
+        "colActions": "Actions",
+        "btnConfirm": "Confirm",
+        "btnEditNotes": "Edit Notes",
+        "btnViewNotes": "View Notes",
+        "confirmedBy": "Confirmed by {name} on {date}",
+        "noNotes": "No clinical notes added.",
+        "confirmDialogTitle": "Lab Request Review & Confirmation",
+        "confirmDialogDesc": "Confirm receipt of this lab request and record your clinical notes.",
+        "notesLabel": "Doctor Notes",
+        "notesPlaceholder": "Enter clinical interpretation or review notes (optional)...",
+        "btnConfirmSave": "Confirm & Save Notes",
+        "btnUpdateNotes": "Update Notes",
+        "btnClose": "Close",
+        "btnCancel": "Cancel",
+        "toastConfirmed": "Lab request confirmed",
+        "toastNotesUpdated": "Lab notes updated",
+        "toastFailed": "Failed to save lab confirmation",
+        "resultsAttached": "Attached Lab Results",
+        "routineLab": "Routine Lab"
       },
       "patients": {
         "title": "My Patients",
@@ -598,7 +618,12 @@
         "tabInsurance": "Insurance",
         "insuranceTitle": "Patient Insurance",
         "noInsurance": "No active insurance policies on file.",
-        "manageInsurance": "Manage Insurance"
+        "manageInsurance": "Manage Insurance",
+        "currentVisitBadge": "Current Visit",
+        "confirmLabBtn": "Confirm & Add Notes",
+        "editLabNotesBtn": "Edit Notes",
+        "viewLabNotesBtn": "View Notes",
+        "confirmedByAt": "Confirmed by {name} on {date}"
       },
       "encounter": {
         "errDiagnosisRequired": "Diagnosis is required",
@@ -638,7 +663,9 @@
         "searchPlaceholder": "Search by patient name...",
         "ariaEdit": "Edit prescription",
         "ariaDelete": "Delete prescription",
-        "ariaRowActions": "Row actions"
+        "ariaRowActions": "Row actions",
+        "btnView": "View",
+        "ariaView": "View prescription"
       },
       "reviews": {
         "title": "My Reviews",
@@ -1248,7 +1275,8 @@
       "low_stock": "Low Stock",
       "expired": "Expired",
       "archived": "Archived",
-      "past_due": "Past Due"
+      "past_due": "Past Due",
+      "confirmed": "Confirmed"
     },
     "gender": {
       "male": "Male",
@@ -1434,7 +1462,11 @@
         "ariaRemoveItem": "Remove item",
         "coversFixed": "Covers ${amount} per visit",
         "coversPercent": "Covers {percent}% of the invoice",
-        "visitsLeft": "{count} visit(s) left"
+        "visitsLeft": "{count} visit(s) left",
+        "paidEditWarning": "This invoice is already paid. Existing payment records will remain unchanged, and this edit will be permanently logged in the invoice history.",
+        "editReasonLabel": "Reason for Editing Paid Invoice",
+        "editReasonPlaceholder": "Explain why this paid invoice is being adjusted (min. 3 characters)...",
+        "editReasonRequired": "Please enter an edit reason (at least 3 characters)."
       },
       "actions": {
         "editItems": "Edit invoice items",
@@ -1447,7 +1479,12 @@
         "whatsappSent": "Invoice sent via WhatsApp.",
         "whatsappOpened": "Opened WhatsApp with invoice details.",
         "emailSent": "Invoice sent via email.",
-        "emailOpened": "Opened email client with invoice details."
+        "emailOpened": "Opened email client with invoice details.",
+        "markAsPaid": "Mark as paid",
+        "viewHistory": "View history",
+        "editPaidAsCreator": "Edit paid invoice items (creator doctor)",
+        "editLockedPaidCreatorOnly": "Paid invoices can only be edited by the doctor who created them",
+        "editLockedCancelled": "Cancelled invoices cannot be edited"
       },
       "print": {
         "title": "Invoice Preview & Print",
@@ -1461,6 +1498,50 @@
         "cancel": "Cancel",
         "saving": "Saving...",
         "saveChanges": "Save Changes"
+      },
+      "paymentMethods": {
+        "cash": "Cash",
+        "card": "Card",
+        "bank_transfer": "Bank Transfer",
+        "insurance": "Insurance",
+        "other": "Other"
+      },
+      "markPaid": {
+        "title": "Mark Invoice as Paid",
+        "description": "Record payment collection for {patient}. Once marked paid, only the creator doctor can edit this invoice.",
+        "grossTotal": "Gross Total",
+        "insuranceDeduction": "Insurance Deduction",
+        "netPayable": "Patient Net Payable",
+        "alreadyPaid": "Already Paid",
+        "amountToCollect": "Amount to Collect Now",
+        "methodLabel": "Payment Method",
+        "notesLabel": "Payment Notes (optional)",
+        "notesPlaceholder": "Receipt number or collection note...",
+        "confirmButton": "Confirm Payment",
+        "processing": "Recording...",
+        "toastSuccess": "Invoice marked as paid."
+      },
+      "history": {
+        "title": "Invoice History",
+        "subtitle": "Immutable audit timeline of all invoice creation, payment, and item changes.",
+        "empty": "No history entries recorded for this invoice yet.",
+        "loading": "Loading invoice history...",
+        "actionCreated": "Created",
+        "actionUpdated": "Updated",
+        "actionMarkedPaid": "Marked Paid",
+        "actionEditedAfterPaid": "Edited After Paid",
+        "reasonLabel": "Reason / Note",
+        "paymentMethodLabel": "Method",
+        "beforeLabel": "Before",
+        "afterLabel": "After",
+        "itemsLabel": "Line Items",
+        "grossLabel": "Gross",
+        "insuranceLabel": "Insurance",
+        "netLabel": "Patient Net",
+        "paidLabel": "Paid",
+        "statusLabel": "Status",
+        "balanceDue": "+${amount} balance due",
+        "overpaid": "${amount} overpaid credit"
       }
     },
     "appointments": {
@@ -2012,7 +2093,9 @@
       "editTitle": "Edit Prescription",
       "newTitle": "New Prescription",
       "editDescription": "Update the diagnosis, status, and prescribed medications.",
-      "newDescription": "Record a diagnosis and one or more prescribed medications."
+      "newDescription": "Record a diagnosis and one or more prescribed medications.",
+      "viewTitle": "View Prescription",
+      "viewDescription": "Review the diagnosis, status, and prescribed medications (read-only)."
     },
     "form": {
       "patientLabel": "Patient",
@@ -2035,7 +2118,10 @@
       "saveChanges": "Save changes",
       "createPrescription": "Create prescription",
       "toastUpdated": "Prescription updated",
-      "toastCreated": "Prescription created"
+      "toastCreated": "Prescription created",
+      "close": "Close",
+      "issuedOn": "Issued on",
+      "prescribedBy": "Prescribed by"
     },
     "combobox": {
       "selectMedication": "Select medication",

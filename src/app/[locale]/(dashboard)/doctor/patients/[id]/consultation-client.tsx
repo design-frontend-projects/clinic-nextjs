@@ -1,14 +1,32 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { Activity, Pill, History, Calendar, CheckCircle2, ChevronRight, FileText, ClipboardList, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Eye,
+  FileText,
+  History,
+  Pencil,
+  Pill,
+  ShieldCheck,
+} from "lucide-react";
 import { PatientInsurancePanel } from "@/components/insurance/patient-insurance-panel";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EncounterForm } from "./encounter-form";
 import { PatientPrescriptions, type PatientPrescription } from "./patient-prescriptions";
 import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  ConfirmLabOrderDialog,
+  type ConfirmableLabOrder,
+  type ConfirmableLabResult,
+} from "@/components/doctor/confirm-lab-order-dialog";
 import { useTranslations } from "next-intl";
 
 interface Patient {
@@ -32,9 +50,23 @@ interface Encounter {
 
 interface LabOrder {
   id: string;
+  appointment_id: string | null;
+  doctor_id: string | null;
   created_at: Date | string;
   status: string;
   test_name: string | null;
+  external_lab_provider: string | null;
+  doctor_notes: string | null;
+  confirmed_at: Date | string | null;
+  confirmed_by: string | null;
+  confirmer: { id: string; full_name: string | null } | null;
+  appointments: {
+    id: string;
+    appointment_date: Date | string;
+    doctor_id: string | null;
+    status: string;
+  } | null;
+  lab_results?: ConfirmableLabResult[];
 }
 
 interface ConsultationClientProps {
@@ -43,6 +75,8 @@ interface ConsultationClientProps {
   prescriptions: PatientPrescription[];
   labOrders: LabOrder[];
   appointmentId?: string;
+  currentDoctorProfileId?: string | null;
+  canConfirmAllPatientLabs?: boolean;
 }
 
 function calculateAge(dob: Date | string | null | undefined): number | null {
@@ -78,12 +112,37 @@ export function ConsultationClient({
   prescriptions,
   labOrders,
   appointmentId,
+  currentDoctorProfileId,
+  canConfirmAllPatientLabs = false,
 }: ConsultationClientProps) {
   const t = useTranslations("pages.doctor.consultation");
   const tGender = useTranslations("enums.gender");
-  
+  const router = useRouter();
+  const [selectedLab, setSelectedLab] = useState<ConfirmableLabOrder | null>(
+    null,
+  );
+
+  const patientFullName =
+    `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim() ||
+    "Patient";
   const patientInitials = `${patient.first_name?.charAt(0) ?? ""}${patient.last_name?.charAt(0) ?? ""}`.toUpperCase();
   const ageVal = calculateAge(patient.date_of_birth);
+
+  function toConfirmableLab(lab: LabOrder): ConfirmableLabOrder {
+    return {
+      id: lab.id,
+      test_name: lab.test_name,
+      external_lab_provider: lab.external_lab_provider,
+      patient_name: patientFullName,
+      created_at: lab.created_at,
+      status: lab.status,
+      doctor_notes: lab.doctor_notes,
+      confirmed_at: lab.confirmed_at,
+      confirmed_by: lab.confirmed_by,
+      confirmed_by_name: lab.confirmer?.full_name ?? null,
+      lab_results: lab.lab_results,
+    };
+  }
 
   return (
     <motion.div
@@ -238,24 +297,113 @@ export function ConsultationClient({
                       {t("noLabs")}
                     </p>
                   ) : (
-                    labOrders.slice(0, 10).map((lab) => (
-                      <div
-                        key={lab.id}
-                        className="border-b border-border/20 last:border-0 pb-3 last:pb-0 text-sm"
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold text-foreground text-xs">
-                            {lab.test_name || t("routineLab")}
-                          </p>
-                          <span className="text-[10px] text-muted-foreground">
-                            {format(new Date(lab.created_at), "MMM d, yyyy")}
-                          </span>
+                    labOrders.slice(0, 20).map((lab) => {
+                      const isCurrentVisit =
+                        Boolean(appointmentId) &&
+                        lab.appointment_id === appointmentId;
+                      const isConfirmed = lab.status === "confirmed";
+                      const isConfirmer =
+                        Boolean(currentDoctorProfileId) &&
+                        lab.confirmed_by === currentDoctorProfileId;
+                      const isAssigned =
+                        Boolean(currentDoctorProfileId) &&
+                        (lab.doctor_id === currentDoctorProfileId ||
+                          lab.appointments?.doctor_id === currentDoctorProfileId);
+                      const canConfirmLab =
+                        lab.status !== "cancelled" &&
+                        (canConfirmAllPatientLabs || isAssigned);
+
+                      return (
+                        <div
+                          key={lab.id}
+                          className="border-b border-border/20 last:border-0 pb-3 last:pb-0 text-sm space-y-1.5"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="font-semibold text-foreground text-xs">
+                                {lab.test_name || t("routineLab")}
+                              </p>
+                              {isCurrentVisit && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[10px] px-1.5 py-0 h-4 bg-accent-blue-soft text-accent-blue border-0"
+                                >
+                                  {t("currentVisitBadge")}
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground shrink-0">
+                              {format(new Date(lab.created_at), "MMM d, yyyy")}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2">
+                            <StatusBadge status={lab.status} />
+
+                            {lab.status !== "cancelled" && (
+                              <>
+                                {isConfirmed ? (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs rounded-lg"
+                                    onClick={() =>
+                                      setSelectedLab(toConfirmableLab(lab))
+                                    }
+                                  >
+                                    {isConfirmer ? (
+                                      <>
+                                        <Pencil className="me-1 h-3 w-3" />
+                                        {t("editLabNotesBtn")}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Eye className="me-1 h-3 w-3" />
+                                        {t("viewLabNotesBtn")}
+                                      </>
+                                    )}
+                                  </Button>
+                                ) : (
+                                  canConfirmLab && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 px-2 text-xs rounded-lg border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                                      onClick={() =>
+                                        setSelectedLab(toConfirmableLab(lab))
+                                      }
+                                    >
+                                      <CheckCircle2 className="me-1 h-3 w-3" />
+                                      {t("confirmLabBtn")}
+                                    </Button>
+                                  )
+                                )}
+                              </>
+                            )}
+                          </div>
+
+                          {isConfirmed && lab.confirmed_at && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {t("confirmedByAt", {
+                                name: lab.confirmer?.full_name || "Doctor",
+                                date: format(
+                                  new Date(lab.confirmed_at),
+                                  "MMM d, yyyy",
+                                ),
+                              })}
+                            </p>
+                          )}
+
+                          {lab.doctor_notes && (
+                            <p className="text-xs text-muted-foreground rounded-md bg-muted/40 px-2 py-1.5 border border-border/30">
+                              {lab.doctor_notes}
+                            </p>
+                          )}
                         </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <StatusBadge status={lab.status} />
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </CardContent>
               </Card>
@@ -281,6 +429,16 @@ export function ConsultationClient({
           </Tabs>
         </motion.div>
       </div>
+      <ConfirmLabOrderDialog
+        labOrder={selectedLab}
+        open={selectedLab !== null}
+        onOpenChange={(next) => {
+          if (!next) setSelectedLab(null);
+        }}
+        currentDoctorProfileId={currentDoctorProfileId}
+        currentAppointmentId={appointmentId}
+        onConfirmed={() => router.refresh()}
+      />
     </motion.div>
   );
 }

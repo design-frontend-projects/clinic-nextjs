@@ -60,10 +60,81 @@ export type InvoiceLineItemInput = z.infer<typeof invoiceLineItemInputSchema>;
 export const updateInvoiceItemsSchema = z.object({
   invoice_id: z.string().uuid("Invalid invoice ID"),
   apply_insurance: z.boolean().default(true),
+  edit_reason: z.string().trim().max(500).optional().or(z.literal("")),
   items: z.array(invoiceLineItemInputSchema).min(1, "Add at least one item"),
 });
 
 export type UpdateInvoiceItemsData = z.infer<typeof updateInvoiceItemsSchema>;
+
+export const PAYMENT_METHODS = [
+  "cash",
+  "card",
+  "bank_transfer",
+  "insurance",
+  "other",
+] as const;
+
+export const paymentMethodEnum = z.enum(PAYMENT_METHODS);
+export type PaymentMethod = z.infer<typeof paymentMethodEnum>;
+
+export const markInvoicePaidSchema = z.object({
+  invoice_id: z.string().uuid("Invalid invoice ID"),
+  payment_method: paymentMethodEnum.default("cash"),
+  notes: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+export type MarkInvoicePaidData = z.infer<typeof markInvoicePaidSchema>;
+
+export type MarkInvoicePaidResult =
+  | {
+      success: true;
+      invoice_id: string;
+      paid_amount: number;
+      total_paid: number;
+    }
+  | { error: string };
+
+export const INVOICE_HISTORY_ACTIONS = [
+  "created",
+  "updated",
+  "marked_paid",
+  "edited_after_paid",
+] as const;
+
+export type InvoiceHistoryAction = (typeof INVOICE_HISTORY_ACTIONS)[number];
+
+export type InvoiceHistorySnapshotItem = {
+  catalog_item_id: string | null;
+  category: BillingItemCategory;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+};
+
+export type InvoiceHistorySnapshot = {
+  status: string;
+  total_amount: number;
+  insurance_deduction: number;
+  net_amount: number;
+  paid_amount: number;
+  payment_method?: string | null;
+  payment_amount?: number | null;
+  items: InvoiceHistorySnapshotItem[];
+};
+
+export type InvoiceHistoryEntry = {
+  id: string;
+  invoice_id: string;
+  action: InvoiceHistoryAction | string;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  changed_by_role: string | null;
+  reason: string | null;
+  previous_data: InvoiceHistorySnapshot | null;
+  new_data: InvoiceHistorySnapshot | null;
+  created_at: string;
+};
 
 export type InvoiceDetailItem = {
   id: string;

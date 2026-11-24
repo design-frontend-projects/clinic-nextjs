@@ -2,9 +2,10 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
@@ -52,6 +53,9 @@ interface PrescriptionItemRecord {
 export interface PrescriptionRecord {
   id: string;
   patient_id: string;
+  patient_name?: string;
+  doctor_name?: string | null;
+  issued_at?: string | Date;
   diagnosis: string | null;
   notes: string | null;
   status: string;
@@ -61,8 +65,10 @@ export interface PrescriptionRecord {
 interface PrescriptionFormProps {
   /** When set, the form prescribes for this patient and hides the picker. */
   patientId?: string;
-  /** When set, the form edits an existing prescription. */
+  /** When set, the form edits or views an existing prescription. */
   prescription?: PrescriptionRecord | null;
+  /** When true, every field is disabled and mutations are suppressed. */
+  readOnly?: boolean;
   onSuccess: () => void;
   onCancel?: () => void;
 }
@@ -112,6 +118,7 @@ function toDefaultValues(
 export function PrescriptionForm({
   patientId,
   prescription,
+  readOnly = false,
   onSuccess,
   onCancel,
 }: PrescriptionFormProps) {
@@ -124,6 +131,10 @@ export function PrescriptionForm({
     defaultValues: toDefaultValues(patientId, prescription),
   });
 
+  useEffect(() => {
+    form.reset(toDefaultValues(patientId, prescription));
+  }, [patientId, prescription, form]);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items",
@@ -132,6 +143,7 @@ export function PrescriptionForm({
   const itemErrors = form.formState.errors.items;
 
   function onSubmit(data: PrescriptionFormData) {
+    if (readOnly) return;
     startTransition(async () => {
       const result = prescription
         ? await updatePrescription(prescription.id, data)
@@ -153,6 +165,27 @@ export function PrescriptionForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        {readOnly && prescription && (prescription.issued_at || prescription.doctor_name) && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            {prescription.issued_at && (
+              <span>
+                {t("issuedOn")}:{" "}
+                <strong className="font-medium text-foreground">
+                  {format(new Date(prescription.issued_at), "MMM d, yyyy")}
+                </strong>
+              </span>
+            )}
+            {prescription.doctor_name && (
+              <span>
+                {t("prescribedBy")}:{" "}
+                <strong className="font-medium text-foreground">
+                  {prescription.doctor_name}
+                </strong>
+              </span>
+            )}
+          </div>
+        )}
+
         {!patientId && (
           <FormField
             control={form.control}
@@ -162,6 +195,8 @@ export function PrescriptionForm({
                 <FormLabel>{t("patientLabel")}</FormLabel>
                 <PatientCombobox
                   value={field.value}
+                  initialLabel={prescription?.patient_name}
+                  disabled={readOnly}
                   onChange={(id) => field.onChange(id)}
                 />
                 <FormMessage />
@@ -180,6 +215,7 @@ export function PrescriptionForm({
                 <FormControl>
                   <Input
                     placeholder={t("diagnosisPlaceholder")}
+                    disabled={readOnly}
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -195,7 +231,11 @@ export function PrescriptionForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t("statusLabel")}</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={readOnly}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={t("statusPlaceholder")} />
@@ -217,15 +257,17 @@ export function PrescriptionForm({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <FormLabel className="text-sm font-medium">{t("medicationsLabel")}</FormLabel>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ ...EMPTY_ITEM })}
-            >
-              <Plus className="me-1 h-4 w-4" />
-              {t("addDrug")}
-            </Button>
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append({ ...EMPTY_ITEM })}
+              >
+                <Plus className="me-1 h-4 w-4" />
+                {t("addDrug")}
+              </Button>
+            )}
           </div>
 
           {typeof itemErrors?.message === "string" && (
@@ -248,6 +290,7 @@ export function PrescriptionForm({
                       </FormLabel>
                       <MedicationCombobox
                         value={field.value}
+                        disabled={readOnly}
                         onChange={({ name, medicationId }) => {
                           field.onChange(name);
                           form.setValue(
@@ -260,36 +303,42 @@ export function PrescriptionForm({
                     </FormItem>
                   )}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="mt-5 text-muted-foreground hover:text-destructive"
-                  onClick={() => (fields.length > 1 ? remove(index) : null)}
-                  disabled={fields.length === 1}
-                  aria-label={t("removeMedication")}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mt-5 text-muted-foreground hover:text-destructive"
+                    onClick={() => (fields.length > 1 ? remove(index) : null)}
+                    disabled={fields.length === 1}
+                    aria-label={t("removeMedication")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Input
                   placeholder={t("dosagePlaceholder")}
+                  disabled={readOnly}
                   {...form.register(`items.${index}.dosage`)}
                 />
                 <Input
                   placeholder={t("frequencyPlaceholder")}
+                  disabled={readOnly}
                   {...form.register(`items.${index}.frequency`)}
                 />
                 <Input
                   placeholder={t("durationPlaceholder")}
+                  disabled={readOnly}
                   {...form.register(`items.${index}.duration`)}
                 />
                 <Input
                   type="number"
                   min={1}
                   placeholder={t("qtyPlaceholder")}
+                  disabled={readOnly}
                   {...form.register(`items.${index}.quantity`)}
                 />
               </div>
@@ -297,6 +346,7 @@ export function PrescriptionForm({
               <Textarea
                 placeholder={t("instructionsPlaceholder")}
                 className="min-h-[60px]"
+                disabled={readOnly}
                 {...form.register(`items.${index}.instructions`)}
               />
             </div>
@@ -313,6 +363,7 @@ export function PrescriptionForm({
                 <Textarea
                   placeholder={t("notesPlaceholder")}
                   className="min-h-[60px]"
+                  disabled={readOnly}
                   {...field}
                   value={field.value ?? ""}
                 />
@@ -323,15 +374,25 @@ export function PrescriptionForm({
         />
 
         <div className="flex justify-end gap-2 border-t pt-4">
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel}>
-              {t("cancel")}
-            </Button>
+          {readOnly ? (
+            onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel}>
+                {t("close")}
+              </Button>
+            )
+          ) : (
+            <>
+              {onCancel && (
+                <Button type="button" variant="outline" onClick={onCancel}>
+                  {t("cancel")}
+                </Button>
+              )}
+              <Button type="submit" disabled={isPending}>
+                {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                {prescription ? t("saveChanges") : t("createPrescription")}
+              </Button>
+            </>
           )}
-          <Button type="submit" disabled={isPending}>
-            {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-            {prescription ? t("saveChanges") : t("createPrescription")}
-          </Button>
         </div>
       </form>
     </Form>

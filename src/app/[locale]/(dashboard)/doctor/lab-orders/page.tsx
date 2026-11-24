@@ -1,37 +1,55 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getDoctorLabOrders } from "@/app/actions/doctor";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
-import { FlaskConical, X, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Eye,
+  FlaskConical,
+  Loader2,
+  Pencil,
+  X,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/routing";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { useMemo } from "react";
+import {
+  ConfirmLabOrderDialog,
+  type ConfirmableLabOrder,
+} from "@/components/doctor/confirm-lab-order-dialog";
 
-type LabOrderRow = {
-  id: string;
+type LabOrderRow = ConfirmableLabOrder & {
   test_name: string;
   external_lab_provider: string;
-  patient_name: string;
   created_at: string;
-  status: string;
 };
 
 export default function DoctorLabOrdersPage() {
   const t = useTranslations("pages.doctor.labs");
   const searchParams = useSearchParams();
   const appointmentId = searchParams.get("appointmentId") ?? undefined;
+  const [selectedOrder, setSelectedOrder] =
+    useState<ConfirmableLabOrder | null>(null);
+
+  const { data: tenant } = useQuery({
+    queryKey: ["tenant-info"],
+    queryFn: () => fetchTenantInfoAction(),
+  });
 
   const { data: labOrders = [], isLoading } = useQuery({
     queryKey: ["doctor-lab-orders", appointmentId ?? "all"],
     queryFn: () => getDoctorLabOrders(appointmentId),
   });
+
+  const currentProfileId = tenant?.profileId ?? null;
 
   const columns = useMemo<ColumnDef<LabOrderRow>[]>(
     () => [
@@ -44,7 +62,9 @@ export default function DoctorLabOrdersPage() {
               <FlaskConical className="h-4.5 w-4.5" />
             </div>
             <div>
-              <p className="font-semibold text-sm text-foreground">{row.original.test_name}</p>
+              <p className="font-semibold text-sm text-foreground">
+                {row.original.test_name}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {row.original.external_lab_provider || t("inHouse")}
               </p>
@@ -56,7 +76,9 @@ export default function DoctorLabOrdersPage() {
         accessorKey: "patient_name",
         header: t("colPatient"),
         cell: ({ row }) => (
-          <span className="font-semibold text-sm text-foreground">{row.original.patient_name}</span>
+          <span className="font-semibold text-sm text-foreground">
+            {row.original.patient_name}
+          </span>
         ),
       },
       {
@@ -73,19 +95,102 @@ export default function DoctorLabOrdersPage() {
         header: t("colStatus"),
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
+      {
+        accessorKey: "doctor_notes",
+        header: t("colNotes"),
+        cell: ({ row }) => {
+          const { doctor_notes, status, confirmed_by_name, confirmed_at } =
+            row.original;
+          if (!doctor_notes && status !== "confirmed") {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+          return (
+            <div className="max-w-[240px] space-y-0.5">
+              <p className="text-xs text-foreground line-clamp-2">
+                {doctor_notes || t("noNotes")}
+              </p>
+              {status === "confirmed" && confirmed_at && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {t("confirmedBy", {
+                    name: confirmed_by_name || t("unknownPatient"),
+                    date: format(new Date(confirmed_at), "MMM d, yyyy"),
+                  })}
+                </p>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: t("colActions"),
+        cell: ({ row }) => {
+          const order = row.original;
+          if (order.status === "cancelled") {
+            return (
+              <div className="text-end text-xs text-muted-foreground">—</div>
+            );
+          }
+
+          const isConfirmed = order.status === "confirmed";
+          const isConfirmer =
+            Boolean(currentProfileId) && order.confirmed_by === currentProfileId;
+
+          return (
+            <div className="flex items-center justify-end">
+              {isConfirmed ? (
+                <Button
+                  variant={isConfirmer ? "outline" : "ghost"}
+                  size="sm"
+                  className="rounded-lg font-medium"
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  {isConfirmer ? (
+                    <>
+                      <Pencil className="me-1.5 h-3.5 w-3.5" />
+                      {t("btnEditNotes")}
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="me-1.5 h-3.5 w-3.5" />
+                      {t("btnViewNotes")}
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40 font-semibold"
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <CheckCircle2 className="me-1.5 h-3.5 w-3.5" />
+                  {t("btnConfirm")}
+                </Button>
+              )}
+            </div>
+          );
+        },
+      },
     ],
-    [t],
+    [t, currentProfileId],
   );
 
   const rows: LabOrderRow[] = labOrders.map((order) => ({
     id: order.id,
     test_name: order.test_name || "—",
     external_lab_provider: order.external_lab_provider || "",
-    patient_name: `${order.patients?.first_name ?? ""} ${
-      order.patients?.last_name ?? ""
-    }`.trim() || t("unknownPatient"),
+    patient_name:
+      `${order.patients?.first_name ?? ""} ${
+        order.patients?.last_name ?? ""
+      }`.trim() || t("unknownPatient"),
     created_at: order.created_at.toISOString(),
     status: order.status,
+    doctor_notes: order.doctor_notes ?? null,
+    confirmed_at: order.confirmed_at ? order.confirmed_at.toISOString() : null,
+    confirmed_by: order.confirmed_by ?? null,
+    confirmed_by_name: order.confirmer?.full_name ?? null,
+    lab_results: order.lab_results,
   }));
 
   return (
@@ -100,9 +205,7 @@ export default function DoctorLabOrdersPage() {
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent">
             {t("title")}
           </h1>
-          <p className="text-muted-foreground">
-            {t("subtitle")}
-          </p>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
       </div>
 
@@ -112,7 +215,11 @@ export default function DoctorLabOrdersPage() {
             {t("showingForAppt")}
           </span>
           <Link href="/doctor/lab-orders">
-            <Button variant="ghost" size="sm" className="rounded-lg hover:bg-muted text-xs font-semibold">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-lg hover:bg-muted text-xs font-semibold"
+            >
               <X className="mr-1.5 h-4 w-4" />
               {t("clearFilter")}
             </Button>
@@ -135,6 +242,16 @@ export default function DoctorLabOrdersPage() {
           />
         </div>
       )}
+
+      <ConfirmLabOrderDialog
+        labOrder={selectedOrder}
+        open={selectedOrder !== null}
+        onOpenChange={(next) => {
+          if (!next) setSelectedOrder(null);
+        }}
+        currentDoctorProfileId={currentProfileId}
+        currentAppointmentId={appointmentId}
+      />
     </motion.div>
   );
 }

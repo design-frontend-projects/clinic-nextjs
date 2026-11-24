@@ -278,6 +278,13 @@ export async function getInvoices() {
   return prisma.invoices.findMany({
     where: { clinic_id: tenant.clinicId },
     include: {
+      creator: {
+        select: {
+          id: true,
+          full_name: true,
+          role: true,
+        },
+      },
       patients: {
         select: {
           id: true,
@@ -299,7 +306,9 @@ export async function getInvoices() {
           total_price: true,
         },
       },
-      payments: true,
+      payments: {
+        where: { deleted_at: null },
+      },
       insurance_claims: {
         select: {
           id: true,
@@ -308,6 +317,11 @@ export async function getInvoices() {
           patient_insurances: {
             select: { insurance_providers: { select: { name: true } } },
           },
+        },
+      },
+      _count: {
+        select: {
+          invoice_history: true,
         },
       },
     },

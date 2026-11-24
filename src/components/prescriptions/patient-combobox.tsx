@@ -25,34 +25,49 @@ import { useTranslations } from "next-intl";
 interface PatientComboboxProps {
   value: string;
   onChange: (patientId: string) => void;
+  disabled?: boolean;
+  initialLabel?: string;
 }
 
 /** Searchable patient picker used when prescribing outside a patient context. */
-export function PatientCombobox({ value, onChange }: PatientComboboxProps) {
+export function PatientCombobox({
+  value,
+  onChange,
+  disabled = false,
+  initialLabel,
+}: PatientComboboxProps) {
   const t = useTranslations("prescriptions.combobox");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [label, setLabel] = useState("");
+  const [selectedLabel, setSelectedLabel] = useState("");
+
+  const displayLabel = value ? selectedLabel || initialLabel || "" : "";
 
   const { data: results = [], isFetching } = useQuery({
     queryKey: ["patientsSearch", query],
     queryFn: () => searchPatients(query),
-    enabled: query.trim().length >= 2,
+    enabled: !disabled && query.trim().length >= 2,
   });
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={disabled ? false : open}
+      onOpenChange={(next) => {
+        if (!disabled) setOpen(next);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
           role="combobox"
+          disabled={disabled}
           className={cn(
             "w-full justify-between font-normal",
             !value && "text-muted-foreground",
           )}
         >
-          <span className="truncate">{label || t("selectPatient")}</span>
+          <span className="truncate">{displayLabel || t("selectPatient")}</span>
           <ChevronsUpDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -70,9 +85,11 @@ export function PatientCombobox({ value, onChange }: PatientComboboxProps) {
                 {t("searching")}
               </div>
             )}
-            {!isFetching && query.trim().length >= 2 && results.length === 0 && (
-              <CommandEmpty>{t("noPatientsFound")}</CommandEmpty>
-            )}
+            {!isFetching &&
+              query.trim().length >= 2 &&
+              results.length === 0 && (
+                <CommandEmpty>{t("noPatientsFound")}</CommandEmpty>
+              )}
             {!isFetching && query.trim().length < 2 && (
               <CommandEmpty>{t("typeAtLeastTwo")}</CommandEmpty>
             )}
@@ -87,7 +104,7 @@ export function PatientCombobox({ value, onChange }: PatientComboboxProps) {
                     value={patient.id}
                     onSelect={() => {
                       onChange(patient.id);
-                      setLabel(name);
+                      setSelectedLabel(name);
                       setOpen(false);
                     }}
                   >

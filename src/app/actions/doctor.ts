@@ -48,7 +48,9 @@ export async function getDoctorDashboardStats() {
         where: {
           clinic_id: tenant.clinicId,
           doctor_id: tenant.profileId,
-          status: { in: ["pending", "processing"] },
+          status: {
+            in: ["ordered", "in_progress", "received", "pending", "processing"],
+          },
         },
       }),
       prisma.appointments.findMany({
@@ -161,13 +163,22 @@ export async function getDoctorAppointments(filter?: DoctorAppointmentsFilter) {
           gender: true,
         },
       },
+      lab_orders: {
+        select: {
+          id: true,
+          status: true,
+        },
+      },
     },
     orderBy: { appointment_date: "asc" },
     take: 50,
   });
 }
 
-export async function getPatientDetails(patientId: string) {
+export async function getPatientDetails(
+  patientId: string,
+  appointmentId?: string,
+) {
   const tenant = await requireTenantInfo();
 
   const patient = await prisma.patients.findUnique({
@@ -179,7 +190,7 @@ export async function getPatientDetails(patientId: string) {
 
   if (!patient) throw new Error("Patient not found");
 
-  const [history, prescriptions, labOrders] = await Promise.all([
+  const [history, prescriptions, labOrders, currentAppt] = await Promise.all([
     prisma.encounters.findMany({
       where: { patient_id: patientId, clinic_id: tenant.clinicId },
       include: {
@@ -189,14 +200,41 @@ export async function getPatientDetails(patientId: string) {
     }),
     prisma.prescriptions.findMany({
       where: { patient_id: patientId, clinic_id: tenant.clinicId },
-      include: { prescription_items: true },
+      include: {
+        prescription_items: true,
+        profiles: { select: { full_name: true } },
+      },
       orderBy: { issued_at: "desc" },
     }),
     prisma.lab_orders.findMany({
       where: { patient_id: patientId, clinic_id: tenant.clinicId },
-      include: { lab_results: true },
+      include: {
+        lab_results: true,
+        confirmer: { select: { id: true, full_name: true } },
+        profiles: { select: { id: true, full_name: true } },
+        appointments: {
+          select: {
+            id: true,
+            appointment_date: true,
+            doctor_id: true,
+            status: true,
+          },
+        },
+      },
       orderBy: { created_at: "desc" },
     }),
+    appointmentId && isPractitioner(tenant.role)
+      ? prisma.appointments.findFirst({
+          where: {
+            id: appointmentId,
+            clinic_id: tenant.clinicId,
+            patient_id: patientId,
+            doctor_id: tenant.profileId,
+            status: { notIn: ["cancelled", "no_show"] },
+          },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   return {
@@ -204,6 +242,8 @@ export async function getPatientDetails(patientId: string) {
     history,
     prescriptions,
     labOrders,
+    currentDoctorProfileId: tenant.profileId,
+    canConfirmAllPatientLabs: Boolean(currentAppt),
   };
 }
 
@@ -322,18 +362,163 @@ export async function getDoctorLabOrders(appointmentId?: string) {
   }
 
   return prisma.lab_orders.findMany({
-    where: {
-      clinic_id: tenant.clinicId,
-      doctor_id: tenant.profileId,
-      ...(appointmentId ? { appointment_id: appointmentId } : {}),
-    },
+    where: appointmentId
+      ? {
+          clinic_id: tenant.clinicId,
+          appointment_id: appointmentId,
+          OR: [
+            { doctor_id: tenant.profileId },
+            { appointments: { doctor_id: tenant.profileId } },
+          ],
+        }
+      : {
+          clinic_id: tenant.clinicId,
+          doctor_id: tenant.profileId,
+        },
     include: {
-      patients: { select: { first_name: true, last_name: true } },
-      appointments: { select: { appointment_date: true, status: true } },
+      patients: { select: { id: true, first_name: true, last_name: true } },
+      appointments: {
+        select: {
+          id: true,
+          appointment_date: true,
+          status: true,
+          doctor_id: true,
+        },
+      },
+      profiles: { select: { id: true, full_name: true } },
+      confirmer: { select: { id: true, full_name: true } },
+      lab_results: {
+        select: {
+          id: true,
+          result_file_url: true,
+          result_data: true,
+          received_at: true,
+        },
+      },
     },
     orderBy: { created_at: "desc" },
     take: 50,
   });
+}
+
+const confirmLabOrderSchema = z.object({
+  lab_order_id: z.string().uuid("Invalid lab order ID"),
+  doctor_notes: z
+    .string()
+    .trim()
+    .max(2000, "Notes must be at most 2000 characters")
+    .optional(),
+  current_appointment_id: z.string().uuid().optional(),
+});
+
+export type ConfirmLabOrderInput = z.infer<typeof confirmLabOrderSchema>;
+
+/**
+ * Confirm receipt/review of a lab order and optionally record doctor clinical
+ * notes. Allowed for the ordering/appointment doctor, or any practitioner
+ * actively examining the same patient via a verified `current_appointment_id`.
+ * Once confirmed, status stays locked as `confirmed` and only the confirming
+ * doctor may update their notes.
+ */
+export async function confirmLabOrder(input: ConfirmLabOrderInput) {
+  const tenant = await requireTenantInfo();
+
+  if (!isPractitioner(tenant.role)) {
+    return { error: "Unauthorized" };
+  }
+
+  const parsed = confirmLabOrderSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const data = parsed.data;
+
+  const labOrder = await prisma.lab_orders.findFirst({
+    where: {
+      id: data.lab_order_id,
+      clinic_id: tenant.clinicId,
+    },
+    include: {
+      appointments: { select: { id: true, doctor_id: true } },
+    },
+  });
+
+  if (!labOrder) {
+    return { error: "Lab order not found" };
+  }
+
+  if (labOrder.status === "cancelled") {
+    return { error: "Cannot confirm a cancelled lab order" };
+  }
+
+  if (labOrder.status === "confirmed") {
+    if (labOrder.confirmed_by !== tenant.profileId) {
+      return {
+        error:
+          "Only the confirming doctor can update notes on a confirmed lab order",
+      };
+    }
+
+    const updated = await prisma.lab_orders.update({
+      where: { id: labOrder.id },
+      data: {
+        doctor_notes: data.doctor_notes || null,
+      },
+    });
+
+    revalidatePath("/doctor");
+    revalidatePath("/doctor/lab-orders");
+    revalidatePath("/doctor/appointments");
+    revalidatePath(`/doctor/patients/${labOrder.patient_id}`);
+    return { success: true as const, labOrder: updated };
+  }
+
+  const isAssigned =
+    labOrder.doctor_id === tenant.profileId ||
+    labOrder.appointments?.doctor_id === tenant.profileId;
+
+  if (!isAssigned) {
+    if (!data.current_appointment_id) {
+      return {
+        error:
+          "Unauthorized: only the assigned or currently examining doctor can confirm this lab order",
+      };
+    }
+
+    const currentAppt = await prisma.appointments.findFirst({
+      where: {
+        id: data.current_appointment_id,
+        clinic_id: tenant.clinicId,
+        patient_id: labOrder.patient_id,
+        doctor_id: tenant.profileId,
+        status: { notIn: ["cancelled", "no_show"] },
+      },
+      select: { id: true },
+    });
+
+    if (!currentAppt) {
+      return {
+        error:
+          "Unauthorized: only the assigned or currently examining doctor can confirm this lab order",
+      };
+    }
+  }
+
+  const updated = await prisma.lab_orders.update({
+    where: { id: labOrder.id },
+    data: {
+      status: "confirmed",
+      confirmed_at: new Date(),
+      confirmed_by: tenant.profileId,
+      doctor_notes: data.doctor_notes || null,
+    },
+  });
+
+  revalidatePath("/doctor");
+  revalidatePath("/doctor/lab-orders");
+  revalidatePath("/doctor/appointments");
+  revalidatePath(`/doctor/patients/${labOrder.patient_id}`);
+  return { success: true as const, labOrder: updated };
 }
 
 export async function getDoctorPatients(search?: string) {

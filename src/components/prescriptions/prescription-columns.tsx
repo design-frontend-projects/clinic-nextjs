@@ -3,7 +3,14 @@
 import { useState, useTransition } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { MoreHorizontal, Pencil, Pill, Trash2, Loader2 } from "lucide-react";
+import {
+  Eye,
+  MoreHorizontal,
+  Pencil,
+  Pill,
+  Trash2,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +50,7 @@ export interface PrescriptionRow {
   id: string;
   patient_id: string;
   patient_name: string;
+  doctor_name?: string | null;
   diagnosis: string | null;
   notes: string | null;
   status: string;
@@ -50,11 +58,14 @@ export interface PrescriptionRow {
   prescription_items: PrescriptionListItem[];
 }
 
-/** Convert a list row back into the shape the edit form expects. */
+/** Convert a list row back into the shape the edit/view form expects. */
 export function toPrescriptionRecord(row: PrescriptionRow): PrescriptionRecord {
   return {
     id: row.id,
     patient_id: row.patient_id,
+    patient_name: row.patient_name,
+    doctor_name: row.doctor_name ?? null,
+    issued_at: row.issued_at,
     diagnosis: row.diagnosis,
     notes: row.notes,
     status: row.status,
@@ -73,11 +84,17 @@ export function toPrescriptionRecord(row: PrescriptionRow): PrescriptionRecord {
 
 interface RowActionsProps {
   row: PrescriptionRow;
+  onView: (row: PrescriptionRow) => void;
   onEdit: (row: PrescriptionRow) => void;
   onDeleted: () => void;
 }
 
-function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
+function PrescriptionRowActions({
+  row,
+  onView,
+  onEdit,
+  onDeleted,
+}: RowActionsProps) {
   const t = useTranslations("pages.doctor.prescriptions");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -104,6 +121,10 @@ function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onView(row)}>
+            <Eye className="mr-2 h-4 w-4" />
+            {t("btnView")}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onEdit(row)}>
             <Pencil className="mr-2 h-4 w-4" />
             {t("btnEdit")}
@@ -122,12 +143,12 @@ function PrescriptionRowActions({ row, onEdit, onDeleted }: RowActionsProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteDesc")}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t("deleteDesc")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>{t("btnCancel")}</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>
+              {t("btnCancel")}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -159,17 +180,22 @@ function medicationSummary(
     return { primary: fallbackText, extra: 0, dosage: null };
   }
   const [first, ...rest] = items;
-  return { primary: first.medication_name, extra: rest.length, dosage: first.dosage };
+  return {
+    primary: first.medication_name,
+    extra: rest.length,
+    dosage: first.dosage,
+  };
 }
 
 interface ColumnHandlers {
+  onView: (row: PrescriptionRow) => void;
   onEdit: (row: PrescriptionRow) => void;
   onDeleted: () => void;
 }
 
 export function createPrescriptionColumns(
-  { onEdit, onDeleted }: ColumnHandlers,
-  t: (key: string, values?: any) => string,
+  { onView, onEdit, onDeleted }: ColumnHandlers,
+  t: (key: string, values?: Record<string, string | number | Date>) => string,
 ): ColumnDef<PrescriptionRow>[] {
   return [
     {
@@ -214,7 +240,8 @@ export function createPrescriptionColumns(
     {
       accessorKey: "issued_at",
       header: t("colDateIssued"),
-      cell: ({ row }) => format(new Date(row.original.issued_at), "MMM d, yyyy"),
+      cell: ({ row }) =>
+        format(new Date(row.original.issued_at), "MMM d, yyyy"),
     },
     {
       accessorKey: "status",
@@ -226,6 +253,7 @@ export function createPrescriptionColumns(
       cell: ({ row }) => (
         <PrescriptionRowActions
           row={row.original}
+          onView={onView}
           onEdit={onEdit}
           onDeleted={onDeleted}
         />

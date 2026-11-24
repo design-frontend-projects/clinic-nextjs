@@ -18,8 +18,10 @@ interface PrescriptionDialogProps {
   onOpenChange: (open: boolean) => void;
   /** When set, prescribes for this patient and hides the patient picker. */
   patientId?: string;
-  /** When set, the dialog edits this prescription. */
+  /** When set, the dialog edits or views this prescription. */
   prescription?: PrescriptionRecord | null;
+  /** Dialog mode: create, edit, or read-only view. */
+  mode?: "create" | "edit" | "view";
   /** Called after a successful create/update (parent refetches). */
   onSaved: () => void;
 }
@@ -29,24 +31,37 @@ export function PrescriptionDialog({
   onOpenChange,
   patientId,
   prescription,
+  mode,
   onSaved,
 }: PrescriptionDialogProps) {
   const t = useTranslations("prescriptions.dialog");
+  const resolvedMode = mode ?? (prescription ? "edit" : "create");
+  const isView = resolvedMode === "view";
+
+  const title = isView
+    ? t("viewTitle")
+    : prescription
+      ? t("editTitle")
+      : t("newTitle");
+  const description = isView
+    ? t("viewDescription")
+    : prescription
+      ? t("editDescription")
+      : t("newDescription");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {prescription ? t("editTitle") : t("newTitle")}
-          </DialogTitle>
-          <DialogDescription>
-            {prescription ? t("editDescription") : t("newDescription")}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <PrescriptionForm
+          key={`${resolvedMode}-${prescription?.id ?? "new"}`}
           patientId={patientId}
           prescription={prescription}
+          readOnly={isView}
           onCancel={() => onOpenChange(false)}
           onSuccess={() => {
             onSaved();

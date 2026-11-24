@@ -22,6 +22,7 @@ export type StatusVariant =
   | "rejected"
   | "ordered"
   | "in_progress"
+  | "confirmed"
   | "submitted"
   | "processing"
   | "received"
@@ -111,6 +112,10 @@ export const statusConfig: Record<
   in_progress: {
     label: "In Progress",
     className: "bg-accent-yellow-soft text-accent-yellow",
+  },
+  confirmed: {
+    label: "Confirmed",
+    className: "bg-accent-green-soft text-accent-green",
   },
   submitted: {
     label: "Submitted",

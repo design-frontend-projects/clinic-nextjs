@@ -27,7 +27,10 @@ model profiles {
   appointments                                           appointments[]
   doctor_specialties                                     doctor_specialties[]
   encounters                                             encounters[]
-  lab_orders                                             lab_orders[]
+  created_invoices                                       invoices[]               @relation("invoice_creator")
+  invoice_history_entries                                invoice_history[]        @relation("invoice_history_actor")
+  lab_orders                                             lab_orders[]             @relation("lab_order_doctor")
+  confirmed_lab_orders                                   lab_orders[]             @relation("lab_order_confirmer")
   medical_files                                          medical_files[]
   medical_records                                        medical_records[]
   patients                                               patients[]
@@ -129,6 +132,7 @@ model invoices {
   clinic_id        String             @db.Uuid
   branch_id        String?            @db.Uuid
   patient_id       String?            @db.Uuid
+  created_by       String?            @db.Uuid
   invoice_type     String?
   total_amount     Decimal?           @db.Decimal(12, 2)
   status           InvoiceStatus      @default(draft)
@@ -137,14 +141,37 @@ model invoices {
   invoice_number   String?
   updated_at       DateTime           @default(now()) @updatedAt
   insurance_claims insurance_claims[]
+  invoice_history  invoice_history[]
   invoice_items    invoice_items[]
   branches         branches?          @relation(fields: [branch_id], references: [id])
   clinics          clinics            @relation(fields: [clinic_id], references: [id])
+  creator          profiles?          @relation("invoice_creator", fields: [created_by], references: [id], onDelete: SetNull)
   patients         patients?          @relation(fields: [patient_id], references: [id])
   payments         payments[]
   pharmacy_sales   pharmacy_sales[]
 
   @@index([branch_id])
+  @@index([created_by])
+}
+
+model invoice_history {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinic_id       String    @db.Uuid
+  invoice_id      String    @db.Uuid
+  action          String
+  changed_by      String?   @db.Uuid
+  changed_by_name String?
+  changed_by_role String?
+  reason          String?
+  previous_data   Json?
+  new_data        Json?
+  created_at      DateTime  @default(now())
+  actor           profiles? @relation("invoice_history_actor", fields: [changed_by], references: [id], onDelete: SetNull)
+  clinics         clinics   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  invoices        invoices  @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@index([invoice_id, created_at(sort: Desc)])
+  @@index([clinic_id])
 }
 
 model encounters {
@@ -180,6 +207,9 @@ model lab_orders {
   external_lab_provider String?
   external_order_id     String?
   status                String        @default("ordered")
+  doctor_notes          String?
+  confirmed_at          DateTime?
+  confirmed_by          String?       @db.Uuid
   created_at            DateTime      @default(now())
   deleted_at            DateTime?
   updated_at            DateTime      @default(now()) @updatedAt
@@ -187,12 +217,14 @@ model lab_orders {
   appointments          appointments? @relation(fields: [appointment_id], references: [id])
   branches              branches?     @relation(fields: [branch_id], references: [id])
   clinics               clinics       @relation(fields: [clinic_id], references: [id])
-  profiles              profiles?     @relation(fields: [doctor_id], references: [id])
+  confirmer             profiles?     @relation("lab_order_confirmer", fields: [confirmed_by], references: [id], onDelete: SetNull)
+  profiles              profiles?     @relation("lab_order_doctor", fields: [doctor_id], references: [id])
   encounters            encounters?   @relation(fields: [encounter_id], references: [id])
   patients              patients      @relation(fields: [patient_id], references: [id])
   lab_results           lab_results[]
 
   @@index([appointment_id])
+  @@index([confirmed_by])
 }
 
 model lab_results {
@@ -561,6 +593,7 @@ model clinics {
   file_storage            file_storage[]
   insurance_claims        insurance_claims[]
   insurance_providers     insurance_providers[]
+  invoice_history         invoice_history[]
   invoices                invoices[]
   lab_orders              lab_orders[]
   medical_records         medical_records[]
@@ -1316,6 +1349,7 @@ enum LabOrderStatus {
   ordered
   in_progress
   completed
+  confirmed
   cancelled
 }
 

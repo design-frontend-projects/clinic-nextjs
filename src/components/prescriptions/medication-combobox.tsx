@@ -31,6 +31,7 @@ interface MedicationComboboxProps {
   value: string;
   onChange: (selection: MedicationSelection) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 /** Format a catalog row into a human-readable medication label. */
@@ -54,6 +55,7 @@ export function MedicationCombobox({
   value,
   onChange,
   placeholder,
+  disabled = false,
 }: MedicationComboboxProps) {
   const t = useTranslations("prescriptions.combobox");
   const resolvedPlaceholder = placeholder ?? t("searchMedicationPlaceholder");
@@ -63,7 +65,7 @@ export function MedicationCombobox({
   const { data: results = [], isFetching } = useQuery({
     queryKey: ["medicationsSearch", query],
     queryFn: () => searchMedications(query),
-    enabled: query.trim().length >= 2,
+    enabled: !disabled && query.trim().length >= 2,
   });
 
   const trimmed = query.trim();
@@ -72,12 +74,18 @@ export function MedicationCombobox({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={disabled ? false : open}
+      onOpenChange={(next) => {
+        if (!disabled) setOpen(next);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
           role="combobox"
+          disabled={disabled}
           className={cn(
             "w-full justify-between font-normal",
             !value && "text-muted-foreground",

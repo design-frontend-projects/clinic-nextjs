@@ -564,7 +564,27 @@
         "colOrderDate": "تاريخ الطلب",
         "colStatus": "الحالة",
         "inHouse": "داخلي بالعيادة",
-        "unknownPatient": "مريض غير معروف"
+        "unknownPatient": "مريض غير معروف",
+        "colNotes": "ملاحظات الطبيب",
+        "colActions": "الإجراءات",
+        "btnConfirm": "تأكيد",
+        "btnEditNotes": "تعديل الملاحظات",
+        "btnViewNotes": "عرض الملاحظات",
+        "confirmedBy": "تم التأكيد بواسطة {name} في {date}",
+        "noNotes": "لم تتم إضافة ملاحظات سريرية.",
+        "confirmDialogTitle": "مراجعة وتأكيد طلب التحليل",
+        "confirmDialogDesc": "تأكيد استلام طلب التحليل وتسجيل ملاحظاتك السريرية.",
+        "notesLabel": "ملاحظات الطبيب",
+        "notesPlaceholder": "أدخل التفسير السريري أو ملاحظات المراجعة (اختياري)...",
+        "btnConfirmSave": "تأكيد وحفظ الملاحظات",
+        "btnUpdateNotes": "تحديث الملاحظات",
+        "btnClose": "إغلاق",
+        "btnCancel": "إلغاء",
+        "toastConfirmed": "تم تأكيد طلب التحليل",
+        "toastNotesUpdated": "تم تحديث ملاحظات التحليل",
+        "toastFailed": "فشل حفظ تأكيد التحليل",
+        "resultsAttached": "نتائج التحاليل المرفقة",
+        "routineLab": "تحليل روتيني"
       },
       "patients": {
         "title": "مرضاي",
@@ -598,7 +618,12 @@
         "tabInsurance": "التأمين",
         "insuranceTitle": "تأمين المريض",
         "noInsurance": "لا توجد وثائق تأمين نشطة مسجلة.",
-        "manageInsurance": "إدارة التأمين"
+        "manageInsurance": "إدارة التأمين",
+        "currentVisitBadge": "الزيارة الحالية",
+        "confirmLabBtn": "تأكيد وإضافة ملاحظات",
+        "editLabNotesBtn": "تعديل الملاحظات",
+        "viewLabNotesBtn": "عرض الملاحظات",
+        "confirmedByAt": "تم التأكيد بواسطة {name} في {date}"
       },
       "encounter": {
         "errDiagnosisRequired": "التشخيص مطلوب",
@@ -638,7 +663,9 @@
         "searchPlaceholder": "ابحث باسم المريض...",
         "ariaEdit": "تعديل الوصفة الطبية",
         "ariaDelete": "حذف الوصفة الطبية",
-        "ariaRowActions": "إجراءات الصف"
+        "ariaRowActions": "إجراءات الصف",
+        "btnView": "عرض",
+        "ariaView": "عرض الوصفة الطبية"
       },
       "reviews": {
         "title": "تقييماتي",
@@ -1248,7 +1275,8 @@
       "low_stock": "مخزون منخفض",
       "expired": "منتهي الصلاحية",
       "archived": "مؤرشف",
-      "past_due": "متأخر السداد"
+      "past_due": "متأخر السداد",
+      "confirmed": "مؤكد"
     },
     "gender": {
       "male": "ذكر",
@@ -1434,7 +1462,11 @@
         "ariaRemoveItem": "حذف البند",
         "coversFixed": "يغطي ${amount} لكل زيارة",
         "coversPercent": "يغطي {percent}% من الفاتورة",
-        "visitsLeft": "متبقي {count} زيارة"
+        "visitsLeft": "متبقي {count} زيارة",
+        "paidEditWarning": "هذه الفاتورة مدفوعة بالفعل. ستبقى سجلات الدفع الحالية كما هي، وسيتم توثيق هذا التعديل بشكل دائم في سجل الفاتورة.",
+        "editReasonLabel": "سبب تعديل الفاتورة المدفوعة",
+        "editReasonPlaceholder": "وضّح سبب تعديل الفاتورة المدفوعة (3 أحرف على الأقل)...",
+        "editReasonRequired": "يرجى إدخال سبب التعديل (3 أحرف على الأقل)."
       },
       "actions": {
         "editItems": "تعديل بنود الفاتورة",
@@ -1447,7 +1479,12 @@
         "whatsappSent": "تم إرسال الفاتورة عبر واتساب.",
         "whatsappOpened": "تم فتح واتساب بتفاصيل الفاتورة.",
         "emailSent": "تم إرسال الفاتورة عبر البريد الإلكتروني.",
-        "emailOpened": "تم فتح البريد الإلكتروني بتفاصيل الفاتورة."
+        "emailOpened": "تم فتح البريد الإلكتروني بتفاصيل الفاتورة.",
+        "markAsPaid": "تحديد كمدفوعة",
+        "viewHistory": "عرض السجل",
+        "editPaidAsCreator": "تعديل بنود الفاتورة المدفوعة (الطبيب المنشئ)",
+        "editLockedPaidCreatorOnly": "لا يمكن تعديل الفواتير المدفوعة إلا بواسطة الطبيب الذي أنشأها",
+        "editLockedCancelled": "لا يمكن تعديل الفواتير الملغاة"
       },
       "print": {
         "title": "معاينة وطباعة الفاتورة",
@@ -1461,6 +1498,50 @@
         "cancel": "إلغاء",
         "saving": "جارٍ الحفظ...",
         "saveChanges": "حفظ التغييرات"
+      },
+      "paymentMethods": {
+        "cash": "نقداً",
+        "card": "بطاقة بنكية",
+        "bank_transfer": "تحويل بنكي",
+        "insurance": "تأمين",
+        "other": "أخرى"
+      },
+      "markPaid": {
+        "title": "تحديد الفاتورة كمدفوعة",
+        "description": "تسجيل تحصيل الدفعة للمريض {patient}. بعد التحديد كمدفوعة، لن يتمكن سوى الطبيب المنشئ من تعديلها.",
+        "grossTotal": "الإجمالي الكلي",
+        "insuranceDeduction": "خصم التأمين",
+        "netPayable": "صافي المستحق على المريض",
+        "alreadyPaid": "المدفوع مسبقاً",
+        "amountToCollect": "المبلغ المطلوب تحصيله الآن",
+        "methodLabel": "طريقة الدفع",
+        "notesLabel": "ملاحظات الدفع (اختياري)",
+        "notesPlaceholder": "رقم الإيصال أو ملاحظات التحصيل...",
+        "confirmButton": "تأكيد الدفع",
+        "processing": "جارٍ التسجيل...",
+        "toastSuccess": "تم تحديد الفاتورة كمدفوعة."
+      },
+      "history": {
+        "title": "سجل الفاتورة",
+        "subtitle": "سجل تدقيق غير قابل للتعديل لجميع عمليات الإنشاء والدفع وتعديل البنود.",
+        "empty": "لا توجد سجلات تاريخية مسجلة لهذه الفاتورة بعد.",
+        "loading": "جارٍ تحميل سجل الفاتورة...",
+        "actionCreated": "تم الإنشاء",
+        "actionUpdated": "تم التحديث",
+        "actionMarkedPaid": "تم الدفع",
+        "actionEditedAfterPaid": "تعديل بعد الدفع",
+        "reasonLabel": "السبب / الملاحظة",
+        "paymentMethodLabel": "الطريقة",
+        "beforeLabel": "قبل",
+        "afterLabel": "بعد",
+        "itemsLabel": "البنود",
+        "grossLabel": "الإجمالي",
+        "insuranceLabel": "التأمين",
+        "netLabel": "الصافي على المريض",
+        "paidLabel": "المدفوع",
+        "statusLabel": "الحالة",
+        "balanceDue": "+${amount} متبقي للسداد",
+        "overpaid": "${amount} رصيد مدفوع بالزيادة"
       }
     },
     "appointments": {
@@ -2012,7 +2093,9 @@
       "editTitle": "تعديل الوصفة الطبية",
       "newTitle": "وصفة طبية جديدة",
       "editDescription": "تحديث التشخيص والحالة والأدوية الموصوفة.",
-      "newDescription": "سجّل التشخيص ودواءً واحداً أو أكثر."
+      "newDescription": "سجّل التشخيص ودواءً واحداً أو أكثر.",
+      "viewTitle": "عرض الوصفة الطبية",
+      "viewDescription": "مراجعة التشخيص والحالة والأدوية الموصوفة (للقراءة فقط)."
     },
     "form": {
       "patientLabel": "المريض",
@@ -2035,7 +2118,10 @@
       "saveChanges": "حفظ التغييرات",
       "createPrescription": "إنشاء الوصفة",
       "toastUpdated": "تم تحديث الوصفة الطبية",
-      "toastCreated": "تم إنشاء الوصفة الطبية"
+      "toastCreated": "تم إنشاء الوصفة الطبية",
+      "close": "إغلاق",
+      "issuedOn": "تاريخ الإصدار",
+      "prescribedBy": "بواسطة الطبيب"
     },
     "combobox": {
       "selectMedication": "اختر الدواء",

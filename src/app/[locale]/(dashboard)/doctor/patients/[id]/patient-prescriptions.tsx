@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Plus, Pencil, Trash2, Loader2, Pill } from "lucide-react";
+import { Eye, Plus, Pencil, Trash2, Loader2, Pill } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -38,6 +38,8 @@ interface PatientPrescriptionItem {
 export interface PatientPrescription {
   id: string;
   patient_id: string;
+  doctor_name?: string | null;
+  profiles?: { full_name: string | null } | null;
   diagnosis: string | null;
   notes: string | null;
   status: string;
@@ -63,24 +65,39 @@ export function PatientPrescriptions({
   const t = useTranslations("pages.doctor.prescriptions");
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit" | "view">("create");
   const [editing, setEditing] = useState<PrescriptionRecord | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function openNew() {
-    setEditing(null);
-    setDialogOpen(true);
-  }
-
-  function openEdit(rx: PatientPrescription) {
-    setEditing({
+  function toRecord(rx: PatientPrescription): PrescriptionRecord {
+    return {
       id: rx.id,
       patient_id: rx.patient_id,
+      doctor_name: rx.doctor_name ?? rx.profiles?.full_name ?? null,
+      issued_at: rx.issued_at,
       diagnosis: rx.diagnosis,
       notes: rx.notes,
       status: rx.status,
       prescription_items: rx.prescription_items,
-    });
+    };
+  }
+
+  function openNew() {
+    setEditing(null);
+    setDialogMode("create");
+    setDialogOpen(true);
+  }
+
+  function openView(rx: PatientPrescription) {
+    setEditing(toRecord(rx));
+    setDialogMode("view");
+    setDialogOpen(true);
+  }
+
+  function openEdit(rx: PatientPrescription) {
+    setEditing(toRecord(rx));
+    setDialogMode("edit");
     setDialogOpen(true);
   }
 
@@ -133,6 +150,15 @@ export function PatientPrescriptions({
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 rounded-lg hover:bg-accent-blue-soft hover:text-accent-blue"
+                      onClick={() => openView(rx)}
+                      aria-label={t("ariaView")}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-lg hover:bg-accent-blue-soft hover:text-accent-blue"
                       onClick={() => openEdit(rx)}
                       aria-label={t("ariaEdit")}
                     >
@@ -173,6 +199,7 @@ export function PatientPrescriptions({
         onOpenChange={setDialogOpen}
         patientId={patientId}
         prescription={editing}
+        mode={dialogMode}
         onSaved={() => router.refresh()}
       />
 

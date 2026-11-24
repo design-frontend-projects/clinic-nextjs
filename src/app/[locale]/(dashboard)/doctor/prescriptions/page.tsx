@@ -10,20 +10,25 @@ import { Button } from "@/components/ui/button";
 import { getPrescriptions } from "@/app/actions/prescription";
 import {
   createPrescriptionColumns,
-  type PrescriptionRow,
+  toPrescriptionRecord,
 } from "@/components/prescriptions/prescription-columns";
 import { PrescriptionDialog } from "@/components/prescriptions/prescription-dialog";
 import type { PrescriptionRecord } from "@/components/prescriptions/prescription-form";
 import { useTranslations } from "next-intl";
 
-type PrescriptionsResult = Awaited<ReturnType<typeof getPrescriptions>>;
-
 export default function DoctorPrescriptionsPage() {
   const t = useTranslations("pages.doctor.prescriptions");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit" | "view">(
+    "create",
+  );
   const [editing, setEditing] = useState<PrescriptionRecord | null>(null);
 
-  const { data = [], isLoading, refetch } = useQuery({
+  const {
+    data = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["prescriptions"],
     queryFn: () => getPrescriptions(),
   });
@@ -35,6 +40,7 @@ export default function DoctorPrescriptionsPage() {
       patient_name:
         `${p.patients?.first_name ?? ""} ${p.patients?.last_name ?? ""}`.trim() ||
         t("unknownPatient"),
+      doctor_name: p.profiles?.full_name ?? null,
       diagnosis: p.diagnosis,
       notes: p.notes,
       status: p.status,
@@ -56,24 +62,14 @@ export default function DoctorPrescriptionsPage() {
     () =>
       createPrescriptionColumns(
         {
+          onView: (row) => {
+            setEditing(toPrescriptionRecord(row));
+            setDialogMode("view");
+            setDialogOpen(true);
+          },
           onEdit: (row) => {
-            setEditing({
-              id: row.id,
-              patient_id: row.patient_id,
-              diagnosis: row.diagnosis,
-              notes: row.notes,
-              status: row.status,
-              prescription_items: row.prescription_items.map((item) => ({
-                medication_id: item.medication_id,
-                medication_name: item.medication_name,
-                dosage: item.dosage,
-                frequency: item.frequency,
-                duration: item.duration,
-                route: item.route,
-                quantity: item.quantity,
-                instructions: item.instructions,
-              })),
-            });
+            setEditing(toPrescriptionRecord(row));
+            setDialogMode("edit");
             setDialogOpen(true);
           },
           onDeleted: () => refetch(),
@@ -85,6 +81,7 @@ export default function DoctorPrescriptionsPage() {
 
   function openNew() {
     setEditing(null);
+    setDialogMode("create");
     setDialogOpen(true);
   }
 
@@ -100,12 +97,13 @@ export default function DoctorPrescriptionsPage() {
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent">
             {t("title")}
           </h1>
-          <p className="text-muted-foreground">
-            {t("subtitle")}
-          </p>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
-          <Button onClick={openNew} className="rounded-xl font-medium shadow-sm">
+          <Button
+            onClick={openNew}
+            className="rounded-xl font-medium shadow-sm"
+          >
             <Plus className="mr-2 h-4 w-4" />
             {t("btnNew")}
           </Button>
@@ -132,6 +130,7 @@ export default function DoctorPrescriptionsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         prescription={editing}
+        mode={dialogMode}
         onSaved={() => refetch()}
       />
     </motion.div>

@@ -11,8 +11,14 @@ export default async function PatientConsultationPage({
 }) {
   const resolvedParams = await params;
   const { appointmentId } = await searchParams;
-  const { patient, history, prescriptions, labOrders } =
-    await getPatientDetails(resolvedParams.id);
+  const {
+    patient,
+    history,
+    prescriptions,
+    labOrders,
+    currentDoctorProfileId,
+    canConfirmAllPatientLabs,
+  } = await getPatientDetails(resolvedParams.id, appointmentId);
 
   return (
     <ConsultationClient
@@ -21,6 +27,8 @@ export default async function PatientConsultationPage({
       prescriptions={prescriptions as PatientPrescription[]}
       labOrders={labOrders}
       appointmentId={appointmentId}
+      currentDoctorProfileId={currentDoctorProfileId}
+      canConfirmAllPatientLabs={canConfirmAllPatientLabs}
     />
   );
 }

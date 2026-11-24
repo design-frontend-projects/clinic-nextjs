@@ -2,9 +2,15 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
+import {
+  canEditInvoice,
+  isBillingRole,
+} from "@/lib/invoice-permissions";
+import { auditService } from "@/features/rbac/services/audit.service";
 import {
   computeCategoryDeductions,
   isPolicyEligible,
@@ -17,12 +23,17 @@ import {
 } from "@/lib/whatsapp/waha-client";
 import {
   billingCatalogItemSchema,
+  markInvoicePaidSchema,
   updateInvoiceItemsSchema,
   type BillingCatalogItemData,
   type BillingCatalogItemRow,
   type BillingItemCategory,
   type InvoiceDeliveryResult,
   type InvoiceDetails,
+  type InvoiceHistoryEntry,
+  type InvoiceHistorySnapshot,
+  type MarkInvoicePaidData,
+  type MarkInvoicePaidResult,
   type UpdateInvoiceItemsData,
 } from "@/types/billing.types";
 import {
@@ -33,12 +44,9 @@ import {
   type DeductionPreviewLineInput,
 } from "@/types/insurance.types";
 
-/** Roles allowed to manage catalog items, issue invoices, and edit invoice items. */
-const BILLING_ROLES = ["owner", "admin", "super_admin", "doctor"] as const;
-
 async function requireBillingRole() {
   const tenant = await requireTenantInfo();
-  if (!(BILLING_ROLES as readonly string[]).includes(tenant.role)) {
+  if (!isBillingRole(tenant.role)) {
     throw new Error(
       "Unauthorized: billing is restricted to owners, admins, super admins, and doctors",
     );
@@ -50,6 +58,68 @@ function revalidateBillingPages() {
   revalidatePath("/admin/billing");
   revalidatePath("/doctor/billing");
   revalidatePath("/staff/billing");
+  revalidatePath("/staff");
+}
+
+function buildInvoiceSnapshot(input: {
+  status: string;
+  totalAmount: number;
+  insuranceDeduction: number;
+  paidAmount: number;
+  items: Array<{
+    catalog_item_id?: string | null;
+    category: BillingItemCategory;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+  }>;
+  paymentMethod?: string | null;
+  paymentAmount?: number | null;
+}): InvoiceHistorySnapshot {
+  const gross = round2(input.totalAmount);
+  const deduction = round2(input.insuranceDeduction);
+  const net = round2(Math.max(0, gross - deduction));
+  return {
+    status: input.status,
+    total_amount: gross,
+    insurance_deduction: deduction,
+    net_amount: net,
+    paid_amount: round2(input.paidAmount),
+    ...(input.paymentMethod ? { payment_method: input.paymentMethod } : {}),
+    ...(input.paymentAmount !== undefined && input.paymentAmount !== null
+      ? { payment_amount: round2(input.paymentAmount) }
+      : {}),
+    items: input.items.map((item) => ({
+      catalog_item_id: item.catalog_item_id ?? null,
+      category: item.category,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: round2(item.unit_price),
+      total_price: round2(item.total_price),
+    })),
+  };
+}
+
+async function mirrorInvoiceAudit(
+  tenant: { clinicId: string; profileId: string; email: string | null },
+  action: string,
+  invoiceId: string,
+  oldValues: InvoiceHistorySnapshot | null,
+  newValues: InvoiceHistorySnapshot | null,
+) {
+  try {
+    await auditService.logChange(tenant.clinicId, action, {
+      actorId: tenant.profileId,
+      actorEmail: tenant.email ?? null,
+      entityType: "invoice",
+      entityId: invoiceId,
+      oldValues: oldValues as Record<string, unknown> | null,
+      newValues: newValues as Record<string, unknown> | null,
+    });
+  } catch {
+    // Non-fatal: invoice_history holds the canonical invoice audit trail.
+  }
 }
 
 type PolicyWithProvider = {
@@ -371,6 +441,7 @@ export async function createInvoice(
           clinic_id: tenant.clinicId,
           branch_id: tenant.branchId ?? null,
           patient_id: parsed.patient_id,
+          created_by: tenant.profileId,
           invoice_type: parsed.invoice_type || "visit",
           invoice_number: `INV-${invoiceId.slice(0, 8).toUpperCase()}`,
           total_amount: gross,
@@ -378,18 +449,20 @@ export async function createInvoice(
         },
       });
 
+      const createdItems = parsed.items.map((item) => ({
+        id: randomUUID(),
+        invoice_id: invoiceId,
+        clinic_id: tenant.clinicId,
+        catalog_item_id: item.catalog_item_id || null,
+        category: item.category ?? ("other" as BillingItemCategory),
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: round2(item.quantity * item.unit_price),
+      }));
+
       await tx.invoice_items.createMany({
-        data: parsed.items.map((item) => ({
-          id: randomUUID(),
-          invoice_id: invoiceId,
-          clinic_id: tenant.clinicId,
-          catalog_item_id: item.catalog_item_id || null,
-          category: item.category ?? "other",
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: round2(item.quantity * item.unit_price),
-        })),
+        data: createdItems,
       });
 
       let deduction = 0;
@@ -433,8 +506,38 @@ export async function createInvoice(
         }
       }
 
-      return { invoiceId, deduction };
+      const snapshot = buildInvoiceSnapshot({
+        status: "issued",
+        totalAmount: gross,
+        insuranceDeduction: deduction,
+        paidAmount: 0,
+        items: createdItems,
+      });
+
+      await tx.invoice_history.create({
+        data: {
+          clinic_id: tenant.clinicId,
+          invoice_id: invoiceId,
+          action: "created",
+          changed_by: tenant.profileId,
+          changed_by_name: tenant.fullName ?? null,
+          changed_by_role: tenant.role,
+          reason: null,
+          previous_data: undefined,
+          new_data: snapshot as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      return { invoiceId, deduction, snapshot };
     });
+
+    await mirrorInvoiceAudit(
+      tenant,
+      "invoice.created",
+      outcome.invoiceId,
+      null,
+      outcome.snapshot,
+    );
 
     revalidateBillingPages();
 
@@ -456,9 +559,161 @@ export async function createInvoice(
 }
 
 /**
- * Edit an existing invoice's line items. Invoices cannot be deleted; only
- * `draft` and `issued` invoices can have their items modified. Atomically
- * recalculates `total_amount` and any linked `insurance_claims.claim_amount`.
+ * Mark an invoice as paid, recording a corresponding payment row for the
+ * patient's remaining net payable amount and appending to `invoice_history`.
+ */
+export async function markInvoiceAsPaid(
+  data: MarkInvoicePaidData,
+): Promise<MarkInvoicePaidResult> {
+  try {
+    const tenant = await requireBillingRole();
+
+    const parsedResult = markInvoicePaidSchema.safeParse(data);
+    if (!parsedResult.success) {
+      return {
+        error: parsedResult.error.issues[0]?.message ?? "Invalid input.",
+      };
+    }
+    const parsed = parsedResult.data;
+
+    const existing = await prisma.invoices.findFirst({
+      where: { id: parsed.invoice_id, clinic_id: tenant.clinicId },
+      include: {
+        invoice_items: {
+          where: { deleted_at: null },
+          orderBy: { updated_at: "asc" },
+        },
+        payments: {
+          where: { deleted_at: null },
+        },
+        insurance_claims: true,
+      },
+    });
+
+    if (!existing) {
+      return { error: "Invoice not found." };
+    }
+    if (existing.status === "paid") {
+      return { error: "Invoice is already marked as paid." };
+    }
+    if (existing.status === "cancelled") {
+      return { error: "Cannot mark a cancelled invoice as paid." };
+    }
+
+    const gross = round2(Number(existing.total_amount || 0));
+    const deduction = round2(
+      existing.insurance_claims.reduce(
+        (sum, claim) => sum + Number(claim.claim_amount || 0),
+        0,
+      ),
+    );
+    const net = round2(Math.max(0, gross - deduction));
+    const alreadyPaid = round2(
+      existing.payments
+        .filter((p) => p.status === "paid")
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0),
+    );
+    const remainingDue = round2(Math.max(0, net - alreadyPaid));
+    const totalPaidAfter = round2(alreadyPaid + remainingDue);
+
+    const mappedItems = existing.invoice_items.map((item) => ({
+      catalog_item_id: item.catalog_item_id ?? null,
+      category: (item.category as BillingItemCategory) ?? "other",
+      description: item.description || "",
+      quantity: Number(item.quantity || 1),
+      unit_price: Number(item.unit_price || 0),
+      total_price: Number(item.total_price || 0),
+    }));
+
+    const beforeSnapshot = buildInvoiceSnapshot({
+      status: existing.status,
+      totalAmount: gross,
+      insuranceDeduction: deduction,
+      paidAmount: alreadyPaid,
+      items: mappedItems,
+    });
+
+    const afterSnapshot = buildInvoiceSnapshot({
+      status: "paid",
+      totalAmount: gross,
+      insuranceDeduction: deduction,
+      paidAmount: totalPaidAfter,
+      items: mappedItems,
+      paymentMethod: parsed.payment_method,
+      paymentAmount: remainingDue,
+    });
+
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      if (remainingDue > 0 || alreadyPaid === 0) {
+        await tx.payments.create({
+          data: {
+            id: randomUUID(),
+            invoice_id: existing.id,
+            clinic_id: tenant.clinicId,
+            amount: remainingDue,
+            payment_method: parsed.payment_method,
+            status: "paid",
+            paid_at: now,
+          },
+        });
+      }
+
+      await tx.invoices.update({
+        where: { id: existing.id },
+        data: {
+          status: "paid",
+          updated_at: now,
+        },
+      });
+
+      await tx.invoice_history.create({
+        data: {
+          clinic_id: tenant.clinicId,
+          invoice_id: existing.id,
+          action: "marked_paid",
+          changed_by: tenant.profileId,
+          changed_by_name: tenant.fullName ?? null,
+          changed_by_role: tenant.role,
+          reason: parsed.notes || null,
+          previous_data: beforeSnapshot as unknown as Prisma.InputJsonValue,
+          new_data: afterSnapshot as unknown as Prisma.InputJsonValue,
+        },
+      });
+    });
+
+    await mirrorInvoiceAudit(
+      tenant,
+      "invoice.marked_paid",
+      existing.id,
+      beforeSnapshot,
+      afterSnapshot,
+    );
+
+    revalidateBillingPages();
+
+    return {
+      success: true,
+      invoice_id: existing.id,
+      paid_amount: remainingDue,
+      total_paid: totalPaidAfter,
+    };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to mark invoice as paid.",
+    };
+  }
+}
+
+/**
+ * Edit an existing invoice's line items. Invoices cannot be deleted.
+ * Once `paid`, only the practitioner who created the invoice may edit it
+ * (with a mandatory edit reason), preserving existing payments and recording
+ * full before/after history.
  */
 export async function updateInvoiceItems(
   data: UpdateInvoiceItemsData,
@@ -477,16 +732,39 @@ export async function updateInvoiceItems(
     const existing = await prisma.invoices.findFirst({
       where: { id: parsed.invoice_id, clinic_id: tenant.clinicId },
       include: {
+        invoice_items: {
+          where: { deleted_at: null },
+          orderBy: { updated_at: "asc" },
+        },
+        payments: {
+          where: { deleted_at: null },
+        },
         insurance_claims: true,
       },
     });
     if (!existing) {
       return { error: "Invoice not found." };
     }
-    if (existing.status === "paid" || existing.status === "cancelled") {
+    if (existing.status === "cancelled") {
       return {
-        error: `Cannot edit items on a ${existing.status} invoice.`,
+        error: "Cannot edit items on a cancelled invoice.",
       };
+    }
+
+    const isPaidEdit = existing.status === "paid";
+    if (isPaidEdit) {
+      if (!canEditInvoice(existing, tenant)) {
+        return {
+          error:
+            "Only the doctor who created this invoice can edit it after payment.",
+        };
+      }
+      if (!parsed.edit_reason || parsed.edit_reason.trim().length < 3) {
+        return {
+          error:
+            "An edit reason (at least 3 characters) is required when modifying a paid invoice.",
+        };
+      }
     }
 
     const gross = round2(
@@ -499,24 +777,54 @@ export async function updateInvoiceItems(
       return { error: "Invoice total must be greater than zero." };
     }
 
+    const oldGross = round2(Number(existing.total_amount || 0));
+    const oldDeduction = round2(
+      existing.insurance_claims.reduce(
+        (sum, claim) => sum + Number(claim.claim_amount || 0),
+        0,
+      ),
+    );
+    const existingPaid = round2(
+      existing.payments
+        .filter((p) => p.status === "paid")
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0),
+    );
+
+    const beforeSnapshot = buildInvoiceSnapshot({
+      status: existing.status,
+      totalAmount: oldGross,
+      insuranceDeduction: oldDeduction,
+      paidAmount: existingPaid,
+      items: existing.invoice_items.map((item) => ({
+        catalog_item_id: item.catalog_item_id ?? null,
+        category: (item.category as BillingItemCategory) ?? "other",
+        description: item.description || "",
+        quantity: Number(item.quantity || 1),
+        unit_price: Number(item.unit_price || 0),
+        total_price: Number(item.total_price || 0),
+      })),
+    });
+
     const outcome = await prisma.$transaction(async (tx) => {
       // Remove existing line items and insert the updated list
       await tx.invoice_items.deleteMany({
         where: { invoice_id: existing.id, clinic_id: tenant.clinicId },
       });
 
+      const updatedItems = parsed.items.map((item) => ({
+        id: randomUUID(),
+        invoice_id: existing.id,
+        clinic_id: tenant.clinicId,
+        catalog_item_id: item.catalog_item_id || null,
+        category: item.category ?? ("other" as BillingItemCategory),
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: round2(item.quantity * item.unit_price),
+      }));
+
       await tx.invoice_items.createMany({
-        data: parsed.items.map((item) => ({
-          id: randomUUID(),
-          invoice_id: existing.id,
-          clinic_id: tenant.clinicId,
-          catalog_item_id: item.catalog_item_id || null,
-          category: item.category ?? "other",
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: round2(item.quantity * item.unit_price),
-        })),
+        data: updatedItems,
       });
 
       await tx.invoices.update({
@@ -581,8 +889,38 @@ export async function updateInvoiceItems(
         });
       }
 
-      return { deduction };
+      const afterSnapshot = buildInvoiceSnapshot({
+        status: existing.status,
+        totalAmount: gross,
+        insuranceDeduction: deduction,
+        paidAmount: existingPaid,
+        items: updatedItems,
+      });
+
+      await tx.invoice_history.create({
+        data: {
+          clinic_id: tenant.clinicId,
+          invoice_id: existing.id,
+          action: isPaidEdit ? "edited_after_paid" : "updated",
+          changed_by: tenant.profileId,
+          changed_by_name: tenant.fullName ?? null,
+          changed_by_role: tenant.role,
+          reason: parsed.edit_reason?.trim() || null,
+          previous_data: beforeSnapshot as unknown as Prisma.InputJsonValue,
+          new_data: afterSnapshot as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      return { deduction, afterSnapshot };
     });
+
+    await mirrorInvoiceAudit(
+      tenant,
+      isPaidEdit ? "invoice.edited_after_paid" : "invoice.updated",
+      existing.id,
+      beforeSnapshot,
+      outcome.afterSnapshot,
+    );
 
     revalidateBillingPages();
 
@@ -601,6 +939,41 @@ export async function updateInvoiceItems(
           : "Failed to update invoice items.",
     };
   }
+}
+
+/**
+ * Fetch the chronological append-only history log for a single clinic invoice.
+ */
+export async function getInvoiceHistory(
+  invoiceId: string,
+): Promise<InvoiceHistoryEntry[]> {
+  const tenant = await requireBillingRole();
+
+  const invoice = await prisma.invoices.findFirst({
+    where: { id: invoiceId, clinic_id: tenant.clinicId },
+    select: { id: true },
+  });
+  if (!invoice) return [];
+
+  const entries = await prisma.invoice_history.findMany({
+    where: { invoice_id: invoiceId, clinic_id: tenant.clinicId },
+    orderBy: { created_at: "desc" },
+  });
+
+  return entries.map((entry) => ({
+    id: entry.id,
+    invoice_id: entry.invoice_id,
+    action: entry.action,
+    changed_by: entry.changed_by,
+    changed_by_name: entry.changed_by_name,
+    changed_by_role: entry.changed_by_role,
+    reason: entry.reason,
+    previous_data:
+      (entry.previous_data as unknown as InvoiceHistorySnapshot | null) ?? null,
+    new_data:
+      (entry.new_data as unknown as InvoiceHistorySnapshot | null) ?? null,
+    created_at: entry.created_at.toISOString(),
+  }));
 }
 
 /**
