@@ -1237,7 +1237,18 @@
       "trial": "تجريبي",
       "suspended": "موقوف مؤقتاً",
       "approved": "معتمد",
-      "rejected": "مرفوض"
+      "rejected": "مرفوض",
+      "ordered": "تم الطلب",
+      "in_progress": "قيد التنفيذ",
+      "submitted": "مقدّم",
+      "processing": "قيد المعالجة",
+      "received": "تم الاستلام",
+      "dispensed": "تم الصرف",
+      "in_stock": "متوفر",
+      "low_stock": "مخزون منخفض",
+      "expired": "منتهي الصلاحية",
+      "archived": "مؤرشف",
+      "past_due": "متأخر السداد"
     },
     "gender": {
       "male": "ذكر",

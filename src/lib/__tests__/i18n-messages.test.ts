@@ -1,8 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
+import {
+  resolveStatusBadge,
+  statusConfig,
+  type StatusTranslator,
+} from "@/components/ui/status-badge";
 
 function flattenKeys(
   obj: Record<string, unknown>,
@@ -138,5 +143,93 @@ describe("i18n locale messages integrity", () => {
     }
 
     expect(missing).toEqual([]);
+  });
+
+  it("covers all StatusBadge variants and Prisma *Status enum values in en.json and ar.json", () => {
+    const schemaPath = path.resolve(process.cwd(), "prisma/schema.prisma");
+    const schemaContent = fs.readFileSync(schemaPath, "utf8");
+    const enumBlockRegex = /enum\s+(\w+Status)\s*\{([^}]*)\}/g;
+
+    const prismaStatusValues = new Set<string>();
+    let enumMatch: RegExpExecArray | null;
+    while ((enumMatch = enumBlockRegex.exec(schemaContent)) !== null) {
+      const body = enumMatch[2];
+      for (const line of body.split(/\r?\n/)) {
+        const cleaned = line.replace(/\/\/.*$/, "").trim();
+        if (cleaned) {
+          prismaStatusValues.add(cleaned.toLowerCase());
+        }
+      }
+    }
+
+    expect(prismaStatusValues.size).toBeGreaterThan(0);
+
+    const enStatuses = en.enums.status as Record<string, string>;
+    const arStatuses = ar.enums.status as Record<string, string>;
+
+    for (const statusKey of Object.keys(statusConfig)) {
+      expect(
+        enStatuses[statusKey],
+        `Missing enums.status.${statusKey} in en.json`,
+      ).toBeTruthy();
+      expect(
+        arStatuses[statusKey],
+        `Missing enums.status.${statusKey} in ar.json`,
+      ).toBeTruthy();
+    }
+
+    for (const statusValue of prismaStatusValues) {
+      expect(
+        statusValue in statusConfig,
+        `Missing "${statusValue}" from statusConfig in status-badge.tsx`,
+      ).toBe(true);
+      expect(
+        enStatuses[statusValue],
+        `Missing enums.status.${statusValue} in en.json`,
+      ).toBeTruthy();
+      expect(
+        arStatuses[statusValue],
+        `Missing enums.status.${statusValue} in ar.json`,
+      ).toBeTruthy();
+    }
+  });
+
+  it("resolves translated status badges safely via t.has without calling t on missing keys", () => {
+    const messages: Record<string, string> = {
+      ordered: "Ordered",
+      cancelled: "Cancelled",
+    };
+    const hasFn = vi.fn((key: string) => key in messages);
+    const callFn = vi.fn(
+      (key: string) => messages[key] ?? `enums.status.${key}`,
+    );
+    const t: StatusTranslator = Object.assign(callFn, { has: hasFn });
+
+    expect(resolveStatusBadge("ordered", t)).toEqual({
+      label: "Ordered",
+      className: statusConfig.ordered.className,
+    });
+    expect(hasFn).toHaveBeenCalledWith("ordered");
+    expect(callFn).toHaveBeenCalledWith("ordered");
+
+    hasFn.mockClear();
+    callFn.mockClear();
+
+    expect(resolveStatusBadge("ORDERED", t)).toEqual({
+      label: "Ordered",
+      className: statusConfig.ordered.className,
+    });
+    expect(hasFn).toHaveBeenCalledWith("ordered");
+    expect(callFn).toHaveBeenCalledWith("ordered");
+
+    hasFn.mockClear();
+    callFn.mockClear();
+
+    expect(resolveStatusBadge("custom_unknown", t)).toEqual({
+      label: "custom unknown",
+      className: "bg-muted text-muted-foreground",
+    });
+    expect(hasFn).toHaveBeenCalledWith("custom_unknown");
+    expect(callFn).not.toHaveBeenCalled();
   });
 });

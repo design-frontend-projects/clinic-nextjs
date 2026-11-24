@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
-type StatusVariant =
+export type StatusVariant =
   | "scheduled"
   | "checked_in"
   | "completed"
@@ -19,9 +19,20 @@ type StatusVariant =
   | "trial"
   | "suspended"
   | "approved"
-  | "rejected";
+  | "rejected"
+  | "ordered"
+  | "in_progress"
+  | "submitted"
+  | "processing"
+  | "received"
+  | "dispensed"
+  | "in_stock"
+  | "low_stock"
+  | "expired"
+  | "archived"
+  | "past_due";
 
-const statusConfig: Record<
+export const statusConfig: Record<
   StatusVariant,
   { label: string; className: string }
 > = {
@@ -93,7 +104,86 @@ const statusConfig: Record<
     label: "Rejected",
     className: "bg-accent-red-soft text-accent-red",
   },
+  ordered: {
+    label: "Ordered",
+    className: "bg-accent-blue-soft text-accent-blue",
+  },
+  in_progress: {
+    label: "In Progress",
+    className: "bg-accent-yellow-soft text-accent-yellow",
+  },
+  submitted: {
+    label: "Submitted",
+    className: "bg-accent-blue-soft text-accent-blue",
+  },
+  processing: {
+    label: "Processing",
+    className: "bg-accent-yellow-soft text-accent-yellow",
+  },
+  received: {
+    label: "Received",
+    className: "bg-accent-green-soft text-accent-green",
+  },
+  dispensed: {
+    label: "Dispensed",
+    className: "bg-accent-green-soft text-accent-green",
+  },
+  in_stock: {
+    label: "In Stock",
+    className: "bg-accent-green-soft text-accent-green",
+  },
+  low_stock: {
+    label: "Low Stock",
+    className: "bg-accent-yellow-soft text-accent-yellow",
+  },
+  expired: {
+    label: "Expired",
+    className: "bg-accent-red-soft text-accent-red",
+  },
+  archived: {
+    label: "Archived",
+    className: "bg-muted text-muted-foreground",
+  },
+  past_due: {
+    label: "Past Due",
+    className: "bg-accent-red-soft text-accent-red",
+  },
 };
+
+export interface StatusTranslator {
+  (key: string): string;
+  has: (key: string) => boolean;
+}
+
+/**
+ * Resolves the display label and Tailwind classes for a status badge without
+ * invoking `t(key)` when a key is absent, avoiding `next-intl` MISSING_MESSAGE
+ * console errors.
+ */
+export function resolveStatusBadge(
+  status: string,
+  t?: StatusTranslator,
+): { label: string; className: string } {
+  const normalizedStatus = status.trim().toLowerCase();
+  const config = statusConfig[normalizedStatus as StatusVariant] || {
+    label: status.trim().replace(/_/g, " "),
+    className: "bg-muted text-muted-foreground",
+  };
+
+  let label = config.label;
+  try {
+    if (t && t.has(normalizedStatus)) {
+      const translated = t(normalizedStatus);
+      if (translated && translated !== `enums.status.${normalizedStatus}`) {
+        label = translated;
+      }
+    }
+  } catch {
+    // Fallback if translation lookup throws (e.g. context is missing)
+  }
+
+  return { label, className: config.className };
+}
 
 interface StatusBadgeProps {
   status: string;
@@ -102,27 +192,14 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const t = useTranslations("enums.status");
-  const config = statusConfig[status as StatusVariant] || {
-    label: status,
-    className: "bg-muted text-muted-foreground",
-  };
-
-  let label = config.label;
-  try {
-    const translated = t(status);
-    if (translated && translated !== `enums.status.${status}`) {
-      label = translated;
-    }
-  } catch {
-    // Fallback if useTranslations throws (e.g. context is missing)
-  }
+  const { label, className: statusClassName } = resolveStatusBadge(status, t);
 
   return (
     <Badge
       variant="secondary"
       className={cn(
         "border-0 font-medium capitalize font-sans",
-        config.className,
+        statusClassName,
         className,
       )}
     >

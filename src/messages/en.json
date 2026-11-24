@@ -1237,7 +1237,18 @@
       "trial": "Trial",
       "suspended": "Suspended",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "ordered": "Ordered",
+      "in_progress": "In Progress",
+      "submitted": "Submitted",
+      "processing": "Processing",
+      "received": "Received",
+      "dispensed": "Dispensed",
+      "in_stock": "In Stock",
+      "low_stock": "Low Stock",
+      "expired": "Expired",
+      "archived": "Archived",
+      "past_due": "Past Due"
     },
     "gender": {
       "male": "Male",
