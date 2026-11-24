@@ -183,3 +183,57 @@ export type InvoiceDeliveryResult =
     }
   | { error: string };
 
+/** Serializable invoice list row returned to billing client components (no Prisma Decimal/Date). */
+export type InvoiceListRow = {
+  id: string;
+  clinic_id: string;
+  branch_id: string | null;
+  patient_id: string | null;
+  created_by: string | null;
+  invoice_number: string | null;
+  invoice_type: string | null;
+  total_amount: number | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  creator: {
+    id: string;
+    full_name: string | null;
+    role: string | null;
+  } | null;
+  patients: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null;
+  invoice_items: {
+    id: string;
+    catalog_item_id: string | null;
+    category: BillingItemCategory;
+    description: string | null;
+    quantity: number | null;
+    unit_price: number | null;
+    total_price: number | null;
+  }[];
+  payments: {
+    id: string;
+    amount: number | null;
+    payment_method: string | null;
+    status: string;
+    paid_at: string | null;
+  }[];
+  insurance_claims: {
+    id: string;
+    claim_amount: number | null;
+    status: string;
+    patient_insurances: {
+      insurance_providers: { name: string } | null;
+    } | null;
+  }[];
+  _count: {
+    invoice_history: number;
+  };
+};
+

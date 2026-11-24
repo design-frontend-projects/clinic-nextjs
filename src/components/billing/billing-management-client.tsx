@@ -29,7 +29,7 @@ import {
   canEditInvoice,
   canMarkInvoiceAsPaid,
 } from "@/lib/invoice-permissions";
-import type { BillingItemCategory } from "@/types/billing.types";
+import type { InvoiceListRow } from "@/types/billing.types";
 import { BillingCatalogTab } from "@/components/billing/billing-catalog-tab";
 import { CreateInvoiceDialog } from "@/components/billing/create-invoice-dialog";
 import {
@@ -52,48 +52,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
-type InvoiceRow = {
-  id: string;
-  invoice_number?: string | null;
-  invoice_type: string | null;
-  total_amount: number | string | null;
-  status: string;
-  created_at: Date | string;
-  created_by?: string | null;
-  creator?: {
-    id: string;
-    full_name: string | null;
-    role: string | null;
-  } | null;
-  patient_id?: string | null;
-  patients: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    phone: string | null;
-    email: string | null;
-  } | null;
-  invoice_items?: {
-    id: string;
-    catalog_item_id: string | null;
-    category: BillingItemCategory;
-    description: string | null;
-    quantity: number | null;
-    unit_price: number | string | null;
-    total_price: number | string | null;
-  }[];
-  payments: { id: string; amount: number | string | null; status: string }[];
-  insurance_claims: {
-    id: string;
-    claim_amount: number | string | null;
-    status: string;
-    patient_insurances: {
-      insurance_providers: { name: string } | null;
-    } | null;
-  }[];
-};
-
-function insuranceTotal(invoice: InvoiceRow): number {
+function insuranceTotal(invoice: InvoiceListRow): number {
   return invoice.insurance_claims.reduce(
     (sum, claim) => sum + Number(claim.claim_amount || 0),
     0,
@@ -132,7 +91,7 @@ export function BillingManagementClient() {
     ? { profileId: tenant.profileId, role: tenant.role }
     : null;
 
-  const openMarkPaidDialog = (row: InvoiceRow) => {
+  const openMarkPaidDialog = (row: InvoiceListRow) => {
     const patientName = row.patients
       ? `${row.patients.first_name || ""} ${row.patients.last_name || ""}`.trim()
       : t("table.walkIn");
@@ -157,7 +116,7 @@ export function BillingManagementClient() {
     });
   };
 
-  const handleQuickWhatsApp = (invoice: InvoiceRow) => {
+  const handleQuickWhatsApp = (invoice: InvoiceListRow) => {
     startTransition(async () => {
       const res = await sendInvoiceWhatsApp(invoice.id, locale);
       if ("error" in res) {
@@ -173,7 +132,7 @@ export function BillingManagementClient() {
     });
   };
 
-  const handleQuickEmail = (invoice: InvoiceRow) => {
+  const handleQuickEmail = (invoice: InvoiceListRow) => {
     startTransition(async () => {
       const res = await sendInvoiceEmail(invoice.id, locale);
       if ("error" in res) {
@@ -189,7 +148,7 @@ export function BillingManagementClient() {
     });
   };
 
-  const openEditDialog = (row: InvoiceRow) => {
+  const openEditDialog = (row: InvoiceListRow) => {
     const patientName = row.patients
       ? `${row.patients.first_name || ""} ${row.patients.last_name || ""}`.trim()
       : t("table.walkIn");
@@ -201,18 +160,18 @@ export function BillingManagementClient() {
       patient_id: row.patients?.id ?? row.patient_id ?? null,
       patient_name: patientName,
       has_insurance_claim: insuranceTotal(row) > 0,
-      items: (row.invoice_items ?? []).map((it) => ({
+      items: row.invoice_items.map((it) => ({
         id: it.id,
         catalog_item_id: it.catalog_item_id ?? null,
         category: it.category ?? "other",
         description: it.description,
         quantity: it.quantity,
-        unit_price: it.unit_price !== null ? Number(it.unit_price) : null,
+        unit_price: it.unit_price,
       })),
     });
   };
 
-  const columns: ColumnDef<InvoiceRow>[] = [
+  const columns: ColumnDef<InvoiceListRow>[] = [
     {
       accessorKey: "id",
       header: t("table.invoice"),
@@ -472,7 +431,7 @@ export function BillingManagementClient() {
         <TabsContent value="invoices" className="space-y-4">
           <DataTable
             columns={columns}
-            data={invoices as unknown as InvoiceRow[]}
+            data={invoices}
             searchKey="id"
             searchPlaceholder={t("searchInvoices")}
           />

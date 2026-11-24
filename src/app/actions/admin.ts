@@ -15,6 +15,10 @@ import {
   createAppointmentForScope,
   registerPatientWithAppointmentForScope,
 } from "@/lib/appointment-service";
+import type {
+  BillingItemCategory,
+  InvoiceListRow,
+} from "@/types/billing.types";
 
 export async function getDashboardStats() {
   const tenant = await requireTenantInfo();
@@ -272,10 +276,21 @@ export async function updateAppointmentStatus(id: string, status: string) {
   return appointment;
 }
 
-export async function getInvoices() {
+function toNumberOrNull(
+  value: { toNumber(): number } | number | string | null | undefined,
+): number | null {
+  if (value === null || value === undefined) return null;
+  const num =
+    typeof value === "object" && "toNumber" in value
+      ? value.toNumber()
+      : Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+export async function getInvoices(): Promise<InvoiceListRow[]> {
   const tenant = await requireTenantInfo();
 
-  return prisma.invoices.findMany({
+  const invoices = await prisma.invoices.findMany({
     where: { clinic_id: tenant.clinicId },
     include: {
       creator: {
@@ -308,6 +323,13 @@ export async function getInvoices() {
       },
       payments: {
         where: { deleted_at: null },
+        select: {
+          id: true,
+          amount: true,
+          payment_method: true,
+          status: true,
+          paid_at: true,
+        },
       },
       insurance_claims: {
         select: {
@@ -328,6 +350,69 @@ export async function getInvoices() {
     orderBy: { created_at: "desc" },
     take: 100,
   });
+
+  return invoices.map((inv) => ({
+    id: inv.id,
+    clinic_id: inv.clinic_id,
+    branch_id: inv.branch_id,
+    patient_id: inv.patient_id,
+    created_by: inv.created_by,
+    invoice_number: inv.invoice_number,
+    invoice_type: inv.invoice_type,
+    total_amount: toNumberOrNull(inv.total_amount),
+    status: inv.status,
+    created_at: inv.created_at.toISOString(),
+    updated_at: inv.updated_at.toISOString(),
+    creator: inv.creator
+      ? {
+          id: inv.creator.id,
+          full_name: inv.creator.full_name,
+          role: inv.creator.role,
+        }
+      : null,
+    patients: inv.patients
+      ? {
+          id: inv.patients.id,
+          first_name: inv.patients.first_name,
+          last_name: inv.patients.last_name,
+          phone: inv.patients.phone,
+          email: inv.patients.email,
+        }
+      : null,
+    invoice_items: inv.invoice_items.map((item) => ({
+      id: item.id,
+      catalog_item_id: item.catalog_item_id,
+      category: (item.category as BillingItemCategory) ?? "other",
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: toNumberOrNull(item.unit_price),
+      total_price: toNumberOrNull(item.total_price),
+    })),
+    payments: inv.payments.map((payment) => ({
+      id: payment.id,
+      amount: toNumberOrNull(payment.amount),
+      payment_method: payment.payment_method,
+      status: payment.status,
+      paid_at: payment.paid_at ? payment.paid_at.toISOString() : null,
+    })),
+    insurance_claims: inv.insurance_claims.map((claim) => ({
+      id: claim.id,
+      claim_amount: toNumberOrNull(claim.claim_amount),
+      status: claim.status,
+      patient_insurances: claim.patient_insurances
+        ? {
+            insurance_providers: claim.patient_insurances.insurance_providers
+              ? {
+                  name: claim.patient_insurances.insurance_providers.name,
+                }
+              : null,
+          }
+        : null,
+    })),
+    _count: {
+      invoice_history: inv._count.invoice_history,
+    },
+  }));
 }
 
 export async function searchPatients(query: string) {
