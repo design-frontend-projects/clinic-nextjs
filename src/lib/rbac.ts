@@ -17,7 +17,9 @@ export function isBypassRole(role?: string | null): boolean {
 
 export async function hasPermission(permissionName: string): Promise<boolean> {
   const tenant = await getTenantInfo();
-  if (!tenant || !tenant.clinicId) return false;
+  if (!tenant || tenant.profileStatus === "blocked") return false;
+  if (tenant.role === "app_owner") return true;
+  if (!tenant.clinicId) return false;
 
   if (isBypassRole(tenant.role)) return true;
 

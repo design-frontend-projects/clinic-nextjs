@@ -17,6 +17,9 @@ export default async function StaffLayout({
   if (result.status === "blocked") {
     return <TenantAccessBlocked access={result.access} />;
   }
+  if (result.status === "app-owner") {
+    return redirect({ href: "/app-owner", locale: await getLocale() });
+  }
   if (result.status === "no-clinic") {
     return <NoClinicNotice />;
   }

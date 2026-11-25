@@ -72,7 +72,11 @@ export function OnboardingForm({
         }
 
         if (res.step === "completed") {
-          router.push("/admin");
+          const target =
+            "redirectPath" in res && typeof res.redirectPath === "string"
+              ? res.redirectPath
+              : "/admin";
+          router.replace(target);
           return;
         }
 

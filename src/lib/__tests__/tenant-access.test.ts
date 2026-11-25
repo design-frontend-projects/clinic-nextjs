@@ -42,7 +42,7 @@ describe("formatRequestRef", () => {
 });
 
 describe("evaluateTenantAccess", () => {
-  it("always allows app_owner regardless of clinic or subscription state", () => {
+  it("allows active/inactive app_owner regardless of clinic or subscription state", () => {
     const res = evaluateTenantAccess(
       makeInput({
         role: "app_owner",
@@ -53,6 +53,19 @@ describe("evaluateTenantAccess", () => {
       BASE_NOW,
     );
     expect(res).toEqual({ allowed: true, warning: null });
+  });
+
+  it("denies blocked app_owner profiles with account_blocked", () => {
+    const res = evaluateTenantAccess(
+      makeInput({
+        role: "app_owner",
+        profileStatus: "blocked",
+        clinic: null,
+        subscription: null,
+      }),
+      BASE_NOW,
+    );
+    expect(res).toEqual({ allowed: false, code: "account_blocked" });
   });
 
   it("denies blocked profiles", () => {

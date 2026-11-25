@@ -179,6 +179,75 @@ describe("auth sign-in server actions resilience", () => {
     expect(mockCookieSet).not.toHaveBeenCalled();
   });
 
+  it("completeSignIn sets onboarding_complete and redirects app_owner to /app-owner even with no clinic", async () => {
+    mockHeadersGet.mockImplementation((name: string) =>
+      name === "x-forwarded-proto" ? "https" : null,
+    );
+    mockGetTenantInfo.mockResolvedValueOnce({
+      clinicId: null,
+      role: "app_owner",
+      is_owner: true,
+      is_profile_completed: false,
+      access: { allowed: true, warning: null },
+    });
+
+    const result = await completeSignIn();
+    expect(result).toEqual({ blocked: false, redirectPath: "/app-owner" });
+    expect(mockCookieSet).toHaveBeenCalledWith(
+      "onboarding_complete",
+      "1",
+      expect.objectContaining({
+        httpOnly: true,
+        secure: true,
+        path: "/",
+        sameSite: "lax",
+      }),
+    );
+  });
+
+  it("syncOnboardingCookie sets onboarding_complete for app_owner with null clinicId", async () => {
+    mockHeadersGet.mockImplementation((name: string) =>
+      name === "x-forwarded-proto" ? "http" : null,
+    );
+    mockGetTenantInfo.mockResolvedValueOnce({
+      clinicId: null,
+      role: "app_owner",
+      is_owner: false,
+      is_profile_completed: false,
+      access: { allowed: true, warning: null },
+    });
+
+    await syncOnboardingCookie();
+    expect(mockCookieSet).toHaveBeenCalledWith(
+      "onboarding_complete",
+      "1",
+      expect.objectContaining({
+        httpOnly: true,
+        secure: false,
+        path: "/",
+        sameSite: "lax",
+      }),
+    );
+  });
+
+  it("completeSignIn blocks a blocked app_owner and signs out session", async () => {
+    mockGetTenantInfo.mockResolvedValueOnce({
+      clinicId: null,
+      role: "app_owner",
+      is_owner: false,
+      is_profile_completed: false,
+      access: { allowed: false, code: "account_blocked" },
+    });
+
+    const result = await completeSignIn();
+    expect(result).toEqual({
+      blocked: true,
+      access: { allowed: false, code: "account_blocked" },
+    });
+    expect(mockSupabaseSignOut).toHaveBeenCalledTimes(1);
+    expect(mockCookieDelete).toHaveBeenCalledWith("onboarding_complete");
+  });
+
   it("completeSignIn blocks sign-in, signs out session, and clears cookies when tenant access is denied", async () => {
     mockGetTenantInfo.mockResolvedValueOnce({
       clinicId: "clinic-1",

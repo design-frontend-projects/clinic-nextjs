@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { getTranslations } from 'next-intl/server';
+import { PlanRowActions } from "@/components/app-owner/plan-row-actions";
 
 export default async function PlansPage() {
   const t = await getTranslations('appOwner.plans');
@@ -56,16 +57,20 @@ export default async function PlansPage() {
                 <TableCell className="capitalize">{plan.billing_period.replace('_', ' ')}</TableCell>
                 <TableCell>
                   <Badge variant={plan.status === "active" ? "default" : "secondary"}>
-                    {plan.status === "active" ? t('active') : t('inactive')}
+                    {plan.status === "active"
+                      ? t("active")
+                      : plan.status === "archived"
+                        ? t("archived")
+                        : t("inactive")}
                   </Badge>
                 </TableCell>
                 <TableCell>{plan._count?.tenant_subscriptions || 0}</TableCell>
                 <TableCell className="text-end">
-                  <Button variant="ghost" size="icon" asChild>
-                    <Link href={`/app-owner/plans/${plan.id}`}>
-                      <Edit2 className="h-4 w-4" />
-                    </Link>
-                  </Button>
+                  <PlanRowActions
+                    planId={plan.id}
+                    planName={plan.name}
+                    activeSubsCount={plan._count?.tenant_subscriptions ?? 0}
+                  />
                 </TableCell>
               </TableRow>
             ))}

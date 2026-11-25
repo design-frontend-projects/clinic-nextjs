@@ -16,10 +16,50 @@ import {
   subscriptionSchema,
 } from "@/types/onboarding.types";
 import { syncDoctorSpecialties } from "@/lib/doctor-specialties";
+import {
+  canRunClinicOnboarding,
+  extractActiveRbacRoleNames,
+  resolveEffectiveProfileRole,
+} from "@/lib/role-resolution";
+import { roleHomePath } from "@/lib/role-routes";
 import { cookies } from "next/headers";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const ONBOARDING_FORBIDDEN_ERROR =
+  "Onboarding is only available for clinic owners.";
+
+async function getOnboardingActor(authId: string) {
+  const profile = await prisma.profiles.findUnique({
+    where: { auth_user_id: authId },
+    include: {
+      user_roles: {
+        where: { is_active: true, deleted_at: null },
+        select: {
+          roles: {
+            select: {
+              name: true,
+              is_active: true,
+              deleted_at: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!profile) {
+    return { profile: null, effectiveRole: "" };
+  }
+
+  const effectiveRole = resolveEffectiveProfileRole(
+    profile.role,
+    extractActiveRbacRoleNames(profile.user_roles),
+  );
+
+  return { profile, effectiveRole };
+}
 
 export async function getOnboardingProgress() {
   const session = await getSupabaseSession();
@@ -27,12 +67,17 @@ export async function getOnboardingProgress() {
 
   const authId = session.user.id;
 
-  const profile = await prisma.profiles.findUnique({
-    where: { auth_user_id: authId },
-  });
+  const { profile, effectiveRole } = await getOnboardingActor(authId);
 
   if (!profile) {
     return { step: "profile" as const, data: {} };
+  }
+
+  if (!canRunClinicOnboarding(effectiveRole)) {
+    return {
+      step: "completed" as const,
+      redirectPath: roleHomePath(effectiveRole),
+    };
   }
 
   const [ownerBranches, clinic] = await Promise.all([
@@ -51,7 +96,11 @@ export async function getOnboardingProgress() {
   ]);
 
   if (clinic?.onboarding_completed_at && profile.is_profile_completed) {
-    return { step: "completed" as const, clinicId: clinic.id };
+    return {
+      step: "completed" as const,
+      clinicId: clinic.id,
+      redirectPath: "/admin",
+    };
   }
 
   const mappedBranches: OnboardingBranchItem[] = ownerBranches.map((b) => ({
@@ -118,6 +167,13 @@ export async function saveProfileStep(data: ProfileFormData) {
     const session = await getSupabaseSession();
     if (!session?.user?.id) return { error: "Unauthorized" };
 
+    const { profile: existingProfile, effectiveRole } = await getOnboardingActor(
+      session.user.id,
+    );
+    if (existingProfile && !canRunClinicOnboarding(effectiveRole)) {
+      return { error: ONBOARDING_FORBIDDEN_ERROR };
+    }
+
     const parsed = profileSchema.safeParse(data);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message || "Invalid data" };
@@ -165,6 +221,11 @@ export async function saveOnboardingBranchesStep(
     const session = await getSupabaseSession();
     if (!session?.user?.id) return { error: "Unauthorized" };
     const authId = session.user.id;
+
+    const { profile, effectiveRole } = await getOnboardingActor(authId);
+    if (profile && !canRunClinicOnboarding(effectiveRole)) {
+      return { error: ONBOARDING_FORBIDDEN_ERROR };
+    }
 
     const normalizedInput: BranchFormData[] =
       branchesInput.length > 0
@@ -283,6 +344,11 @@ export async function saveClinicStep(
     const session = await getSupabaseSession();
     if (!session?.user?.id) return { error: "Unauthorized" };
     const authId = session.user.id;
+
+    const { profile, effectiveRole } = await getOnboardingActor(authId);
+    if (profile && !canRunClinicOnboarding(effectiveRole)) {
+      return { error: ONBOARDING_FORBIDDEN_ERROR };
+    }
 
     const parsed = clinicSchema.safeParse(data);
     if (!parsed.success) {
@@ -499,11 +565,11 @@ export async function saveSpecialtiesStep(specialtyIds: string[]) {
     if (!session?.user?.id) return { error: "Unauthorized" };
     const authId = session.user.id;
 
-    const profile = await prisma.profiles.findUnique({
-      where: { auth_user_id: authId },
-      select: { id: true },
-    });
+    const { profile, effectiveRole } = await getOnboardingActor(authId);
     if (!profile) return { error: "Profile not found" };
+    if (!canRunClinicOnboarding(effectiveRole)) {
+      return { error: ONBOARDING_FORBIDDEN_ERROR };
+    }
 
     const clinic = await prisma.clinics.findFirst({
       where: { auth_user_id: authId, is_primary: true },

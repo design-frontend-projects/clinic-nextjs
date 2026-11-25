@@ -114,22 +114,20 @@ export default async function middleware(request: NextRequest) {
   }
 
   const isOnboardingRoute = pathnameWithoutLocale.startsWith("/onboarding");
+  const isAppOwnerRoute =
+    pathnameWithoutLocale === "/app-owner" ||
+    pathnameWithoutLocale.startsWith("/app-owner/");
   const hasCompletedOnboarding = request.cookies.get("onboarding_complete")?.value === "1";
 
   if (user) {
-    if (!hasCompletedOnboarding && !isOnboardingRoute && !isPublicRoute) {
+    if (
+      !hasCompletedOnboarding &&
+      !isOnboardingRoute &&
+      !isPublicRoute &&
+      !isAppOwnerRoute
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = `/${locale}/onboarding`;
-      const redirectResponse = NextResponse.redirect(url);
-      response.cookies.getAll().forEach((cookie) => {
-        redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any);
-      });
-      return redirectResponse;
-    }
-
-    if (hasCompletedOnboarding && isOnboardingRoute) {
-      const url = request.nextUrl.clone();
-      url.pathname = `/${locale}/admin`;
       const redirectResponse = NextResponse.redirect(url);
       response.cookies.getAll().forEach((cookie) => {
         redirectResponse.cookies.set(cookie.name, cookie.value, cookie as any);

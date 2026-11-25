@@ -2,6 +2,12 @@ import { getLocale } from "next-intl/server";
 import { Metadata } from "next";
 import { redirect } from "@/i18n/routing";
 import { getSupabaseSession } from "@/lib/auth";
+import {
+  canRunClinicOnboarding,
+  extractActiveRbacRoleNames,
+  resolveEffectiveProfileRole,
+} from "@/lib/role-resolution";
+import { roleHomePath } from "@/lib/role-routes";
 import { OnboardingForm } from "@/components/auth/onboarding-form";
 import { getTranslations } from "next-intl/server";
 
@@ -29,15 +35,58 @@ export default async function OnboardingPage({
     return redirect({ href: "/sign-in", locale: await getLocale() });
   }
 
+  const locale = await getLocale();
   const { prisma } = await import("@/lib/prisma");
-  const profile = await prisma.profiles.findUnique({
-    where: { auth_user_id: session.user.id },
-  });
+  const [profile, primaryClinic] = await Promise.all([
+    prisma.profiles.findUnique({
+      where: { auth_user_id: session.user.id },
+      select: {
+        id: true,
+        role: true,
+        is_profile_completed: true,
+        user_roles: {
+          where: { is_active: true, deleted_at: null },
+          select: {
+            roles: {
+              select: {
+                name: true,
+                is_active: true,
+                deleted_at: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.clinics.findFirst({
+      where: { auth_user_id: session.user.id, is_primary: true },
+      select: { onboarding_completed_at: true },
+    }),
+  ]);
 
   if (!profile) {
     return redirect({
       href: "/sign-up?error=profile_missing",
-      locale: await getLocale(),
+      locale,
+    });
+  }
+
+  const effectiveRole = resolveEffectiveProfileRole(
+    profile.role,
+    extractActiveRbacRoleNames(profile.user_roles),
+  );
+
+  if (!canRunClinicOnboarding(effectiveRole)) {
+    return redirect({
+      href: roleHomePath(effectiveRole),
+      locale,
+    });
+  }
+
+  if (profile.is_profile_completed && primaryClinic?.onboarding_completed_at) {
+    return redirect({
+      href: "/admin",
+      locale,
     });
   }
 

@@ -83,8 +83,10 @@ export function formatRequestRef(
  * workspace. Applies across both login (`completeSignIn`) and active sessions
  * (`getTenantInfo` / `requireTenantInfo` / `resolveDashboardTenant`).
  *
- * `app_owner` accounts are always exempt. All clinic roles (owner, admin,
- * doctor, staff, receptionist, pharmacist, patient) are checked against:
+ * `app_owner` accounts are exempt from clinic, subscription, payment, and
+ * inactive-profile gates, though a `blocked` profile is still denied. All
+ * clinic roles (owner, admin, doctor, staff, receptionist, pharmacist, patient)
+ * are checked against:
  *  1. Profile status (`blocked` / `inactive`)
  *  2. Clinic approval & operational status (`under_review`, `rejected`, `suspended`)
  *  3. Subscription status (`pending_approval`, `suspended`, `cancelled`)
@@ -96,12 +98,12 @@ export function evaluateTenantAccess(
   input: TenantAccessInput,
   now: Date = new Date(),
 ): TenantAccessResult {
-  if (input.role === "app_owner") {
-    return { allowed: true, warning: null };
-  }
-
   if (input.profileStatus === "blocked") {
     return { allowed: false, code: "account_blocked" };
+  }
+
+  if (input.role === "app_owner") {
+    return { allowed: true, warning: null };
   }
 
   // Check clinic status before profile `inactive` so under_review/rejected owners

@@ -73,6 +73,7 @@ vi.mock("@/lib/cookie-options", () => ({
 import { getSupabaseSession } from "@/lib/auth";
 import {
   getOnboardingProgress,
+  saveProfileStep,
   saveOnboardingBranchesStep,
   saveClinicStep,
   saveSpecialtiesStep,
@@ -296,5 +297,101 @@ describe("saveClinicStep & saveSpecialtiesStep", () => {
       "1",
       expect.any(Object),
     );
+  });
+});
+
+describe("onboarding guards for app_owner and non-owner roles", () => {
+  it("skips onboarding with redirectPath /app-owner for app_owner via profiles.role", async () => {
+    prismaMock.profiles.findUnique.mockResolvedValue({
+      id: PROFILE_ID,
+      role: "app_owner",
+      user_roles: [],
+    });
+
+    const res = await getOnboardingProgress();
+    expect(res).toEqual({ step: "completed", redirectPath: "/app-owner" });
+    expect(prismaMock.clinics.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("skips onboarding with redirectPath /app-owner when app_owner comes from user_roles", async () => {
+    prismaMock.profiles.findUnique.mockResolvedValue({
+      id: PROFILE_ID,
+      role: "owner",
+      user_roles: [
+        {
+          is_active: true,
+          deleted_at: null,
+          roles: { name: "app_owner", is_active: true, deleted_at: null },
+        },
+      ],
+    });
+
+    const res = await getOnboardingProgress();
+    expect(res).toEqual({ step: "completed", redirectPath: "/app-owner" });
+  });
+
+  it("skips onboarding with roleHomePath for non-owner roles like doctor", async () => {
+    prismaMock.profiles.findUnique.mockResolvedValue({
+      id: PROFILE_ID,
+      role: "doctor",
+      user_roles: [],
+    });
+
+    const res = await getOnboardingProgress();
+    expect(res).toEqual({ step: "completed", redirectPath: "/doctor" });
+  });
+
+  it("blocks all onboarding mutations for app_owner and doctor without writing to DB", async () => {
+    const blockedProfiles = [
+      { id: PROFILE_ID, role: "app_owner", user_roles: [] },
+      {
+        id: PROFILE_ID,
+        role: "owner",
+        user_roles: [
+          {
+            is_active: true,
+            deleted_at: null,
+            roles: { name: "App Owner", is_active: true, deleted_at: null },
+          },
+        ],
+      },
+      { id: PROFILE_ID, role: "doctor", user_roles: [] },
+    ];
+
+    for (const profile of blockedProfiles) {
+      prismaMock.profiles.findUnique.mockResolvedValue(profile);
+
+      const profileRes = await saveProfileStep({
+        full_name: "Test User",
+        email: "user@test.io",
+        role: "owner",
+      });
+      expect(profileRes).toEqual({
+        error: "Onboarding is only available for clinic owners.",
+      });
+
+      const branchRes = await saveOnboardingBranchesStep([
+        { name: "Main", address: "", phone: "" },
+      ]);
+      expect(branchRes).toEqual({
+        error: "Onboarding is only available for clinic owners.",
+      });
+
+      const clinicRes = await saveClinicStep(
+        { name: "Should Not Create", branch_ids: [BRANCH_1] },
+        { plan_id: PLAN_ID },
+      );
+      expect(clinicRes).toEqual({
+        error: "Onboarding is only available for clinic owners.",
+      });
+
+      const specRes = await saveSpecialtiesStep([]);
+      expect(specRes).toEqual({
+        error: "Onboarding is only available for clinic owners.",
+      });
+    }
+
+    expect(prismaMock.profiles.upsert).not.toHaveBeenCalled();
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 });

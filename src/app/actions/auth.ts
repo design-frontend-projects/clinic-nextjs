@@ -10,6 +10,7 @@ import { getSupabaseSession, getTenantInfo } from "@/lib/auth";
 import { isSecureCookieContext } from "@/lib/cookie-options";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { roleHomePath, DEFAULT_HOME_PATH } from "@/lib/role-routes";
+import { canRunClinicOnboarding } from "@/lib/role-resolution";
 import { createUserAccountWithPassword, rollbackAuthUser } from "@/lib/invitations";
 import { planToLegacyTier } from "@/lib/subscription-provisioning";
 import { formatRequestRef } from "@/lib/tenant-access";
@@ -26,8 +27,13 @@ import {
 async function setOnboardingCookieIfEligible(
   tenant: Awaited<ReturnType<typeof getTenantInfo>>,
 ): Promise<void> {
-  if (!tenant?.clinicId) return;
-  if (tenant.is_owner && !tenant.is_profile_completed) return;
+  if (!tenant) return;
+
+  const skipsOnboarding = !canRunClinicOnboarding(tenant.role);
+  if (!skipsOnboarding) {
+    if (!tenant.clinicId) return;
+    if (tenant.is_owner && !tenant.is_profile_completed) return;
+  }
 
   const cookieStore = await cookies();
   const secure = await isSecureCookieContext();

@@ -7,6 +7,10 @@ import {
   evaluateTenantAccess,
   type TenantAccessDenied,
 } from "@/lib/tenant-access";
+import {
+  extractActiveRbacRoleNames,
+  resolveEffectiveProfileRole,
+} from "@/lib/role-resolution";
 
 /**
  * Helper to fetch the current authenticated user from cookies (server-side).
@@ -88,24 +92,48 @@ export const getTenantInfo = reactCache(async () => {
       is_owner: true,
       status: true,
       branch_id: true,
+      user_roles: {
+        where: { is_active: true, deleted_at: null },
+        select: {
+          tenant_id: true,
+          roles: {
+            select: {
+              name: true,
+              is_active: true,
+              deleted_at: true,
+            },
+          },
+        },
+      },
     },
   });
   if (!profile) return null;
 
-  let tenantId = profile.tenant_id;
+  const effectiveRole = resolveEffectiveProfileRole(
+    profile.role,
+    extractActiveRbacRoleNames(profile.user_roles),
+  );
+  const isPlatformAppOwner = effectiveRole === "app_owner";
+
+  let tenantId = isPlatformAppOwner ? null : profile.tenant_id;
 
   // Self-heal: an invited user (doctor/staff) whose profile.tenant_id was never
   // persisted (e.g. the post-invite upsert didn't complete, so only the
   // `on_auth_user_created` trigger's NULL-tenant row survived) can still be
   // recovered — `user_roles.tenant_id` is stamped with the clinic at invite time.
   // Reconstruct the link and persist it so this is a one-time repair.
-  if (!tenantId && !profile.is_owner) {
-    const userRole = await prisma.user_roles.findFirst({
-      where: { profile_id: profile.id, is_active: true, deleted_at: null },
-      select: { tenant_id: true },
-    });
-    if (userRole?.tenant_id) {
-      tenantId = userRole.tenant_id;
+  if (!isPlatformAppOwner && !tenantId && !profile.is_owner) {
+    let recoveredTenantId =
+      profile.user_roles?.find((ur) => ur.tenant_id)?.tenant_id ?? null;
+    if (!recoveredTenantId && profile.user_roles === undefined) {
+      const userRole = await prisma.user_roles.findFirst({
+        where: { profile_id: profile.id, is_active: true, deleted_at: null },
+        select: { tenant_id: true },
+      });
+      recoveredTenantId = userRole?.tenant_id ?? null;
+    }
+    if (recoveredTenantId) {
+      tenantId = recoveredTenantId;
       try {
         await prisma.profiles.update({
           where: { id: profile.id },
@@ -126,7 +154,7 @@ export const getTenantInfo = reactCache(async () => {
   // so it must be resolved BEFORE the clinic lookup below.
   let doctorHasAssignments = false;
   let doctorActiveBranchId: string | null = null;
-  if (isMultiBranchRole(profile.role)) {
+  if (!isPlatformAppOwner && isMultiBranchRole(effectiveRole)) {
     const assignments = await prisma.profile_branches.findMany({
       where: { profile_id: profile.id },
       select: { clinic_id: true, branch_id: true, is_primary: true },
@@ -226,62 +254,69 @@ export const getTenantInfo = reactCache(async () => {
   };
 
   let clinic: ClinicQueryResult = null;
-  try {
-    clinic = await queryFullClinic();
-  } catch (err) {
-    const code =
-      typeof err === "object" && err !== null && "code" in err
-        ? (err as { code?: unknown }).code
-        : undefined;
-    if (code !== "P2022") {
-      throw err;
+  if (!isPlatformAppOwner) {
+    try {
+      clinic = await queryFullClinic();
+    } catch (err) {
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? (err as { code?: unknown }).code
+          : undefined;
+      if (code !== "P2022") {
+        throw err;
+      }
+      console.warn(
+        "[auth] Missing columns in DB (P2022) — apply prisma/migrations/27_tenant_approval_and_subscription_gate.sql. Falling back to base clinic columns.",
+      );
+      clinic = await queryBaseClinic();
     }
-    console.warn(
-      "[auth] Missing columns in DB (P2022) — apply prisma/migrations/27_tenant_approval_and_subscription_gate.sql. Falling back to base clinic columns.",
-    );
-    clinic = await queryBaseClinic();
   }
 
   // Branch resolution:
+  // - Platform app_owner: no clinic/branch context.
   // - Doctors with assignments: not locked; branch comes from the assignment-
   //   validated active branch resolved above (switchable via the top bar).
   // - Other branch-locked roles (staff/pharmacist/receptionist) and legacy
   //   doctors without assignments are pinned to profiles.branch_id.
   // - Owners/admins keep the cookie-driven switcher behavior.
   const branchLocked =
+    !isPlatformAppOwner &&
     !doctorHasAssignments &&
     !(profile.is_owner ?? false) &&
-    isBranchLockedRole(profile.role);
+    isBranchLockedRole(effectiveRole);
 
-  let branchId: string | null;
-  if (doctorHasAssignments) {
-    branchId = doctorActiveBranchId;
-  } else if (branchLocked) {
-    branchId = profile.branch_id ?? null;
-  } else {
-    const cookieStore = await cookies();
-    branchId = cookieStore.get("active_branch_id")?.value ?? null;
-  }
-
-  // Validate the resolved branch against the clinic; drop stale/foreign values
-  // (e.g. a cookie from another clinic or a branch deleted/unlinked after assignment).
+  let branchId: string | null = null;
   let branchName: string | null = null;
-  if (branchId && clinic?.id) {
-    const link = await prisma.clinic_branches.findFirst({
-      where: { branch_id: branchId, clinic_id: clinic.id },
-      select: { branches: { select: { name: true } } },
-    });
-    if (link) {
-      branchName = link.branches.name;
+
+  if (!isPlatformAppOwner) {
+    if (doctorHasAssignments) {
+      branchId = doctorActiveBranchId;
+    } else if (branchLocked) {
+      branchId = profile.branch_id ?? null;
     } else {
+      const cookieStore = await cookies();
+      branchId = cookieStore.get("active_branch_id")?.value ?? null;
+    }
+
+    // Validate the resolved branch against the clinic; drop stale/foreign values
+    // (e.g. a cookie from another clinic or a branch deleted/unlinked after assignment).
+    if (branchId && clinic?.id) {
+      const link = await prisma.clinic_branches.findFirst({
+        where: { branch_id: branchId, clinic_id: clinic.id },
+        select: { branches: { select: { name: true } } },
+      });
+      if (link) {
+        branchName = link.branches.name;
+      } else {
+        branchId = null;
+      }
+    } else if (branchId && !clinic?.id) {
       branchId = null;
     }
-  } else if (branchId && !clinic?.id) {
-    branchId = null;
   }
 
   const access = evaluateTenantAccess({
-    role: profile.role,
+    role: effectiveRole,
     profileStatus: profile.status,
     clinic: clinic
       ? {
@@ -309,16 +344,18 @@ export const getTenantInfo = reactCache(async () => {
     userId,
     orgId: null,
     profileId: profile.id,
-    role: profile.role as string,
+    role: effectiveRole,
     fullName: profile.full_name,
     email: profile.email,
     profileStatus: profile.status as string,
     is_profile_completed: profile.is_profile_completed ?? false,
     is_owner: profile.is_owner ?? false,
-    clinicId: clinic?.id ?? null,
-    clinicName: clinic?.name ?? null,
-    clinicStatus: clinic?.status ?? null,
-    subscriptionPlan: clinic?.subscription_plan ?? "free",
+    clinicId: isPlatformAppOwner ? null : (clinic?.id ?? null),
+    clinicName: isPlatformAppOwner ? null : (clinic?.name ?? null),
+    clinicStatus: isPlatformAppOwner ? null : (clinic?.status ?? null),
+    subscriptionPlan: isPlatformAppOwner
+      ? "free"
+      : (clinic?.subscription_plan ?? "free"),
     branchId,
     branchName,
     branchLocked,
@@ -369,6 +406,7 @@ type TenantInfo = NonNullable<Awaited<ReturnType<typeof getTenantInfo>>>;
  * Returns a discriminated result so every role layout can branch consistently:
  * - `unauthenticated`: no session/profile — redirect to sign-in.
  * - `blocked`: account/clinic/payment/expiration gate failed — render lockout notice.
+ * - `app-owner`: platform operator with no tenant clinic — redirect to /app-owner.
  * - `no-clinic`: authenticated but the profile isn't linked to any clinic —
  *   render a friendly notice instead of crashing.
  * - `ok`: full tenant context is available (`clinicId` is guaranteed non-null).
@@ -376,6 +414,7 @@ type TenantInfo = NonNullable<Awaited<ReturnType<typeof getTenantInfo>>>;
 export async function resolveDashboardTenant(): Promise<
   | { status: "unauthenticated" }
   | { status: "blocked"; access: TenantAccessDenied }
+  | { status: "app-owner" }
   | { status: "no-clinic" }
   | { status: "ok"; tenant: TenantInfo & { clinicId: string } }
 > {
@@ -384,6 +423,7 @@ export async function resolveDashboardTenant(): Promise<
   if (!tenant.access.allowed) {
     return { status: "blocked", access: tenant.access };
   }
+  if (tenant.role === "app_owner") return { status: "app-owner" };
   if (!tenant.clinicId) return { status: "no-clinic" };
   return { status: "ok", tenant: { ...tenant, clinicId: tenant.clinicId } };
 }

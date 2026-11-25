@@ -238,7 +238,17 @@
       "actions": "Actions",
       "noPlansFound": "No subscription plans found. Create one to get started.",
       "active": "active",
-      "inactive": "inactive"
+      "inactive": "inactive",
+      "archived": "archived",
+      "edit": "Edit plan",
+      "remove": "Remove plan",
+      "removeTitle": "Remove Subscription Plan",
+      "removeDescription": "Are you sure you want to remove the \"{name}\" plan? It will no longer appear to clinics or in the plans list.",
+      "removeBlockedBySubs": "Cannot remove \"{name}\" because {count} tenant(s) are currently subscribed to it. Reassign those tenants to another plan first.",
+      "removeConfirm": "Remove Plan",
+      "removeCancel": "Cancel",
+      "toastRemoved": "Subscription plan removed.",
+      "toastRemoveFailed": "Failed to remove subscription plan."
     },
     "specialties": {
       "newSpecialtyTitle": "New Specialty",
@@ -1304,11 +1314,7 @@
   "plans": {
     "basic": "Basic",
     "basicPrice": "$29/mo",
-    "basicFeatures": [
-      "1 Branch",
-      "Up to 3 Staff Users",
-      "Basic Reporting"
-    ],
+    "basicFeatures": ["1 Branch", "Up to 3 Staff Users", "Basic Reporting"],
     "pro": "Pro",
     "proPrice": "$99/mo",
     "proFeatures": [

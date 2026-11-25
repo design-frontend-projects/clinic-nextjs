@@ -238,7 +238,17 @@
       "actions": "الإجراءات",
       "noPlansFound": "لم يتم العثور على خطط اشتراك. قم بإنشاء خطة واحدة للبدء.",
       "active": "نشط",
-      "inactive": "غير نشط"
+      "inactive": "غير نشط",
+      "archived": "مؤرشف",
+      "edit": "تعديل الخطة",
+      "remove": "حذف الخطة",
+      "removeTitle": "حذف خطة الاشتراك",
+      "removeDescription": "هل أنت متأكد من رغبتك في حذف خطة \"{name}\"؟ لن تظهر للعيادات أو في قائمة الخطط بعد الآن.",
+      "removeBlockedBySubs": "لا يمكن حذف خطة \"{name}\" لأن هناك {count} عيادة مشتركة فيها حاليًا. يرجى نقل هذه العيادات إلى خطة أخرى أولاً.",
+      "removeConfirm": "حذف الخطة",
+      "removeCancel": "إلغاء",
+      "toastRemoved": "تم حذف خطة الاشتراك.",
+      "toastRemoveFailed": "فشل حذف خطة الاشتراك."
     },
     "specialties": {
       "newSpecialtyTitle": "تخصص جديد",
