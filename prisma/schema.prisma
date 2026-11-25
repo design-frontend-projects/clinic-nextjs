@@ -575,6 +575,11 @@ model clinics {
   phone                   String?
   subscription_plan       String?
   status                  ClinicStatus             @default(trial)
+  request_ref             String?                  @unique
+  activated_at            DateTime?
+  reviewed_by             String?                  @db.Uuid
+  reviewed_at             DateTime?
+  rejection_reason        String?
   created_at              DateTime                 @default(now())
   updated_at              DateTime                 @default(now())
   is_primary              Boolean?                 @default(false)
@@ -621,6 +626,8 @@ model clinics {
   tenant_subscription     tenant_subscriptions?
   user_permissions        user_permissions[]
   user_roles              user_roles[]
+
+  @@index([status])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -1082,6 +1089,8 @@ model tenant_subscriptions {
   start_date        DateTime
   end_date          DateTime?
   renewal_date      DateTime?
+  activated_at      DateTime?
+  grace_period_days Int                           @default(7)
   status            SubscriptionStatus            @default(active)
   billing_cycle     BillingPeriod
   price             Decimal                       @db.Decimal(10, 2)
@@ -1282,6 +1291,8 @@ enum ClinicStatus {
   active
   suspended
   trial
+  under_review
+  rejected
 }
 
 enum EncounterType {
@@ -1418,4 +1429,5 @@ enum SubscriptionStatus {
   past_due
   suspended
   cancelled
+  pending_approval
 }

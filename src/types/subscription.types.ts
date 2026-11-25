@@ -15,6 +15,7 @@ export const subscriptionStatusEnum = z.enum([
   "past_due",
   "suspended",
   "cancelled",
+  "pending_approval",
 ]);
 
 /** A feature row attached to a plan. */
@@ -55,6 +56,8 @@ export const subscriptionPlanSchema = z.object({
 export type SubscriptionPlanFormData = z.input<typeof subscriptionPlanSchema>;
 export type SubscriptionPlanData = z.output<typeof subscriptionPlanSchema>;
 
+export const paymentStatusEnum = z.enum(["pending", "paid", "refunded"]);
+
 /** Assign / change a tenant's subscription plan. */
 export const tenantSubscriptionSchema = z.object({
   tenant_id: z.string().uuid(),
@@ -65,11 +68,14 @@ export const tenantSubscriptionSchema = z.object({
   status: subscriptionStatusEnum.default("active"),
   discount: z.coerce.number().min(0).optional().nullable(),
   notes: z.string().optional().nullable(),
+  start_date: z.string().optional().nullable(),
+  end_date: z.string().optional().nullable(),
+  payment_status: paymentStatusEnum.optional(),
+  payment_reference: z.string().optional().nullable(),
+  grace_period_days: z.coerce.number().int().min(0).max(365).optional(),
 });
 
 export type TenantSubscriptionData = z.infer<typeof tenantSubscriptionSchema>;
-
-export const paymentStatusEnum = z.enum(["pending", "paid", "refunded"]);
 
 /** Full upsert payload for the app-owner tenant-subscription action. */
 export const tenantSubscriptionUpsertSchema = z.object({

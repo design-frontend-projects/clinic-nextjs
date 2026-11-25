@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ProfileRole } from "@prisma/client";
+import type { ClinicStatus, ProfileRole } from "@prisma/client";
 
 export const clinicStatusEnum = z.enum(["trial", "active", "suspended"]);
 export const branchStatusEnum = z.enum(["active", "inactive"]);
@@ -173,7 +173,7 @@ export interface ClinicWithBranches {
   email: string | null;
   phone: string | null;
   subscription_plan: string | null;
-  status: "trial" | "active" | "suspended";
+  status: ClinicStatus;
   is_primary: boolean | null;
   have_pharmacy: boolean | null;
   have_lab: boolean | null;

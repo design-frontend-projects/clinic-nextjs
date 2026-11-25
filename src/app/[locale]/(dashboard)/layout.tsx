@@ -3,6 +3,7 @@ import { hasPermission } from "@/lib/rbac";
 import { resolveNavItems, type ResolvedNavItem } from "@/components/layout/nav.config";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { OfflineProvider } from "@/lib/offline/offline-context";
+import type { TenantAccessWarning } from "@/lib/tenant-access";
 
 export const dynamic = "force-dynamic";
 
@@ -15,20 +16,24 @@ export default async function DashboardLayout({
   let navItems: ResolvedNavItem[] = [];
   let clinicId: string | null = null;
   let userId: string | null = null;
+  let graceWarning: TenantAccessWarning | null = null;
 
   try {
     const tenant = await requireAuthenticatedTenant();
     role = tenant.role || "staff";
-    clinicId = tenant.clinicId ?? null;
-    userId = tenant.userId ?? null;
-    navItems = await resolveNavItems(role, hasPermission);
+    if (tenant.access.allowed) {
+      clinicId = tenant.clinicId ?? null;
+      userId = tenant.userId ?? null;
+      graceWarning = tenant.access.warning;
+      navItems = await resolveNavItems(role, hasPermission);
+    }
   } catch {
     // Unauthenticated render: no nav is shown. Route guards handle redirects.
     navItems = [];
   }
 
   return (
-    <DashboardShell role={role} items={navItems}>
+    <DashboardShell role={role} items={navItems} graceWarning={graceWarning}>
       {clinicId && userId ? (
         <OfflineProvider clinicId={clinicId} userId={userId}>
           {children}

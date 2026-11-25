@@ -24,6 +24,12 @@ import {
   type CreateTenantFormData,
   type CreateTenantResult,
 } from "@/types/tenant-creation.types";
+import {
+  approveTenantRequestSchema,
+  rejectTenantRequestSchema,
+  type ApproveTenantRequestData,
+  type RejectTenantRequestData,
+} from "@/types/tenant-request.types";
 
 /**
  * Fetch all tenants (clinics) with their primary owner and subscription.
@@ -162,6 +168,9 @@ export async function createTenant(
           subscription_plan: planToLegacyTier(activePlan),
           // Schema default is "trial"; admin-created tenants start active.
           status: ClinicStatus.active,
+          activated_at: now,
+          reviewed_by: admin.id,
+          reviewed_at: now,
           onboarding_completed_at: now,
         },
       });
@@ -195,21 +204,33 @@ export async function createTenant(
           start_date: startDate,
           end_date: endDate,
           renewal_date: endDate,
+          activated_at: now,
+          grace_period_days: 7,
           status: "active",
           billing_cycle: activePlan.billing_period,
           price: activePlan.price,
           currency: activePlan.currency,
+          payment_status: "paid",
           created_by: admin.id,
         },
       });
 
-      await tx.branches.create({
+      const mainBranch = await tx.branches.create({
         data: {
+          owner_id: authUserId,
           clinic_id: clinic.id,
           name: input.branch.name || "Main Branch",
           address: input.branch.address || null,
           phone: input.branch.phone || null,
           status: "active",
+        },
+      });
+
+      await tx.clinic_branches.create({
+        data: {
+          clinic_id: clinic.id,
+          branch_id: mainBranch.id,
+          is_primary: true,
         },
       });
 
@@ -428,16 +449,55 @@ export async function assignTenantPlan(data: TenantSubscriptionData) {
     where: { tenant_id: input.tenant_id },
   });
 
+  const now = new Date();
+  const startDate = input.start_date
+    ? new Date(input.start_date)
+    : existing?.start_date ?? now;
+  const computedEndDate =
+    input.billing_cycle === "lifetime"
+      ? null
+      : input.end_date
+        ? new Date(input.end_date)
+        : existing?.end_date && !input.start_date
+          ? existing.end_date
+          : subscriptionWindow(input.billing_cycle, startDate).endDate;
+
+  if (
+    Number.isNaN(startDate.getTime()) ||
+    (computedEndDate && Number.isNaN(computedEndDate.getTime()))
+  ) {
+    return { error: "Invalid subscription start or end date." };
+  }
+  if (computedEndDate && computedEndDate.getTime() < startDate.getTime()) {
+    return { error: "End date must be on or after the start date." };
+  }
+
+  const nextPaymentStatus =
+    input.payment_status ?? existing?.payment_status ?? "pending";
+  const nextPaymentRef =
+    input.payment_reference !== undefined
+      ? input.payment_reference || null
+      : existing?.payment_reference ?? null;
+  const nextGraceDays =
+    input.grace_period_days ?? existing?.grace_period_days ?? 7;
+
   const subscription = existing
     ? await prisma.tenant_subscriptions.update({
         where: { tenant_id: input.tenant_id },
         data: {
           plan_id: input.plan_id,
           status: input.status,
+          start_date: startDate,
+          end_date: computedEndDate,
+          renewal_date: computedEndDate,
+          activated_at: existing.activated_at ?? now,
+          grace_period_days: nextGraceDays,
           price: input.price,
           discount: input.discount ?? null,
           currency: input.currency,
           billing_cycle: input.billing_cycle,
+          payment_status: nextPaymentStatus,
+          payment_reference: nextPaymentRef,
           notes: input.notes ?? null,
           updated_by: admin.id,
         },
@@ -447,25 +507,356 @@ export async function assignTenantPlan(data: TenantSubscriptionData) {
           tenant_id: input.tenant_id,
           plan_id: input.plan_id,
           status: input.status,
-          start_date: new Date(),
+          start_date: startDate,
+          end_date: computedEndDate,
+          renewal_date: computedEndDate,
+          activated_at: now,
+          grace_period_days: nextGraceDays,
           price: input.price,
           discount: input.discount ?? null,
           currency: input.currency,
           billing_cycle: input.billing_cycle,
+          payment_status: nextPaymentStatus,
+          payment_reference: nextPaymentRef,
           notes: input.notes ?? null,
           created_by: admin.id,
         },
       });
 
+  const transitionedToPaid =
+    nextPaymentStatus === "paid" &&
+    (!existing ||
+      existing.payment_status !== "paid" ||
+      (Boolean(input.payment_reference) &&
+        input.payment_reference !== existing.payment_reference));
+
+  if (transitionedToPaid) {
+    await prisma.payment_records.create({
+      data: {
+        tenant_subscription_id: subscription.id,
+        amount: Math.max(0, Number(input.price) - Number(input.discount ?? 0)),
+        currency: input.currency,
+        status: "paid",
+        payment_date: now,
+        reference: nextPaymentRef,
+        notes: input.notes ?? null,
+      },
+    });
+  }
+
   await prisma.tenant_subscription_history.create({
     data: {
       tenant_subscription_id: subscription.id,
       action: existing ? "UPDATED" : "CREATED",
-      new_data: { plan_id: input.plan_id, status: input.status },
+      new_data: {
+        plan_id: input.plan_id,
+        status: input.status,
+        payment_status: nextPaymentStatus,
+        start_date: startDate.toISOString(),
+        end_date: computedEndDate?.toISOString() ?? null,
+      },
       changed_by: admin.id,
     },
   });
 
   revalidatePath("/app-owner/tenants");
+  revalidatePath("/app-owner");
+  return { success: true };
+}
+
+/**
+ * Approve an `under_review` (or previously `rejected`) tenant request:
+ * activates the clinic + owner profile, ensures a default Main Branch exists,
+ * configures the subscription window/payment/grace period, records payment if
+ * paid, and logs audit/subscription history atomically.
+ */
+export async function approveTenantRequest(
+  data: ApproveTenantRequestData,
+): Promise<{ success: true } | { error: string }> {
+  const admin = await requireAppOwner();
+  if (admin.role !== "app_owner") {
+    return { error: "Only the platform app-owner can approve tenant requests." };
+  }
+
+  const parsed = approveTenantRequestSchema.safeParse(data);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid approval data" };
+  }
+  const input = parsed.data;
+
+  const [clinic, plan] = await Promise.all([
+    prisma.clinics.findUnique({
+      where: { id: input.tenantId },
+      include: {
+        staff_profiles: {
+          where: { role: "owner" },
+          select: { id: true, email: true },
+          take: 1,
+        },
+      },
+    }),
+    prisma.subscription_plans.findFirst({
+      where: { id: input.planId, deleted_at: null },
+    }),
+  ]);
+
+  if (!clinic) {
+    return { error: "Tenant request not found." };
+  }
+  if (
+    clinic.status !== ClinicStatus.under_review &&
+    clinic.status !== ClinicStatus.rejected
+  ) {
+    return {
+      error: "Only requests that are under review or rejected can be approved.",
+    };
+  }
+  if (!plan) {
+    return { error: "Selected subscription plan was not found." };
+  }
+
+  const owner = clinic.staff_profiles[0];
+  if (!owner) {
+    return { error: "Tenant must have a primary owner profile to approve." };
+  }
+
+  const startDate = new Date(input.startDate);
+  if (Number.isNaN(startDate.getTime())) {
+    return { error: "Invalid start date." };
+  }
+
+  const endDate =
+    input.billingCycle === "lifetime"
+      ? null
+      : input.endDate
+        ? new Date(input.endDate)
+        : subscriptionWindow(input.billingCycle, startDate).endDate;
+
+  if (endDate && Number.isNaN(endDate.getTime())) {
+    return { error: "Invalid end date." };
+  }
+  if (endDate && endDate.getTime() < startDate.getTime()) {
+    return { error: "End date must be on or after the start date." };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const now = new Date();
+
+      await tx.clinics.update({
+        where: { id: clinic.id },
+        data: {
+          status:
+            input.clinicStatus === "trial"
+              ? ClinicStatus.trial
+              : ClinicStatus.active,
+          activated_at: now,
+          reviewed_by: admin.id,
+          reviewed_at: now,
+          rejection_reason: null,
+          onboarding_completed_at: clinic.onboarding_completed_at ?? now,
+          subscription_plan: planToLegacyTier(plan),
+        },
+      });
+
+      await tx.profiles.update({
+        where: { id: owner.id },
+        data: {
+          status: UserStatus.active,
+          is_profile_completed: true,
+        },
+      });
+
+      const branchCount = await tx.clinic_branches.count({
+        where: { clinic_id: clinic.id },
+      });
+      if (branchCount === 0) {
+        const mainBranch = await tx.branches.create({
+          data: {
+            owner_id: clinic.auth_user_id,
+            clinic_id: clinic.id,
+            name: "Main Branch",
+            status: "active",
+          },
+        });
+        await tx.clinic_branches.create({
+          data: {
+            clinic_id: clinic.id,
+            branch_id: mainBranch.id,
+            is_primary: true,
+          },
+        });
+      }
+
+      const subscription = await tx.tenant_subscriptions.upsert({
+        where: { tenant_id: clinic.id },
+        update: {
+          plan_id: plan.id,
+          status: "active",
+          start_date: startDate,
+          end_date: endDate,
+          renewal_date: endDate,
+          activated_at: now,
+          billing_cycle: input.billingCycle,
+          price: input.price,
+          discount: input.discount ?? null,
+          currency: input.currency,
+          payment_status: input.paymentStatus,
+          payment_reference: input.paymentReference || null,
+          grace_period_days: input.gracePeriodDays,
+          notes: input.notes || null,
+          updated_by: admin.id,
+        },
+        create: {
+          tenant_id: clinic.id,
+          plan_id: plan.id,
+          status: "active",
+          start_date: startDate,
+          end_date: endDate,
+          renewal_date: endDate,
+          activated_at: now,
+          billing_cycle: input.billingCycle,
+          price: input.price,
+          discount: input.discount ?? null,
+          currency: input.currency,
+          payment_status: input.paymentStatus,
+          payment_reference: input.paymentReference || null,
+          grace_period_days: input.gracePeriodDays,
+          notes: input.notes || null,
+          created_by: admin.id,
+        },
+      });
+
+      if (input.paymentStatus === "paid") {
+        await tx.payment_records.create({
+          data: {
+            tenant_subscription_id: subscription.id,
+            amount: Math.max(0, Number(input.price) - Number(input.discount ?? 0)),
+            currency: input.currency,
+            status: "paid",
+            payment_date: now,
+            reference: input.paymentReference || null,
+            notes: input.notes || null,
+          },
+        });
+      }
+
+      await tx.tenant_subscription_history.create({
+        data: {
+          tenant_subscription_id: subscription.id,
+          action: "APPROVED",
+          new_data: {
+            plan_id: plan.id,
+            clinic_status: input.clinicStatus,
+            payment_status: input.paymentStatus,
+            start_date: startDate.toISOString(),
+            end_date: endDate?.toISOString() ?? null,
+            grace_period_days: input.gracePeriodDays,
+          },
+          changed_by: admin.id,
+        },
+      });
+
+      await tx.audit_logs.create({
+        data: {
+          tenant_id: clinic.id,
+          actor_id: admin.id,
+          actor_email: admin.email,
+          action: "TENANT_REQUEST_APPROVED",
+          entity_type: "clinics",
+          entity_id: clinic.id,
+          new_values: {
+            request_ref: clinic.request_ref,
+            clinic_status: input.clinicStatus,
+            plan_id: plan.id,
+            payment_status: input.paymentStatus,
+          },
+        },
+      });
+    });
+  } catch (error) {
+    console.error("approveTenantRequest failed:", error);
+    return { error: "Failed to approve tenant request." };
+  }
+
+  revalidatePath("/app-owner/tenants");
+  revalidatePath("/app-owner");
+  return { success: true };
+}
+
+/**
+ * Reject an `under_review` tenant request with an optional reason.
+ */
+export async function rejectTenantRequest(
+  data: RejectTenantRequestData,
+): Promise<{ success: true } | { error: string }> {
+  const admin = await requireAppOwner();
+  if (admin.role !== "app_owner") {
+    return { error: "Only the platform app-owner can reject tenant requests." };
+  }
+
+  const parsed = rejectTenantRequestSchema.safeParse(data);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid rejection data" };
+  }
+  const input = parsed.data;
+
+  const clinic = await prisma.clinics.findUnique({
+    where: { id: input.tenantId },
+    select: { id: true, status: true, request_ref: true },
+  });
+
+  if (!clinic) {
+    return { error: "Tenant request not found." };
+  }
+  if (clinic.status !== ClinicStatus.under_review) {
+    return { error: "Only requests currently under review can be rejected." };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const reason = input.reason?.trim() || null;
+
+      await tx.clinics.update({
+        where: { id: clinic.id },
+        data: {
+          status: ClinicStatus.rejected,
+          reviewed_by: admin.id,
+          reviewed_at: now,
+          rejection_reason: reason,
+        },
+      });
+
+      await tx.tenant_subscriptions.updateMany({
+        where: { tenant_id: clinic.id },
+        data: {
+          status: "cancelled",
+          updated_by: admin.id,
+        },
+      });
+
+      await tx.audit_logs.create({
+        data: {
+          tenant_id: clinic.id,
+          actor_id: admin.id,
+          actor_email: admin.email,
+          action: "TENANT_REQUEST_REJECTED",
+          entity_type: "clinics",
+          entity_id: clinic.id,
+          new_values: {
+            request_ref: clinic.request_ref,
+            reason,
+          },
+        },
+      });
+    });
+  } catch (error) {
+    console.error("rejectTenantRequest failed:", error);
+    return { error: "Failed to reject tenant request." };
+  }
+
+  revalidatePath("/app-owner/tenants");
+  revalidatePath("/app-owner");
   return { success: true };
 }

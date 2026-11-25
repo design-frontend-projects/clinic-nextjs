@@ -18,6 +18,8 @@ export type StatusVariant =
   | "refunded"
   | "trial"
   | "suspended"
+  | "under_review"
+  | "pending_approval"
   | "approved"
   | "rejected"
   | "ordered"
@@ -95,6 +97,14 @@ export const statusConfig: Record<
   },
   suspended: {
     label: "Suspended",
+    className: "bg-accent-yellow-soft text-accent-yellow",
+  },
+  under_review: {
+    label: "Under Review",
+    className: "bg-accent-yellow-soft text-accent-yellow",
+  },
+  pending_approval: {
+    label: "Pending Approval",
     className: "bg-accent-yellow-soft text-accent-yellow",
   },
   approved: {

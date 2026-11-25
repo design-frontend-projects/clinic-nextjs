@@ -6,12 +6,29 @@ const {
   mockCookieSet,
   mockCookieDelete,
   mockHeadersGet,
+  mockSupabaseSignOut,
 } = vi.hoisted(() => ({
   mockGetTenantInfo: vi.fn(),
   mockGetSupabaseSession: vi.fn(),
   mockCookieSet: vi.fn(),
   mockCookieDelete: vi.fn(),
   mockHeadersGet: vi.fn(),
+  mockSupabaseSignOut: vi.fn(async () => ({ error: null })),
+}));
+
+vi.mock("@supabase/ssr", () => ({
+  createServerClient: vi.fn(() => ({
+    auth: { signOut: mockSupabaseSignOut },
+  })),
+}));
+
+vi.mock("@/lib/supabase/env", () => ({
+  getSupabaseEnv: () => ({ url: "https://example.supabase.co", anonKey: "k" }),
+}));
+
+vi.mock("@/lib/invitations", () => ({
+  createUserAccountWithPassword: vi.fn(),
+  rollbackAuthUser: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -134,7 +151,7 @@ describe("auth sign-in server actions resilience", () => {
     });
 
     const result = await completeSignIn();
-    expect(result).toEqual({ redirectPath: "/doctor" });
+    expect(result).toEqual({ blocked: false, redirectPath: "/doctor" });
     expect(mockGetTenantInfo).toHaveBeenCalledTimes(1);
     expect(mockCookieSet).toHaveBeenCalledWith(
       "onboarding_complete",
@@ -154,11 +171,40 @@ describe("auth sign-in server actions resilience", () => {
       role: "owner",
       is_owner: true,
       is_profile_completed: false,
+      access: { allowed: true, warning: null },
     });
 
     const result = await completeSignIn();
-    expect(result).toEqual({ redirectPath: "/admin" });
+    expect(result).toEqual({ blocked: false, redirectPath: "/admin" });
     expect(mockCookieSet).not.toHaveBeenCalled();
+  });
+
+  it("completeSignIn blocks sign-in, signs out session, and clears cookies when tenant access is denied", async () => {
+    mockGetTenantInfo.mockResolvedValueOnce({
+      clinicId: "clinic-1",
+      role: "owner",
+      is_owner: true,
+      is_profile_completed: false,
+      access: {
+        allowed: false,
+        code: "under_review",
+        requestRef: "REQ-2026-0009",
+      },
+    });
+
+    const result = await completeSignIn();
+    expect(result).toEqual({
+      blocked: true,
+      access: {
+        allowed: false,
+        code: "under_review",
+        requestRef: "REQ-2026-0009",
+      },
+    });
+    expect(mockSupabaseSignOut).toHaveBeenCalledTimes(1);
+    expect(mockCookieDelete).toHaveBeenCalledWith("onboarding_complete");
+    expect(mockCookieDelete).toHaveBeenCalledWith("active_clinic_id");
+    expect(mockCookieDelete).toHaveBeenCalledWith("active_branch_id");
   });
 
   it("completeSignIn falls back to JWT role when getTenantInfo throws", async () => {
@@ -168,7 +214,7 @@ describe("auth sign-in server actions resilience", () => {
     });
 
     const result = await completeSignIn();
-    expect(result).toEqual({ redirectPath: "/staff" });
+    expect(result).toEqual({ blocked: false, redirectPath: "/staff" });
     expect(mockCookieSet).not.toHaveBeenCalled();
   });
 

@@ -89,6 +89,37 @@ export async function createUserAccount({
   return { user: data.user, tempPassword };
 }
 
+/**
+ * Create a Supabase auth user with a user-chosen password (self-service account
+ * request flow). Email is pre-confirmed so the user can sign in as soon as the
+ * platform `app_owner` approves the tenant request; access remains gated by the
+ * clinic/profile/subscription status in Postgres.
+ */
+export async function createUserAccountWithPassword({
+  email,
+  password,
+  metadata,
+}: {
+  email: string;
+  password: string;
+  metadata: AccountMetadata;
+}): Promise<{ user: User }> {
+  const supabaseAdmin = createSupabaseServerClient();
+
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { ...metadata },
+  });
+
+  if (error || !data.user) {
+    throw new Error(error?.message || "Failed to create user account");
+  }
+
+  return { user: data.user };
+}
+
 /** Low-level rollback: delete the auth user only. */
 export async function deleteAuthUser(userId: string): Promise<void> {
   const supabaseAdmin = createSupabaseServerClient();

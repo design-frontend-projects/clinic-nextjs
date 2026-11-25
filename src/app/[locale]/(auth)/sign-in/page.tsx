@@ -43,13 +43,21 @@ export default function SignInPage() {
               <SignInForm />
             </Suspense>
           </CardContent>
-          <CardFooter className="flex justify-center border-t border-hairline-soft pt-4 text-sm text-muted-foreground dark:border-hairline">
-            {t("auth.signIn.noAccount")}{" "}
+          <CardFooter className="flex flex-col items-center gap-2 border-t border-hairline-soft pt-4 text-sm text-muted-foreground dark:border-hairline">
+            <div>
+              {t("auth.signIn.noAccount")}{" "}
+              <Link
+                href="/sign-up"
+                className="ms-1 font-medium text-primary hover:underline"
+              >
+                {t("auth.signIn.signUp")}
+              </Link>
+            </div>
             <Link
-              href="/sign-up"
-              className="ms-1 font-medium text-primary hover:underline"
+              href="/request-status"
+              className="text-xs font-medium text-primary hover:underline"
             >
-              {t("auth.signIn.signUp")}
+              {t("auth.signIn.trackRequestLink")}
             </Link>
           </CardFooter>
         </Card>

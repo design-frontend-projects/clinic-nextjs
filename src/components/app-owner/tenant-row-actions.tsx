@@ -15,6 +15,7 @@ import {
   assignTenantPlan,
 } from "@/app/actions/app-owner/tenants";
 import { getSubscriptionPlans } from "@/app/actions/app-owner/plans";
+import { subscriptionWindow } from "@/lib/subscription-provisioning";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,10 +44,18 @@ const BILLING_CYCLES = [
   "annual",
   "lifetime",
 ] as const;
-const SUB_STATUSES = ["active", "past_due", "suspended", "cancelled"] as const;
+const SUB_STATUSES = [
+  "active",
+  "past_due",
+  "suspended",
+  "cancelled",
+  "pending_approval",
+] as const;
+const PAYMENT_STATUSES = ["pending", "paid", "refunded"] as const;
 
 type BillingCycle = (typeof BILLING_CYCLES)[number];
 type SubStatus = (typeof SUB_STATUSES)[number];
+type PaymentStatusOption = (typeof PAYMENT_STATUSES)[number];
 
 interface TenantOwner {
   id: string;
@@ -55,22 +64,87 @@ interface TenantOwner {
   status: string;
 }
 
+interface TenantSubscriptionSnapshot {
+  plan_id: string;
+  billing_cycle: string;
+  price: number;
+  status: string;
+  payment_status: string;
+  payment_reference: string | null;
+  start_date: string;
+  end_date: string | null;
+  grace_period_days: number;
+}
+
 interface TenantRowActionsProps {
   tenant: { id: string; name: string; status: string };
   owner: TenantOwner | null;
+  subscription?: TenantSubscriptionSnapshot | null;
 }
 
-export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
+function formatDateInput(value?: string | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
+function autoEndDateForCycle(startStr: string, cycle: BillingCycle): string {
+  if (cycle === "lifetime" || !startStr) return "";
+  const d = new Date(`${startStr}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return "";
+  const { endDate } = subscriptionWindow(cycle, d);
+  return endDate ? endDate.toISOString().slice(0, 10) : "";
+}
+
+export function TenantRowActions({
+  tenant,
+  owner,
+  subscription,
+}: TenantRowActionsProps) {
   const router = useRouter();
   const t = useTranslations("appOwner.tenantActions");
   const tPeriods = useTranslations("appOwner.planEditor.periods");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const [planId, setPlanId] = useState<string>("");
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  const [price, setPrice] = useState<string>("");
-  const [subStatus, setSubStatus] = useState<SubStatus>("active");
+  const initialCycle = (
+    BILLING_CYCLES.includes(subscription?.billing_cycle as BillingCycle)
+      ? subscription?.billing_cycle
+      : "monthly"
+  ) as BillingCycle;
+  const initialStatus = (
+    SUB_STATUSES.includes(subscription?.status as SubStatus)
+      ? subscription?.status
+      : "active"
+  ) as SubStatus;
+  const initialPayment = (
+    PAYMENT_STATUSES.includes(subscription?.payment_status as PaymentStatusOption)
+      ? subscription?.payment_status
+      : "paid"
+  ) as PaymentStatusOption;
+
+  const [planId, setPlanId] = useState<string>(subscription?.plan_id ?? "");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialCycle);
+  const [price, setPrice] = useState<string>(
+    subscription ? String(subscription.price) : "",
+  );
+  const [subStatus, setSubStatus] = useState<SubStatus>(initialStatus);
+  const [paymentStatus, setPaymentStatus] =
+    useState<PaymentStatusOption>(initialPayment);
+  const [paymentReference, setPaymentReference] = useState<string>(
+    subscription?.payment_reference ?? "",
+  );
+  const [startDate, setStartDate] = useState<string>(
+    formatDateInput(subscription?.start_date) ||
+      new Date().toISOString().slice(0, 10),
+  );
+  const [endDate, setEndDate] = useState<string>(
+    formatDateInput(subscription?.end_date) ||
+      autoEndDateForCycle(new Date().toISOString().slice(0, 10), initialCycle),
+  );
+  const [gracePeriodDays, setGracePeriodDays] = useState<string>(
+    String(subscription?.grace_period_days ?? 7),
+  );
 
   const { data: plans = [] } = useQuery({
     queryKey: ["subscription-plans"],
@@ -103,6 +177,11 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
         price: Number(price || 0),
         status: subStatus,
         currency: "USD",
+        start_date: startDate || undefined,
+        end_date: billingCycle === "lifetime" ? null : endDate || null,
+        payment_status: paymentStatus,
+        payment_reference: paymentReference.trim() || null,
+        grace_period_days: Number(gracePeriodDays || 7),
       }),
     );
   };
@@ -221,7 +300,11 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                 <Label>{t("billingCycleLabel")}</Label>
                 <Select
                   value={billingCycle}
-                  onValueChange={(v) => setBillingCycle(v as BillingCycle)}
+                  onValueChange={(v) => {
+                    const next = v as BillingCycle;
+                    setBillingCycle(next);
+                    setEndDate(autoEndDateForCycle(startDate, next));
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -245,6 +328,69 @@ export function TenantRowActions({ tenant, owner }: TenantRowActionsProps) {
                   placeholder="0.00"
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>{t("startDateLabel")}</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setStartDate(next);
+                    setEndDate(autoEndDateForCycle(next, billingCycle));
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("endDateLabel")}</Label>
+                <Input
+                  type="date"
+                  value={billingCycle === "lifetime" ? "" : endDate}
+                  disabled={billingCycle === "lifetime"}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>{t("paymentStatusLabel")}</Label>
+                <Select
+                  value={paymentStatus}
+                  onValueChange={(v) =>
+                    setPaymentStatus(v as PaymentStatusOption)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_STATUSES.map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {t(`paymentStatuses.${v}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("graceDaysLabel")}</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="365"
+                  value={gracePeriodDays}
+                  onChange={(e) => setGracePeriodDays(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t("paymentReferenceLabel")}</Label>
+              <Input
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                placeholder={t("paymentReferencePlaceholder")}
+              />
             </div>
             <div className="space-y-2">
               <Label>{t("statusLabel")}</Label>

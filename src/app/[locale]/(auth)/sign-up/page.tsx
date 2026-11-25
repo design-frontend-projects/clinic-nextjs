@@ -22,8 +22,8 @@ export default async function SignUpPage({
   const planParse = z.uuid().safeParse(plan);
   const planId = planParse.success ? planParse.data : undefined;
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas p-4 font-sans">
-      <div className="w-full max-w-md space-y-6">
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-4 py-8 font-sans">
+      <div className="w-full max-w-2xl space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <Link href="/" className="group flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-(--radius-button) bg-primary text-primary-foreground transition-transform group-hover:scale-105">
@@ -47,13 +47,21 @@ export default async function SignUpPage({
           <CardContent>
             <SignUpForm planId={planId} />
           </CardContent>
-          <CardFooter className="flex justify-center border-t border-hairline-soft pt-4 text-sm text-muted-foreground dark:border-hairline">
-            {t("auth.signUp.alreadyHaveAccount")}{" "}
+          <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline-soft pt-4 text-sm text-muted-foreground dark:border-hairline">
+            <div>
+              {t("auth.signUp.alreadyHaveAccount")}{" "}
+              <Link
+                href="/sign-in"
+                className="ms-1 font-medium text-primary hover:underline"
+              >
+                {t("auth.signUp.signUpButton")}
+              </Link>
+            </div>
             <Link
-              href="/sign-in"
-              className="ms-1 font-medium text-primary hover:underline"
+              href="/request-status"
+              className="font-medium text-primary hover:underline"
             >
-              {t("auth.signUp.signUpButton")}
+              {t("auth.signUp.trackExistingRequest")}
             </Link>
           </CardFooter>
         </Card>

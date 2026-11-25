@@ -3,6 +3,10 @@ import { cookies } from "next/headers";
 import { cache as reactCache } from "react";
 import { isBranchLockedRole, isMultiBranchRole } from "@/types/clinic.types";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import {
+  evaluateTenantAccess,
+  type TenantAccessDenied,
+} from "@/lib/tenant-access";
 
 /**
  * Helper to fetch the current authenticated user from cookies (server-side).
@@ -88,9 +92,6 @@ export const getTenantInfo = reactCache(async () => {
   });
   if (!profile) return null;
 
-  // Blocked users cannot resolve a tenant context (denies app access).
-  if (profile.status === "blocked") return null;
-
   let tenantId = profile.tenant_id;
 
   // Self-heal: an invited user (doctor/staff) whose profile.tenant_id was never
@@ -162,17 +163,83 @@ export const getTenantInfo = reactCache(async () => {
     }
   }
 
-  let clinic = null;
-  if (tenantId) {
-    clinic = await prisma.clinics.findUnique({
-      where: { id: tenantId },
-      select: { id: true, name: true, subscription_plan: true },
-    });
-  } else {
-    clinic = await prisma.clinics.findFirst({
-      where: { auth_user_id: userId, AND: { is_primary: true } },
-      select: { id: true, name: true, subscription_plan: true },
-    });
+  const clinicSelect = {
+    id: true,
+    name: true,
+    subscription_plan: true,
+    status: true,
+    request_ref: true,
+    activated_at: true,
+    rejection_reason: true,
+    tenant_subscription: {
+      select: {
+        status: true,
+        payment_status: true,
+        start_date: true,
+        end_date: true,
+        activated_at: true,
+        billing_cycle: true,
+        price: true,
+        grace_period_days: true,
+      },
+    },
+  } as const;
+
+  const baseClinicSelect = {
+    id: true,
+    name: true,
+    subscription_plan: true,
+    status: true,
+  } as const;
+
+  const queryFullClinic = () =>
+    tenantId
+      ? prisma.clinics.findUnique({
+          where: { id: tenantId },
+          select: clinicSelect,
+        })
+      : prisma.clinics.findFirst({
+          where: { auth_user_id: userId, AND: { is_primary: true } },
+          select: clinicSelect,
+        });
+
+  type ClinicQueryResult = Awaited<ReturnType<typeof queryFullClinic>>;
+
+  const queryBaseClinic = async (): Promise<ClinicQueryResult> => {
+    const row = tenantId
+      ? await prisma.clinics.findUnique({
+          where: { id: tenantId },
+          select: baseClinicSelect,
+        })
+      : await prisma.clinics.findFirst({
+          where: { auth_user_id: userId, AND: { is_primary: true } },
+          select: baseClinicSelect,
+        });
+    if (!row) return null;
+    return {
+      ...row,
+      request_ref: null,
+      activated_at: null,
+      rejection_reason: null,
+      tenant_subscription: null,
+    };
+  };
+
+  let clinic: ClinicQueryResult = null;
+  try {
+    clinic = await queryFullClinic();
+  } catch (err) {
+    const code =
+      typeof err === "object" && err !== null && "code" in err
+        ? (err as { code?: unknown }).code
+        : undefined;
+    if (code !== "P2022") {
+      throw err;
+    }
+    console.warn(
+      "[auth] Missing columns in DB (P2022) — apply prisma/migrations/27_tenant_approval_and_subscription_gate.sql. Falling back to base clinic columns.",
+    );
+    clinic = await queryBaseClinic();
   }
 
   // Branch resolution:
@@ -213,6 +280,31 @@ export const getTenantInfo = reactCache(async () => {
     branchId = null;
   }
 
+  const access = evaluateTenantAccess({
+    role: profile.role,
+    profileStatus: profile.status,
+    clinic: clinic
+      ? {
+          status: clinic.status,
+          request_ref: clinic.request_ref,
+          rejection_reason: clinic.rejection_reason,
+          activated_at: clinic.activated_at,
+        }
+      : null,
+    subscription: clinic?.tenant_subscription
+      ? {
+          status: clinic.tenant_subscription.status,
+          payment_status: clinic.tenant_subscription.payment_status,
+          start_date: clinic.tenant_subscription.start_date,
+          end_date: clinic.tenant_subscription.end_date,
+          activated_at: clinic.tenant_subscription.activated_at,
+          billing_cycle: clinic.tenant_subscription.billing_cycle,
+          price: Number(clinic.tenant_subscription.price),
+          grace_period_days: clinic.tenant_subscription.grace_period_days,
+        }
+      : null,
+  });
+
   return {
     userId,
     orgId: null,
@@ -220,31 +312,35 @@ export const getTenantInfo = reactCache(async () => {
     role: profile.role as string,
     fullName: profile.full_name,
     email: profile.email,
+    profileStatus: profile.status as string,
     is_profile_completed: profile.is_profile_completed ?? false,
     is_owner: profile.is_owner ?? false,
     clinicId: clinic?.id ?? null,
     clinicName: clinic?.name ?? null,
+    clinicStatus: clinic?.status ?? null,
     subscriptionPlan: clinic?.subscription_plan ?? "free",
     branchId,
     branchName,
     branchLocked,
     auth_user_id: userId,
+    access,
   };
 });
 
 /**
- * Ensure the user is authenticated and has a valid profile.
+ * Ensure the user is authenticated and has a valid, non-blocked profile.
  */
 export async function requireAuthenticatedTenant() {
   const tenant = await getTenantInfo();
-  if (!tenant) {
+  if (!tenant || tenant.profileStatus === "blocked") {
     throw new Error("Unauthorized: No tenant info found");
   }
   return tenant;
 }
 
 /**
- * Ensure the user also has an associated clinic (full tenant context).
+ * Ensure the user also has an associated clinic and active/paid/non-expired
+ * tenant access.
  */
 export async function requireTenantInfo() {
   const tenant = await getTenantInfo();
@@ -255,6 +351,9 @@ export async function requireTenantInfo() {
     throw new Error(
       "Configuration Error: The logged‑in user's profile does not have an assigned clinic_id. Please ensure your profile is linked to a clinic.",
     );
+  }
+  if (!tenant.access.allowed) {
+    throw new Error(`Forbidden: Tenant access denied (${tenant.access.code})`);
   }
   return {
     ...tenant,
@@ -269,17 +368,22 @@ type TenantInfo = NonNullable<Awaited<ReturnType<typeof getTenantInfo>>>;
  *
  * Returns a discriminated result so every role layout can branch consistently:
  * - `unauthenticated`: no session/profile — redirect to sign-in.
+ * - `blocked`: account/clinic/payment/expiration gate failed — render lockout notice.
  * - `no-clinic`: authenticated but the profile isn't linked to any clinic —
  *   render a friendly notice instead of crashing.
  * - `ok`: full tenant context is available (`clinicId` is guaranteed non-null).
  */
 export async function resolveDashboardTenant(): Promise<
   | { status: "unauthenticated" }
+  | { status: "blocked"; access: TenantAccessDenied }
   | { status: "no-clinic" }
   | { status: "ok"; tenant: TenantInfo & { clinicId: string } }
 > {
   const tenant = await getTenantInfo();
   if (!tenant) return { status: "unauthenticated" };
+  if (!tenant.access.allowed) {
+    return { status: "blocked", access: tenant.access };
+  }
   if (!tenant.clinicId) return { status: "no-clinic" };
   return { status: "ok", tenant: { ...tenant, clinicId: tenant.clinicId } };
 }

@@ -10,6 +10,7 @@ import * as z from "zod";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { mapSignInErrorKey, type SignInErrorKey } from "@/lib/auth-errors";
 import { completeSignIn } from "@/app/actions/auth";
+import type { TenantAccessDenied } from "@/lib/tenant-access";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,9 @@ export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const submittingRef = useRef(false);
   const [formErrorKey, setFormErrorKey] = useState<SignInErrorKey | null>(null);
+  const [blockedAccess, setBlockedAccess] = useState<TenantAccessDenied | null>(
+    null,
+  );
   const t = useTranslations("auth.signIn");
 
   const callbackError = searchParams.get("error") === "auth_callback_failed";
@@ -63,6 +67,7 @@ export function SignInForm() {
     submittingRef.current = true;
     setIsLoading(true);
     setFormErrorKey(null);
+    setBlockedAccess(null);
 
     if (typeof window !== "undefined") {
       localStorage.setItem("remember_me", data.rememberMe ? "true" : "false");
@@ -85,9 +90,18 @@ export function SignInForm() {
       useAuthStore.getState().setSession(signInData.session ?? null);
       queryClient.clear();
 
-      // Single server round-trip: syncs the onboarding cookie (when eligible)
-      // and resolves the authoritative role landing route from `profiles.role`.
-      const { redirectPath } = await completeSignIn();
+      // Single server round-trip: verifies tenant status/payment/expiration,
+      // syncs the onboarding cookie (when eligible), and resolves role route.
+      const result = await completeSignIn();
+
+      if (result.blocked) {
+        useAuthStore.getState().setSession(null);
+        setBlockedAccess(result.access);
+        toast.error(t(`blocked.titles.${result.access.code}`));
+        submittingRef.current = false;
+        setIsLoading(false);
+        return;
+      }
 
       toast.success(t("signInButton"));
 
@@ -95,7 +109,7 @@ export function SignInForm() {
       // the button doesn't re-enable mid-navigation and trigger a duplicate
       // submission. Do not call `router.refresh()` in the same tick as
       // `router.replace()` — it races the in-flight navigation transition.
-      router.replace(redirectPath);
+      router.replace(result.redirectPath);
     } catch (error: unknown) {
       const errorKey = mapSignInErrorKey(error);
       setFormErrorKey(errorKey);
@@ -105,11 +119,46 @@ export function SignInForm() {
     }
   };
 
-  const activeErrorMessage = formErrorKey
-    ? t(formErrorKey)
-    : callbackError
-      ? t("authCallbackFailed")
-      : null;
+  const blockedMessage = (() => {
+    if (!blockedAccess) return null;
+    switch (blockedAccess.code) {
+      case "under_review":
+        return t("blocked.descriptions.under_review", {
+          ref: blockedAccess.requestRef || "—",
+        });
+      case "rejected":
+        return blockedAccess.reason
+          ? t("blocked.descriptions.rejectedWithReason", {
+              ref: blockedAccess.requestRef || "—",
+              reason: blockedAccess.reason,
+            })
+          : t("blocked.descriptions.rejected", {
+              ref: blockedAccess.requestRef || "—",
+            });
+      case "subscription_not_started":
+        return t("blocked.descriptions.subscription_not_started", {
+          date: blockedAccess.startDate
+            ? new Date(blockedAccess.startDate).toLocaleDateString()
+            : "",
+        });
+      case "subscription_expired":
+        return t("blocked.descriptions.subscription_expired", {
+          date: blockedAccess.endDate
+            ? new Date(blockedAccess.endDate).toLocaleDateString()
+            : "",
+        });
+      default:
+        return t(`blocked.descriptions.${blockedAccess.code}`);
+    }
+  })();
+
+  const activeErrorMessage = blockedMessage
+    ? blockedMessage
+    : formErrorKey
+      ? t(formErrorKey)
+      : callbackError
+        ? t("authCallbackFailed")
+        : null;
 
   return (
     <motion.form
@@ -126,7 +175,31 @@ export function SignInForm() {
         >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <div className="space-y-1">
+            {blockedAccess && (
+              <p className="font-semibold">
+                {t(`blocked.titles.${blockedAccess.code}`)}
+              </p>
+            )}
             <p className="font-medium leading-snug">{activeErrorMessage}</p>
+            {blockedAccess?.requestRef && (
+              <p className="font-mono text-[11px]">
+                {t("blocked.refLabel")}: {blockedAccess.requestRef}
+              </p>
+            )}
+            {blockedAccess &&
+              (blockedAccess.code === "under_review" ||
+                blockedAccess.code === "rejected") && (
+                <Link
+                  href={
+                    blockedAccess.requestRef
+                      ? `/request-status?ref=${encodeURIComponent(blockedAccess.requestRef)}`
+                      : "/request-status"
+                  }
+                  className="inline-block underline underline-offset-2 hover:opacity-80"
+                >
+                  {t("blocked.trackRequest")}
+                </Link>
+              )}
             {formErrorKey === "invalidCredentials" && (
               <Link
                 href="/forgot-password"
