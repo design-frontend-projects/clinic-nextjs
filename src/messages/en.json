@@ -595,6 +595,7 @@
     "myAppointments": "My Appointments",
     "myPatients": "My Patients",
     "prescriptions": "Prescriptions",
+    "medicines": "Medicines",
     "profile": "Profile",
     "checkinQueue": "Check-in Queue",
     "tenants": "Tenants",
@@ -1607,7 +1608,8 @@
       "expired": "Expired",
       "archived": "Archived",
       "past_due": "Past Due",
-      "confirmed": "Confirmed"
+      "confirmed": "Confirmed",
+      "stopped": "Stopped"
     },
     "gender": {
       "male": "Male",
@@ -2472,8 +2474,11 @@
       "dosagePlaceholder": "Dosage (500mg)",
       "frequencyPlaceholder": "Frequency (2x/day)",
       "durationPlaceholder": "Duration (7 days)",
+      "routePlaceholder": "Route (Oral)",
       "qtyPlaceholder": "Qty",
       "instructionsPlaceholder": "Instructions (e.g., take after meals)",
+      "legacyBadge": "Legacy",
+      "stoppedBadge": "Stopped",
       "notesLabel": "Notes",
       "notesPlaceholder": "Additional notes for this prescription...",
       "cancel": "Cancel",
@@ -2486,15 +2491,18 @@
       "prescribedBy": "Prescribed by"
     },
     "combobox": {
-      "selectMedication": "Select medication",
-      "searchMedicationPlaceholder": "Search or type a medication...",
+      "selectMedication": "Select medicine from catalog",
+      "searchMedicationPlaceholder": "Search clinic medicines...",
       "selectPatient": "Select patient",
       "searchPatientsPlaceholder": "Search patients...",
       "searching": "Searching...",
       "typeAtLeastTwo": "Type at least 2 characters.",
       "noPatientsFound": "No patients found.",
       "unnamedPatient": "Unnamed patient",
-      "catalogHeading": "Catalog",
+      "catalogHeading": "Clinic Medicines",
+      "noMedicinesFound": "No matching active medicines found in your clinic catalog.",
+      "quickAdd": "Quick add to catalog",
+      "quickAddWithQuery": "Quick add \"{value}\" to catalog",
       "freeTextHeading": "Free text",
       "useCustom": "Use \"{value}\""
     }
@@ -2637,6 +2645,148 @@
         "pharmacist": "Pharmacists",
         "app_owner": "App owner"
       }
+    }
+  },
+  "medicines": {
+    "title": "Medicines",
+    "subtitle": "Manage your clinic's medicine catalog and prescribing defaults for doctors",
+    "addButton": "Add Medicine",
+    "loading": "Loading medicines...",
+    "searchPlaceholder": "Search by generic name, brand, strength, or form...",
+    "statusLabel": "Status",
+    "addedBy": "Added by",
+    "stoppedOn": "Stopped on",
+    "stoppedBy": "Stopped by",
+    "stopReasonLabel": "Stop reason",
+    "toastCreated": "Medicine added to catalog",
+    "toastUpdated": "Medicine updated",
+    "toastResumed": "Medicine resumed and available for prescribing",
+    "kpi": {
+      "total": "Total Medicines",
+      "active": "Active",
+      "stopped": "Stopped"
+    },
+    "tabs": {
+      "active": "Active ({count})",
+      "stopped": "Stopped ({count})",
+      "all": "All ({count})"
+    },
+    "filters": {
+      "allCategories": "All Categories"
+    },
+    "table": {
+      "colMedicine": "Medicine",
+      "colCategory": "Category",
+      "colDefaults": "Prescribing Defaults",
+      "colStatus": "Status",
+      "noDefaults": "No defaults set",
+      "ariaRowActions": "Medicine actions"
+    },
+    "actions": {
+      "view": "View details",
+      "edit": "Edit medicine",
+      "stop": "Stop medicine",
+      "resume": "Resume medicine",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "create": "Add medicine",
+      "close": "Close"
+    },
+    "dialog": {
+      "createTitle": "Add Medicine",
+      "createDescription": "Add a medicine and optional prescribing defaults to your clinic catalog.",
+      "editTitle": "Edit Medicine",
+      "editDescription": "Update medicine details and prescribing defaults.",
+      "viewTitle": "Medicine Details",
+      "viewDescription": "Review medicine specifications and prescribing defaults."
+    },
+    "stopDialog": {
+      "title": "Stop Medicine",
+      "description": "Stopping \"{name}\" hides it from new prescriptions while preserving historical prescriptions. You can resume it anytime.",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "e.g., Discontinued, out of stock, replaced by newer formulation...",
+      "cancel": "Cancel",
+      "confirm": "Stop Medicine",
+      "toastStopped": "Medicine stopped"
+    },
+    "sections": {
+      "coreInfo": "Core Info",
+      "prescribingDefaults": "Prescribing Defaults",
+      "prescribingDefaultsHint": "Auto-filled when a doctor picks this medicine in a prescription (editable per patient).",
+      "optionalDetails": "Optional / Pharmacy Details"
+    },
+    "fields": {
+      "genericName": "Generic Name *",
+      "brandName": "Brand Name",
+      "category": "Category",
+      "strength": "Strength",
+      "form": "Form",
+      "route": "Route",
+      "defaultDosage": "Default Dosage",
+      "defaultFrequency": "Default Frequency",
+      "defaultDuration": "Default Duration",
+      "defaultQuantity": "Default Quantity",
+      "defaultInstructions": "Default Instructions",
+      "manufacturer": "Manufacturer",
+      "price": "Price",
+      "barcode": "Barcode",
+      "code": "Code",
+      "codeSystem": "Code System"
+    },
+    "placeholders": {
+      "genericName": "e.g., Amoxicillin",
+      "brandName": "e.g., Amoxil",
+      "category": "Select category",
+      "strength": "e.g., 500mg",
+      "form": "Select form",
+      "route": "Select route",
+      "none": "None",
+      "defaultDosage": "e.g., 1 capsule",
+      "defaultFrequency": "e.g., Every 8 hours",
+      "defaultDuration": "e.g., 7 days",
+      "defaultQuantity": "e.g., 21",
+      "defaultInstructions": "e.g., Take after meals with water"
+    },
+    "categories": {
+      "antibiotic": "Antibiotic",
+      "analgesic": "Analgesic / Pain Relief",
+      "antihypertensive": "Antihypertensive",
+      "antidiabetic": "Antidiabetic",
+      "antihistamine": "Antihistamine",
+      "gastrointestinal": "Gastrointestinal",
+      "respiratory": "Respiratory",
+      "cardiovascular": "Cardiovascular",
+      "dermatological": "Dermatological",
+      "vitamins_supplements": "Vitamins & Supplements",
+      "other": "Other"
+    },
+    "forms": {
+      "Tablet": "Tablet",
+      "Capsule": "Capsule",
+      "Syrup": "Syrup",
+      "Suspension": "Suspension",
+      "Injection": "Injection",
+      "Cream": "Cream",
+      "Ointment": "Ointment",
+      "Drops": "Drops",
+      "Inhaler": "Inhaler",
+      "Suppository": "Suppository",
+      "Patch": "Patch",
+      "Powder": "Powder",
+      "Solution": "Solution"
+    },
+    "routes": {
+      "Oral": "Oral",
+      "IV": "IV (Intravenous)",
+      "IM": "IM (Intramuscular)",
+      "SC": "SC (Subcutaneous)",
+      "Topical": "Topical",
+      "Inhalation": "Inhalation",
+      "Ophthalmic": "Ophthalmic",
+      "Otic": "Otic",
+      "Nasal": "Nasal",
+      "Rectal": "Rectal",
+      "Sublingual": "Sublingual"
     }
   }
 }

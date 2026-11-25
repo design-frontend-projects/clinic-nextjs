@@ -33,7 +33,8 @@ export type StatusVariant =
   | "low_stock"
   | "expired"
   | "archived"
-  | "past_due";
+  | "past_due"
+  | "stopped";
 
 export const statusConfig: Record<
   StatusVariant,
@@ -161,6 +162,10 @@ export const statusConfig: Record<
   },
   past_due: {
     label: "Past Due",
+    className: "bg-accent-red-soft text-accent-red",
+  },
+  stopped: {
+    label: "Stopped",
     className: "bg-accent-red-soft text-accent-red",
   },
 };

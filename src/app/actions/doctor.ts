@@ -201,7 +201,11 @@ export async function getPatientDetails(
     prisma.prescriptions.findMany({
       where: { patient_id: patientId, clinic_id: tenant.clinicId },
       include: {
-        prescription_items: true,
+        prescription_items: {
+          include: {
+            medications: { select: { is_active: true } },
+          },
+        },
         profiles: { select: { full_name: true } },
       },
       orderBy: { issued_at: "desc" },

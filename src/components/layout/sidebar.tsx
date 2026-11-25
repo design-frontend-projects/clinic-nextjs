@@ -28,6 +28,7 @@ import {
   Bell,
   ShieldCheck,
   MessageCircle,
+  Tablets,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const ICONS: Record<string, LucideIcon> = {
   clinic: Building,
   settings: Settings,
   prescriptions: Pill,
+  medicines: Tablets,
   labOrders: FlaskConical,
   checkin: ClipboardList,
   profile: User,

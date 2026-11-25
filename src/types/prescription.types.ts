@@ -6,21 +6,28 @@ export const prescriptionStatusEnum = z.enum([
   "cancelled",
 ]);
 
-export const prescriptionItemSchema = z.object({
-  medication_id: z.string().uuid().nullable().optional(),
-  medication_name: z.string().min(1, "Medication is required"),
-  dosage: z.string().optional(),
-  frequency: z.string().optional(),
-  duration: z.string().optional(),
-  route: z.string().optional(),
-  // Empty string from the number input coerces to undefined (not 0) so an
-  // omitted quantity passes .optional() instead of failing .positive().
-  quantity: z.preprocess(
-    (v) => (v === "" || v === null || v === undefined ? undefined : v),
-    z.coerce.number().int().positive().optional(),
-  ),
-  instructions: z.string().optional(),
-});
+export const prescriptionItemSchema = z
+  .object({
+    medication_id: z.string().uuid().nullable().optional(),
+    medication_name: z.string().min(1, "Medication is required"),
+    dosage: z.string().optional(),
+    frequency: z.string().optional(),
+    duration: z.string().optional(),
+    route: z.string().optional(),
+    // Empty string from the number input coerces to undefined (not 0) so an
+    // omitted quantity passes .optional() instead of failing .positive().
+    quantity: z.preprocess(
+      (v) => (v === "" || v === null || v === undefined ? undefined : v),
+      z.coerce.number().int().positive().optional(),
+    ),
+    instructions: z.string().optional(),
+    // Preserves pre-existing free-text items when editing historical prescriptions.
+    is_legacy: z.boolean().optional(),
+  })
+  .refine((item) => Boolean(item.medication_id) || Boolean(item.is_legacy), {
+    message: "Please select a medicine from the catalog",
+    path: ["medication_name"],
+  });
 
 export const prescriptionFormSchema = z.object({
   patient_id: z.string().uuid("Please select a patient"),

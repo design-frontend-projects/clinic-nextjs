@@ -41,6 +41,9 @@ model profiles {
   pharmacy_sales                                         pharmacy_sales[]
   prescription_dispenses                                 prescription_dispenses[]
   prescriptions                                          prescriptions[]
+  created_medications                                    medications[]            @relation("medication_creator")
+  updated_medications                                    medications[]            @relation("medication_updater")
+  stopped_medications                                    medications[]            @relation("medication_stopper")
   profile_branches                                       profile_branches[]
   branches                                               branches?                @relation(fields: [branch_id], references: [id])
   clinics                                                clinics?                 @relation(fields: [clinic_id], references: [id])
@@ -777,29 +780,46 @@ model medication_batches {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model medications {
-  id                   String                 @id @db.Uuid
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clinic_id            String                 @db.Uuid
   fhir_resource_type   String?                @default("Medication")
   code_system          String?
   code                 String?
   generic_name         String
   brand_name           String?
+  category             String?
   strength             String?
   form                 String?
   route                String?
   manufacturer         String?
   barcode              String?
   price                Decimal?               @db.Decimal(10, 2)
+  default_dosage       String?
+  default_frequency    String?
+  default_duration     String?
+  default_quantity     Int?
+  default_instructions String?
   is_active            Boolean                @default(true)
+  stopped_at           DateTime?
+  stopped_by           String?                @db.Uuid
+  stop_reason          String?
+  created_by           String?                @db.Uuid
+  updated_by           String?                @db.Uuid
   created_at           DateTime               @default(now())
+  updated_at           DateTime               @default(now()) @updatedAt
   medication_batches   medication_batches[]
   clinics              clinics                @relation(fields: [clinic_id], references: [id])
+  creator              profiles?              @relation("medication_creator", fields: [created_by], references: [id], onDelete: SetNull)
+  updater              profiles?              @relation("medication_updater", fields: [updated_by], references: [id], onDelete: SetNull)
+  stopper              profiles?              @relation("medication_stopper", fields: [stopped_by], references: [id], onDelete: SetNull)
   pharmacy_inventory   pharmacy_inventory[]
   prescription_items   prescription_items[]
   purchase_order_items purchase_order_items[]
   stock_transfer_items stock_transfer_items[]
 
   @@unique([clinic_id, generic_name, strength])
+  @@index([clinic_id, is_active])
+  @@index([clinic_id, category])
   @@index([code])
   @@index([generic_name])
 }

@@ -123,7 +123,11 @@ export async function toggleMedicationActive(id: string, isActive: boolean) {
 
   await prisma.medications.update({
     where: { id },
-    data: { is_active: isActive },
+    data: {
+      is_active: isActive,
+      stopped_at: isActive ? null : new Date(),
+      ...(isActive ? { stopped_by: null, stop_reason: null } : {}),
+    },
   });
 
   revalidatePath(LIST_PATH);

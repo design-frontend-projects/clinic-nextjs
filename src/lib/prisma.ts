@@ -135,6 +135,13 @@ export function hasCurrentSchema(client: PrismaClient | undefined): client is Pr
   ) {
     return false;
   }
+  const medicationFields = runtime._runtimeDataModel?.models?.medications?.fields;
+  if (
+    Array.isArray(medicationFields) &&
+    !medicationFields.some((f) => f.name === "default_dosage")
+  ) {
+    return false;
+  }
   return true;
 }
 

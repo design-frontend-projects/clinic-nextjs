@@ -53,6 +53,7 @@ export default function AdminPrescriptionsPage() {
         route: item.route,
         quantity: item.quantity,
         instructions: item.instructions,
+        is_stopped: item.medications?.is_active === false,
       })),
     }));
   }, [data, t]);

@@ -33,6 +33,7 @@ interface PatientPrescriptionItem {
   route: string | null;
   quantity: number | null;
   instructions: string | null;
+  medications?: { is_active: boolean } | null;
 }
 
 export interface PatientPrescription {
@@ -79,7 +80,17 @@ export function PatientPrescriptions({
       diagnosis: rx.diagnosis,
       notes: rx.notes,
       status: rx.status,
-      prescription_items: rx.prescription_items,
+      prescription_items: rx.prescription_items.map((item) => ({
+        medication_id: item.medication_id,
+        medication_name: item.medication_name,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        duration: item.duration,
+        route: item.route,
+        quantity: item.quantity,
+        instructions: item.instructions,
+        is_stopped: item.medications?.is_active === false,
+      })),
     };
   }
 

@@ -44,6 +44,7 @@ export interface PrescriptionListItem {
   quantity: number | null;
   instructions: string | null;
   medication_id: string | null;
+  is_stopped?: boolean;
 }
 
 export interface PrescriptionRow {
@@ -78,6 +79,7 @@ export function toPrescriptionRecord(row: PrescriptionRow): PrescriptionRecord {
       route: item.route,
       quantity: item.quantity,
       instructions: item.instructions,
+      is_stopped: item.is_stopped,
     })),
   };
 }

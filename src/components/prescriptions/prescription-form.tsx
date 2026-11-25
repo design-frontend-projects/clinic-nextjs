@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -27,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { buildPrescriptionDefaultsFromMedicine } from "@/types/medication.types";
 import {
   prescriptionFormSchema,
   type PrescriptionFormData,
@@ -48,6 +50,7 @@ interface PrescriptionItemRecord {
   route: string | null;
   quantity: number | null;
   instructions: string | null;
+  is_stopped?: boolean;
 }
 
 export interface PrescriptionRecord {
@@ -81,6 +84,7 @@ const EMPTY_ITEM: PrescriptionFormData["items"][number] = {
   duration: "",
   route: "",
   instructions: "",
+  is_legacy: false,
 };
 
 function toDefaultValues(
@@ -102,6 +106,7 @@ function toDefaultValues(
         route: item.route ?? "",
         quantity: item.quantity ?? undefined,
         instructions: item.instructions ?? "",
+        is_legacy: item.medication_id === null,
       })),
     };
   }
@@ -274,83 +279,151 @@ export function PrescriptionForm({
             <p className="text-xs text-destructive">{itemErrors.message}</p>
           )}
 
-          {fields.map((fieldItem, index) => (
-            <div
-              key={fieldItem.id}
-              className="space-y-3 rounded-lg border p-3"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.medication_name`}
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormLabel className="text-xs text-muted-foreground">
-                        {t("medicationLabel")}
-                      </FormLabel>
-                      <MedicationCombobox
-                        value={field.value}
-                        disabled={readOnly}
-                        onChange={({ name, medicationId }) => {
-                          field.onChange(name);
-                          form.setValue(
-                            `items.${index}.medication_id`,
-                            medicationId,
-                          );
-                        }}
-                      />
-                      <FormMessage />
-                    </FormItem>
+          {fields.map((fieldItem, index) => {
+            const watchedId = form.watch(`items.${index}.medication_id`);
+            const watchedLegacy = form.watch(`items.${index}.is_legacy`);
+            const originalItem = prescription?.prescription_items[index];
+            const isStoppedHistorical =
+              Boolean(originalItem?.is_stopped) &&
+              originalItem?.medication_id === watchedId;
+
+            return (
+              <div
+                key={fieldItem.id}
+                className="space-y-3 rounded-lg border p-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.medication_name`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <FormLabel className="text-xs text-muted-foreground">
+                            {t("medicationLabel")}
+                          </FormLabel>
+                          {watchedLegacy && (
+                            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                              {t("legacyBadge")}
+                            </Badge>
+                          )}
+                          {isStoppedHistorical && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-accent-red-soft text-accent-red px-1.5 py-0 text-[10px]"
+                            >
+                              {t("stoppedBadge")}
+                            </Badge>
+                          )}
+                        </div>
+                        <MedicationCombobox
+                          value={field.value}
+                          selectedId={watchedId}
+                          disabled={readOnly}
+                          onChange={({ medicine }) => {
+                            const defaults =
+                              buildPrescriptionDefaultsFromMedicine(medicine);
+                            field.onChange(defaults.medication_name);
+                            form.setValue(
+                              `items.${index}.medication_id`,
+                              defaults.medication_id,
+                              { shouldDirty: true, shouldValidate: true },
+                            );
+                            form.setValue(
+                              `items.${index}.is_legacy`,
+                              false,
+                              { shouldDirty: true },
+                            );
+                            form.setValue(
+                              `items.${index}.dosage`,
+                              defaults.dosage,
+                              { shouldDirty: true },
+                            );
+                            form.setValue(
+                              `items.${index}.frequency`,
+                              defaults.frequency,
+                              { shouldDirty: true },
+                            );
+                            form.setValue(
+                              `items.${index}.duration`,
+                              defaults.duration,
+                              { shouldDirty: true },
+                            );
+                            form.setValue(
+                              `items.${index}.route`,
+                              defaults.route,
+                              { shouldDirty: true },
+                            );
+                            form.setValue(
+                              `items.${index}.quantity`,
+                              defaults.quantity,
+                              { shouldDirty: true },
+                            );
+                            form.setValue(
+                              `items.${index}.instructions`,
+                              defaults.instructions,
+                              { shouldDirty: true },
+                            );
+                          }}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="mt-5 text-muted-foreground hover:text-destructive"
+                      onClick={() => (fields.length > 1 ? remove(index) : null)}
+                      disabled={fields.length === 1}
+                      aria-label={t("removeMedication")}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
-                />
-                {!readOnly && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="mt-5 text-muted-foreground hover:text-destructive"
-                    onClick={() => (fields.length > 1 ? remove(index) : null)}
-                    disabled={fields.length === 1}
-                    aria-label={t("removeMedication")}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Input
-                  placeholder={t("dosagePlaceholder")}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  <Input
+                    placeholder={t("dosagePlaceholder")}
+                    disabled={readOnly}
+                    {...form.register(`items.${index}.dosage`)}
+                  />
+                  <Input
+                    placeholder={t("frequencyPlaceholder")}
+                    disabled={readOnly}
+                    {...form.register(`items.${index}.frequency`)}
+                  />
+                  <Input
+                    placeholder={t("durationPlaceholder")}
+                    disabled={readOnly}
+                    {...form.register(`items.${index}.duration`)}
+                  />
+                  <Input
+                    placeholder={t("routePlaceholder")}
+                    disabled={readOnly}
+                    {...form.register(`items.${index}.route`)}
+                  />
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder={t("qtyPlaceholder")}
+                    disabled={readOnly}
+                    {...form.register(`items.${index}.quantity`)}
+                  />
+                </div>
+
+                <Textarea
+                  placeholder={t("instructionsPlaceholder")}
+                  className="min-h-[60px]"
                   disabled={readOnly}
-                  {...form.register(`items.${index}.dosage`)}
-                />
-                <Input
-                  placeholder={t("frequencyPlaceholder")}
-                  disabled={readOnly}
-                  {...form.register(`items.${index}.frequency`)}
-                />
-                <Input
-                  placeholder={t("durationPlaceholder")}
-                  disabled={readOnly}
-                  {...form.register(`items.${index}.duration`)}
-                />
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder={t("qtyPlaceholder")}
-                  disabled={readOnly}
-                  {...form.register(`items.${index}.quantity`)}
+                  {...form.register(`items.${index}.instructions`)}
                 />
               </div>
-
-              <Textarea
-                placeholder={t("instructionsPlaceholder")}
-                className="min-h-[60px]"
-                disabled={readOnly}
-                {...form.register(`items.${index}.instructions`)}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <FormField

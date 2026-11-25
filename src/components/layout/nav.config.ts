@@ -58,6 +58,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "owner"],
   },
   {
+    titleKey: "sidebar.medicines",
+    href: "/admin/medicines",
+    iconKey: "medicines",
+    roles: ["owner"],
+  },
+  {
     titleKey: "sidebar.billing",
     href: "/admin/billing",
     iconKey: "billing",
@@ -174,6 +180,12 @@ export const NAV_ITEMS: NavItem[] = [
     titleKey: "sidebar.prescriptions",
     href: "/doctor/prescriptions",
     iconKey: "prescriptions",
+    roles: ["doctor"],
+  },
+  {
+    titleKey: "sidebar.medicines",
+    href: "/doctor/medicines",
+    iconKey: "medicines",
     roles: ["doctor"],
   },
   {

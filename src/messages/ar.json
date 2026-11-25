@@ -595,6 +595,7 @@
     "myAppointments": "مواعيدي",
     "myPatients": "مرضاي",
     "prescriptions": "الوصفات الطبية",
+    "medicines": "الأدوية",
     "profile": "الملف الشخصي",
     "checkinQueue": "طابور التسجيل",
     "tenants": "المستأجرون",
@@ -1611,7 +1612,8 @@
       "expired": "منتهي الصلاحية",
       "archived": "مؤرشف",
       "past_due": "متأخر السداد",
-      "confirmed": "مؤكد"
+      "confirmed": "مؤكد",
+      "stopped": "متوقف"
     },
     "gender": {
       "male": "ذكر",
@@ -2476,8 +2478,11 @@
       "dosagePlaceholder": "الجرعة (500 ملغ)",
       "frequencyPlaceholder": "التكرار (مرتان/يوم)",
       "durationPlaceholder": "المدة (7 أيام)",
+      "routePlaceholder": "طريقة الإعطاء (فموي)",
       "qtyPlaceholder": "الكمية",
       "instructionsPlaceholder": "التعليمات (مثال: بعد الأكل)",
+      "legacyBadge": "قديم",
+      "stoppedBadge": "متوقف",
       "notesLabel": "ملاحظات",
       "notesPlaceholder": "ملاحظات إضافية لهذه الوصفة...",
       "cancel": "إلغاء",
@@ -2490,15 +2495,18 @@
       "prescribedBy": "بواسطة الطبيب"
     },
     "combobox": {
-      "selectMedication": "اختر الدواء",
-      "searchMedicationPlaceholder": "ابحث عن دواء أو اكتبه...",
+      "selectMedication": "اختر الدواء من الدليل",
+      "searchMedicationPlaceholder": "ابحث في أدوية العيادة...",
       "selectPatient": "اختر المريض",
       "searchPatientsPlaceholder": "البحث عن المرضى...",
       "searching": "جارٍ البحث...",
       "typeAtLeastTwo": "اكتب حرفين على الأقل.",
       "noPatientsFound": "لم يتم العثور على مرضى.",
       "unnamedPatient": "مريض بدون اسم",
-      "catalogHeading": "الدليل",
+      "catalogHeading": "أدوية العيادة",
+      "noMedicinesFound": "لم يتم العثور على أدوية نشطة مطابقة في دليل العيادة.",
+      "quickAdd": "إضافة سريعة إلى الدليل",
+      "quickAddWithQuery": "إضافة \"{value}\" سريعاً إلى الدليل",
       "freeTextHeading": "نص حر",
       "useCustom": "استخدام \"{value}\""
     }
@@ -2641,6 +2649,148 @@
         "pharmacist": "الصيادلة",
         "app_owner": "مالك التطبيق"
       }
+    }
+  },
+  "medicines": {
+    "title": "الأدوية",
+    "subtitle": "إدارة دليل أدوية العيادة والجرعات الافتراضية للأطباء",
+    "addButton": "إضافة دواء",
+    "loading": "جارٍ تحميل الأدوية...",
+    "searchPlaceholder": "ابحث بالاسم العلمي أو التجاري أو التركيز أو الشكل...",
+    "statusLabel": "الحالة",
+    "addedBy": "أضيف بواسطة",
+    "stoppedOn": "تاريخ الإيقاف",
+    "stoppedBy": "تم الإيقاف بواسطة",
+    "stopReasonLabel": "سبب الإيقاف",
+    "toastCreated": "تمت إضافة الدواء إلى الدليل",
+    "toastUpdated": "تم تحديث بيانات الدواء",
+    "toastResumed": "تم استئناف الدواء وأصبح متاحاً للوصف",
+    "kpi": {
+      "total": "إجمالي الأدوية",
+      "active": "نشط",
+      "stopped": "متوقف"
+    },
+    "tabs": {
+      "active": "النشطة ({count})",
+      "stopped": "المتوقفة ({count})",
+      "all": "الكل ({count})"
+    },
+    "filters": {
+      "allCategories": "جميع الفئات"
+    },
+    "table": {
+      "colMedicine": "الدواء",
+      "colCategory": "الفئة",
+      "colDefaults": "إعدادات الوصف الافتراضية",
+      "colStatus": "الحالة",
+      "noDefaults": "لا توجد إعدادات افتراضية",
+      "ariaRowActions": "إجراءات الدواء"
+    },
+    "actions": {
+      "view": "عرض التفاصيل",
+      "edit": "تعديل الدواء",
+      "stop": "إيقاف الدواء",
+      "resume": "استئناف الدواء",
+      "cancel": "إلغاء",
+      "save": "حفظ التغييرات",
+      "create": "إضافة الدواء",
+      "close": "إغلاق"
+    },
+    "dialog": {
+      "createTitle": "إضافة دواء",
+      "createDescription": "أضف دواءً وإعدادات الوصف الافتراضية الاختيارية إلى دليل العيادة.",
+      "editTitle": "تعديل الدواء",
+      "editDescription": "تحديث بيانات الدواء وإعدادات الوصف الافتراضية.",
+      "viewTitle": "تفاصيل الدواء",
+      "viewDescription": "مراجعة مواصفات الدواء وإعدادات الوصف الافتراضية."
+    },
+    "stopDialog": {
+      "title": "إيقاف الدواء",
+      "description": "إيقاف \"{name}\" يخفيه من الوصفات الجديدة مع الحفاظ على الوصفات التاريخية. يمكنك استئنافه في أي وقت.",
+      "reasonLabel": "السبب (اختياري)",
+      "reasonPlaceholder": "مثال: تم إيقافه أو نفاد المخزون أو استبداله بتركيبة أحدث...",
+      "cancel": "إلغاء",
+      "confirm": "إيقاف الدواء",
+      "toastStopped": "تم إيقاف الدواء"
+    },
+    "sections": {
+      "coreInfo": "المعلومات الأساسية",
+      "prescribingDefaults": "إعدادات الوصف الافتراضية",
+      "prescribingDefaultsHint": "تُعبأ تلقائياً عند اختيار الطبيب لهذا الدواء في الوصفة (قابلة للتعديل لكل مريض).",
+      "optionalDetails": "تفاصيل الصيدلية الاختيارية"
+    },
+    "fields": {
+      "genericName": "الاسم العلمي *",
+      "brandName": "الاسم التجاري",
+      "category": "الفئة",
+      "strength": "التركيز",
+      "form": "الشكل الدوائي",
+      "route": "طريقة الإعطاء",
+      "defaultDosage": "الجرعة الافتراضية",
+      "defaultFrequency": "التكرار الافتراضي",
+      "defaultDuration": "المدة الافتراضية",
+      "defaultQuantity": "الكمية الافتراضية",
+      "defaultInstructions": "التعليمات الافتراضية",
+      "manufacturer": "الشركة المصنّعة",
+      "price": "السعر",
+      "barcode": "الباركود",
+      "code": "الرمز",
+      "codeSystem": "نظام الترميز"
+    },
+    "placeholders": {
+      "genericName": "مثال: أموكسيسيلين",
+      "brandName": "مثال: أموكسيل",
+      "category": "اختر الفئة",
+      "strength": "مثال: 500 ملغ",
+      "form": "اختر الشكل",
+      "route": "اختر طريقة الإعطاء",
+      "none": "بدون",
+      "defaultDosage": "مثال: كبسولة واحدة",
+      "defaultFrequency": "مثال: كل 8 ساعات",
+      "defaultDuration": "مثال: 7 أيام",
+      "defaultQuantity": "مثال: 21",
+      "defaultInstructions": "مثال: يؤخذ بعد الأكل مع الماء"
+    },
+    "categories": {
+      "antibiotic": "مضاد حيوي",
+      "analgesic": "مسكن للألم",
+      "antihypertensive": "خافض لضغط الدم",
+      "antidiabetic": "علاج السكري",
+      "antihistamine": "مضاد للهيستامين",
+      "gastrointestinal": "الجهاز الهضمي",
+      "respiratory": "الجهاز التنفسي",
+      "cardiovascular": "القلب والأوعية الدموية",
+      "dermatological": "الجلدية",
+      "vitamins_supplements": "فيتامينات ومكملات",
+      "other": "أخرى"
+    },
+    "forms": {
+      "Tablet": "أقراص",
+      "Capsule": "كبسولات",
+      "Syrup": "شراب",
+      "Suspension": "معلق",
+      "Injection": "حقن",
+      "Cream": "كريم",
+      "Ointment": "مرهم",
+      "Drops": "قطرة",
+      "Inhaler": "بخاخ استنشاق",
+      "Suppository": "تحاميل",
+      "Patch": "لصقة",
+      "Powder": "مسحوق",
+      "Solution": "محلول"
+    },
+    "routes": {
+      "Oral": "فموي",
+      "IV": "وريدي (IV)",
+      "IM": "عضلي (IM)",
+      "SC": "تحت الجلد (SC)",
+      "Topical": "موضعي",
+      "Inhalation": "استنشاق",
+      "Ophthalmic": "عيني",
+      "Otic": "أذني",
+      "Nasal": "أنفي",
+      "Rectal": "شرجي",
+      "Sublingual": "تحت اللسان"
     }
   }
 }
