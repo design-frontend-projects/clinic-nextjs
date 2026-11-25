@@ -125,7 +125,7 @@ describe("tenant request & app_owner approval actions", () => {
       mockCreateUserWithPassword.mockResolvedValueOnce({
         user: { id: "auth-1" },
       });
-      mockTx.$queryRaw.mockResolvedValueOnce([{ nextval: 7n }]);
+      mockTx.$queryRaw.mockResolvedValueOnce([{ nextval: BigInt(7) }]);
       mockTx.clinics.create.mockResolvedValueOnce({
         id: TENANT_ID,
         name: "Al Noor Clinic",

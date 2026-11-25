@@ -65,6 +65,9 @@ beforeEach(() => {
     branchId: BRANCH_ID,
     branchName: "Main Branch",
     branchLocked: true,
+    profileStatus: "active",
+    clinicStatus: "active",
+    access: { allowed: true, warning: null },
     auth_user_id: "user-1",
   });
   prismaMock.profiles.findFirst.mockResolvedValue(null);

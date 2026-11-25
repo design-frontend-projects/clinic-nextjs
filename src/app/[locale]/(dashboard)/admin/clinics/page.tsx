@@ -212,7 +212,10 @@ export default function ClinicAdminPage() {
       email: clinic.email ?? "",
       phone: clinic.phone ?? "",
       subscription_plan: clinic.subscription_plan ?? "trial",
-      status: clinic.status,
+      status:
+        clinic.status === "active" || clinic.status === "suspended"
+          ? clinic.status
+          : "trial",
       have_pharmacy: !!clinic.have_pharmacy,
       have_lab: !!clinic.have_lab,
       have_radio_center: !!clinic.have_radio_center,

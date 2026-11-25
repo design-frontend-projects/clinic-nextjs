@@ -50,6 +50,9 @@ function makeTenant(profileId: string, role: string) {
     branchId: BRANCH_ID,
     branchName: "Main Branch",
     branchLocked: role === "doctor",
+    profileStatus: "active",
+    clinicStatus: "active" as const,
+    access: { allowed: true as const, warning: null },
     auth_user_id: `user-${profileId}`,
   };
 }

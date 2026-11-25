@@ -32,10 +32,53 @@ ALTER TABLE public."medications" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS medications_clinic_all ON public."medications";
 CREATE POLICY medications_clinic_all ON public."medications"
   FOR ALL TO authenticated
-  USING ("clinic_id" = auth.current_tenant_id())
-  WITH CHECK ("clinic_id" = auth.current_tenant_id());
+  USING (
+    "clinic_id" IN (SELECT id FROM public."clinics" WHERE "auth_user_id" = auth.uid())
+    OR "clinic_id" IN (
+      SELECT pr."tenant_id"
+      FROM public."profiles" pr
+      WHERE pr."auth_user_id" = auth.uid()
+        AND pr."tenant_id" IS NOT NULL
+    )
+    OR "clinic_id" IN (
+      SELECT pb."clinic_id"
+      FROM public."profile_branches" pb
+      JOIN public."profiles" pr ON pr."id" = pb."profile_id"
+      WHERE pr."auth_user_id" = auth.uid()
+    )
+  )
+  WITH CHECK (
+    "clinic_id" IN (SELECT id FROM public."clinics" WHERE "auth_user_id" = auth.uid())
+    OR "clinic_id" IN (
+      SELECT pr."tenant_id"
+      FROM public."profiles" pr
+      WHERE pr."auth_user_id" = auth.uid()
+        AND pr."tenant_id" IS NOT NULL
+    )
+    OR "clinic_id" IN (
+      SELECT pb."clinic_id"
+      FROM public."profile_branches" pb
+      JOIN public."profiles" pr ON pr."id" = pb."profile_id"
+      WHERE pr."auth_user_id" = auth.uid()
+    )
+  );
 
 DROP POLICY IF EXISTS medications_super_admin ON public."medications";
 CREATE POLICY medications_super_admin ON public."medications"
   FOR ALL TO authenticated
-  USING (auth.is_super_admin());
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public."profiles" pr
+      WHERE pr."auth_user_id" = auth.uid()
+        AND pr."role" IN ('super_admin', 'app_owner')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public."profiles" pr
+      WHERE pr."auth_user_id" = auth.uid()
+        AND pr."role" IN ('super_admin', 'app_owner')
+    )
+  );

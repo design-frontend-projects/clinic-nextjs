@@ -93,6 +93,9 @@ beforeEach(() => {
     branchId: BRANCH_1,
     branchName: "Main Branch",
     branchLocked: false,
+    profileStatus: "active",
+    clinicStatus: "active",
+    access: { allowed: true, warning: null },
     auth_user_id: OWNER_ID,
   });
 

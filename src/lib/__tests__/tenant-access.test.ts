@@ -36,7 +36,7 @@ function makeInput(
 describe("formatRequestRef", () => {
   it("pads sequence numbers to 4 digits with year prefix", () => {
     expect(formatRequestRef(1, 2026)).toBe("REQ-2026-0001");
-    expect(formatRequestRef(42n, 2026)).toBe("REQ-2026-0042");
+    expect(formatRequestRef(BigInt(42), 2026)).toBe("REQ-2026-0042");
     expect(formatRequestRef(12345, 2026)).toBe("REQ-2026-12345");
   });
 });
