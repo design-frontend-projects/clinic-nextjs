@@ -24,6 +24,11 @@ export const APPOINTMENT_KEYS = {
   staffDashboard: ["staff-dashboard"] as const,
   staffQueue: ["staff-queue"] as const,
   staffAppointments: ["staff-appointments"] as const,
+  bookings: ["bookings"] as const,
+  bookingDetail: ["booking-detail"] as const,
+  bookingSlots: ["booking-slots"] as const,
+  patientUpcoming: ["my-upcoming-appointments"] as const,
+  patientHistory: ["my-visit-history"] as const,
 };
 
 interface UseAppointmentsRealtimeOptions {
@@ -72,6 +77,15 @@ export function useAppointmentsRealtime(
       queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.staffQueue });
       queryClient.invalidateQueries({
         queryKey: APPOINTMENT_KEYS.staffAppointments,
+      });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookings });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookingDetail });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookingSlots });
+      queryClient.invalidateQueries({
+        queryKey: APPOINTMENT_KEYS.patientUpcoming,
+      });
+      queryClient.invalidateQueries({
+        queryKey: APPOINTMENT_KEYS.patientHistory,
       });
     };
 

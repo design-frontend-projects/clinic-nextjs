@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Star } from "lucide-react";
+import { ArrowUpRight, CalendarPlus, Star } from "lucide-react";
+import { Link } from "@/i18n/routing";
 import {
   getMyUpcomingAppointments,
   getMyVisitHistory,
@@ -69,11 +70,19 @@ export default function PatientAppointmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">
-          {t("subtitle")}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground">
+            {t("subtitle")}
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/booking?action=new">
+            <CalendarPlus className="me-2 h-4 w-4" />
+            {t("bookAppointment")}
+          </Link>
+        </Button>
       </div>
 
       <Tabs defaultValue="upcoming" className="w-full">
@@ -89,12 +98,13 @@ export default function PatientAppointmentsPage() {
                 <TableHead>{t("colDateTime")}</TableHead>
                 <TableHead>{t("colDoctor")}</TableHead>
                 <TableHead>{t("colStatus")}</TableHead>
+                <TableHead className="text-end">{t("colActions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {upcoming.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
                     {t("noUpcoming")}
                   </TableCell>
                 </TableRow>
@@ -107,6 +117,14 @@ export default function PatientAppointmentsPage() {
                     <TableCell>{getDoctorName(a.profiles)}</TableCell>
                     <TableCell>
                       <StatusBadge status={a.status} />
+                    </TableCell>
+                    <TableCell className="text-end">
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/booking?id=${a.id}`}>
+                          {t("manageBooking")}
+                          <ArrowUpRight className="ms-1.5 h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

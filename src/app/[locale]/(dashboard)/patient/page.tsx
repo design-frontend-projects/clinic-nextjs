@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/i18n/routing";
 import { format } from "date-fns";
-import { CalendarDays, User, Clock } from "lucide-react";
+import { CalendarDays, User, Clock, CalendarPlus, ArrowUpRight } from "lucide-react";
 import {
   getMyPatientRecord,
   getMyUpcomingAppointments,
@@ -30,13 +30,21 @@ export default function PatientDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {record?.profile?.full_name ? t("welcomeWithName", { name: record.profile.full_name }) : t("welcome")}
-        </h1>
-        <p className="text-muted-foreground">
-          {t("subtitle")}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {record?.profile?.full_name ? t("welcomeWithName", { name: record.profile.full_name }) : t("welcome")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t("subtitle")}
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/booking?action=new">
+            <CalendarPlus className="me-2 h-4 w-4" />
+            {t("bookAppointment")}
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -49,21 +57,37 @@ export default function PatientDashboardPage() {
             {isLoading ? (
               <p className="text-sm text-muted-foreground">{t("loading")}</p>
             ) : nextAppointment ? (
-              <div className="space-y-1">
-                <p className="text-lg font-semibold">
-                  {format(new Date(nextAppointment.appointment_date), "PPp")}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {nextAppointment.profiles?.full_name
-                    ? `Dr. ${nextAppointment.profiles.full_name}`
-                    : t("doctorUnassigned")}
-                </p>
-                <StatusBadge status={nextAppointment.status} />
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-lg font-semibold">
+                    {format(new Date(nextAppointment.appointment_date), "PPp")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {nextAppointment.profiles?.full_name
+                      ? `Dr. ${nextAppointment.profiles.full_name}`
+                      : t("doctorUnassigned")}
+                  </p>
+                  <StatusBadge status={nextAppointment.status} />
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/booking?id=${nextAppointment.id}`}>
+                    {t("manageBooking")}
+                    <ArrowUpRight className="ms-1.5 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                {t("noUpcomingAppointments")}
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {t("noUpcomingAppointments")}
+                </p>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/booking?action=new">
+                    <CalendarPlus className="me-1.5 h-3.5 w-3.5" />
+                    {t("bookAppointment")}
+                  </Link>
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -75,14 +99,20 @@ export default function PatientDashboardPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             <Button asChild variant="outline" className="justify-start">
+              <Link href="/booking">
+                <CalendarDays className="me-2 h-4 w-4" />
+                {t("linkBookings")}
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="justify-start">
               <Link href="/patient/appointments">
-                <Clock className="mr-2 h-4 w-4" />
+                <Clock className="me-2 h-4 w-4" />
                 {t("linkAppointments")}
               </Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
               <Link href="/profile">
-                <User className="mr-2 h-4 w-4" />
+                <User className="me-2 h-4 w-4" />
                 {t("linkProfile")}
               </Link>
             </Button>
