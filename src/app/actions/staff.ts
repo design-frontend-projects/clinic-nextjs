@@ -70,11 +70,12 @@ function fullName(
   return name || fallback;
 }
 
-/** Revalidate every staff route that renders appointment/queue data. */
+/** Revalidate every staff & booking route that renders appointment/queue data. */
 function revalidateStaffRoutes(): void {
   revalidatePath("/staff");
   revalidatePath("/staff/checkin");
   revalidatePath("/staff/booking");
+  revalidatePath("/booking");
 }
 
 /**
@@ -188,8 +189,8 @@ async function fetchStaffQueue(
       status: { in: ["scheduled", "checked_in"] },
     },
     include: {
-      patients: { select: { first_name: true, last_name: true } },
-      profiles: { select: { full_name: true } },
+      patients: { select: { first_name: true, last_name: true, phone: true } },
+      profiles: { select: { id: true, full_name: true, specialty: true } },
     },
     orderBy: { appointment_date: "asc" },
     take,
@@ -202,9 +203,13 @@ async function fetchStaffQueue(
       a.patients?.last_name ?? null,
       "Unknown patient",
     ),
+    patientPhone: a.patients?.phone ?? null,
+    doctorId: a.profiles?.id ?? null,
     doctorName: a.profiles?.full_name || "Unassigned",
+    doctorSpecialty: a.profiles?.specialty ?? null,
     appointmentDate: a.appointment_date.toISOString(),
     status: a.status as AppointmentStatus,
+    notes: a.notes ?? null,
     checkedInAt: a.checked_in_at ? a.checked_in_at.toISOString() : null,
   }));
 }
@@ -213,7 +218,7 @@ async function fetchStaffQueue(
 export async function getStaffQueue(): Promise<StaffQueueItem[]> {
   const tenant = await requireTenantInfo();
   await requirePermission("appointment.read");
-  return fetchStaffQueue(tenant, 100);
+  return fetchStaffQueue(tenant, 200);
 }
 
 /** Aggregated, branch-scoped stats for the staff dashboard. */
@@ -341,7 +346,7 @@ export async function getStaffAppointments(filters?: {
   const rows = await prisma.appointments.findMany({
     where,
     include: {
-      patients: { select: { first_name: true, last_name: true } },
+      patients: { select: { first_name: true, last_name: true, phone: true } },
       profiles: { select: { full_name: true } },
     },
     orderBy: { appointment_date: orderDir },
@@ -355,9 +360,11 @@ export async function getStaffAppointments(filters?: {
       a.patients?.last_name ?? null,
       "Unknown patient",
     ),
+    patientPhone: a.patients?.phone ?? null,
     doctorName: a.profiles?.full_name || "Unassigned",
     appointmentDate: a.appointment_date.toISOString(),
     status: a.status as AppointmentStatus,
+    checkedInAt: a.checked_in_at ? a.checked_in_at.toISOString() : null,
     visitType: a.notes ?? "",
   }));
 }
@@ -456,7 +463,11 @@ export async function updateStaffAppointmentStatus(
     where: { id, clinic_id: tenant.clinicId },
     data: {
       status,
-      ...(status === "checked_in" ? { checked_in_at: new Date() } : {}),
+      ...(status === "checked_in"
+        ? { checked_in_at: new Date() }
+        : status === "scheduled"
+          ? { checked_in_at: null }
+          : {}),
     },
   });
 

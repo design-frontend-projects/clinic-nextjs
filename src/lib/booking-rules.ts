@@ -1,6 +1,9 @@
 import type {
   BookingCapabilities,
   BookingRoleScope,
+  DoctorAvailabilityConfig,
+  DoctorSlotDuration,
+  SlotAvailabilityCheckResult,
   TimeSlotItem,
 } from "@/types/booking.types";
 import type { AppointmentStatus } from "@/types/staff.types";
@@ -8,6 +11,142 @@ import type { AppointmentStatus } from "@/types/staff.types";
 export const SLOT_INTERVAL_MINUTES = 30;
 export const CLINIC_START_HOUR = 8;
 export const CLINIC_END_HOUR = 20;
+
+export const DEFAULT_AVAILABLE_FROM = "09:00";
+export const DEFAULT_AVAILABLE_TO = "17:00";
+export const DEFAULT_AVAILABLE_DAYS = [0, 1, 2, 3, 4] as const;
+export const ALLOWED_SLOT_DURATIONS = [15, 30] as const;
+
+const HH_MM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/**
+ * Parse a 24-hour "HH:mm" string into minutes since midnight (0..1439).
+ */
+export function parseTimeToMinutes(hhmm: string | null | undefined): number | null {
+  if (!hhmm) return null;
+  const match = HH_MM_PATTERN.exec(hhmm.trim());
+  if (!match) return null;
+  const hours = Number.parseInt(match[1], 10);
+  const minutes = Number.parseInt(match[2], 10);
+  return hours * 60 + minutes;
+}
+
+export interface RawDoctorAvailability {
+  status?: string | null;
+  available_from?: string | null;
+  available_to?: string | null;
+  slot_duration_minutes?: number | null;
+  available_days?: number[] | null;
+}
+
+/**
+ * Normalize raw DB/form availability fields into a deterministic config with
+ * safe defaults for legacy records.
+ */
+export function normalizeDoctorAvailability(
+  raw?: RawDoctorAvailability | null,
+): DoctorAvailabilityConfig {
+  const isActive = raw?.status ? raw.status === "active" : true;
+
+  const parsedFrom = parseTimeToMinutes(raw?.available_from);
+  const parsedTo = parseTimeToMinutes(raw?.available_to);
+  const defaultFromMin = parseTimeToMinutes(DEFAULT_AVAILABLE_FROM)!;
+  const defaultToMin = parseTimeToMinutes(DEFAULT_AVAILABLE_TO)!;
+
+  let availableFrom =
+    parsedFrom !== null ? raw!.available_from!.trim() : DEFAULT_AVAILABLE_FROM;
+  let availableTo =
+    parsedTo !== null ? raw!.available_to!.trim() : DEFAULT_AVAILABLE_TO;
+
+  const fromMin = parseTimeToMinutes(availableFrom) ?? defaultFromMin;
+  const toMin = parseTimeToMinutes(availableTo) ?? defaultToMin;
+  if (toMin <= fromMin) {
+    availableFrom = DEFAULT_AVAILABLE_FROM;
+    availableTo = DEFAULT_AVAILABLE_TO;
+  }
+
+  const slotDurationMinutes: DoctorSlotDuration =
+    raw?.slot_duration_minutes === 15 ? 15 : 30;
+
+  let availableDays: number[];
+  if (Array.isArray(raw?.available_days)) {
+    const validDays = raw.available_days.filter(
+      (d) => Number.isInteger(d) && d >= 0 && d <= 6,
+    );
+    availableDays = Array.from(new Set(validDays)).sort((a, b) => a - b);
+  } else {
+    availableDays = [...DEFAULT_AVAILABLE_DAYS];
+  }
+
+  return {
+    isActive,
+    availableFrom,
+    availableTo,
+    slotDurationMinutes,
+    availableDays,
+  };
+}
+
+/**
+ * Check whether a doctor is active and scheduled to work on the given day's weekday.
+ */
+export function isDoctorWorkingOnDay(
+  availability: DoctorAvailabilityConfig,
+  day: Date,
+): boolean {
+  if (!availability.isActive) return false;
+  return availability.availableDays.includes(day.getDay());
+}
+
+/**
+ * Validate whether an appointment timestamp falls within an active doctor's
+ * configured working days, working hours, and examination duration.
+ */
+export function validateDoctorSlotAvailability(
+  availability: DoctorAvailabilityConfig,
+  targetDate: Date,
+): SlotAvailabilityCheckResult {
+  if (!availability.isActive) {
+    return {
+      valid: false,
+      reason: "inactive",
+      message:
+        "Selected doctor is currently inactive and unavailable for booking.",
+    };
+  }
+
+  if (!availability.availableDays.includes(targetDate.getDay())) {
+    return {
+      valid: false,
+      reason: "day_off",
+      message: "Selected doctor is not available on this day of the week.",
+    };
+  }
+
+  const startMin = parseTimeToMinutes(availability.availableFrom);
+  const endMin = parseTimeToMinutes(availability.availableTo);
+  if (startMin === null || endMin === null || endMin <= startMin) {
+    return {
+      valid: false,
+      reason: "outside_hours",
+      message: "Doctor availability schedule is not configured properly.",
+    };
+  }
+
+  const targetMin = targetDate.getHours() * 60 + targetDate.getMinutes();
+  if (
+    targetMin < startMin ||
+    targetMin + availability.slotDurationMinutes > endMin
+  ) {
+    return {
+      valid: false,
+      reason: "outside_hours",
+      message: `Selected time is outside this doctor's working hours (${availability.availableFrom} - ${availability.availableTo}).`,
+    };
+  }
+
+  return { valid: true };
+}
 
 export const TERMINAL_BOOKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
   "completed",
@@ -196,19 +335,64 @@ export function hasDoctorSlotConflict(
   );
 }
 
+export interface BuildDayTimeSlotsOptions {
+  now?: Date;
+  availability?: DoctorAvailabilityConfig;
+}
+
 /**
- * Generate the standard clinic 30-minute time slots (08:00 through 19:30) for
- * a local calendar day, annotated with occupied and past flags.
+ * Generate time slots for a local calendar day, annotated with occupied and
+ * past flags. When `availability` is provided, respects the doctor's active
+ * status, working days, working hours (`availableFrom..availableTo`), and
+ * examination duration (15 or 30 min). Otherwise uses the legacy 08:00-20:00
+ * 30-minute clinic grid.
  */
 export function buildDayTimeSlots(
   day: Date,
   occupiedDates: Date[],
-  now = new Date(),
+  nowOrOptions?: Date | BuildDayTimeSlotsOptions,
 ): TimeSlotItem[] {
-  const slots: TimeSlotItem[] = [];
+  const now =
+    nowOrOptions instanceof Date
+      ? nowOrOptions
+      : (nowOrOptions?.now ?? new Date());
+  const availability =
+    nowOrOptions instanceof Date ? undefined : nowOrOptions?.availability;
+
   const base = new Date(day);
   base.setHours(0, 0, 0, 0);
 
+  if (availability) {
+    if (!isDoctorWorkingOnDay(availability, base)) {
+      return [];
+    }
+    const startMin = parseTimeToMinutes(availability.availableFrom);
+    const endMin = parseTimeToMinutes(availability.availableTo);
+    if (startMin === null || endMin === null || endMin <= startMin) {
+      return [];
+    }
+
+    const step = availability.slotDurationMinutes;
+    const slots: TimeSlotItem[] = [];
+    for (let mins = startMin; mins + step <= endMin; mins += step) {
+      const hour = Math.floor(mins / 60);
+      const minute = mins % 60;
+      const slotDate = new Date(base);
+      slotDate.setHours(hour, minute, 0, 0);
+      const hh = String(hour).padStart(2, "0");
+      const mm = String(minute).padStart(2, "0");
+
+      slots.push({
+        time: `${hh}:${mm}`,
+        iso: slotDate.toISOString(),
+        isOccupied: hasDoctorSlotConflict(occupiedDates, slotDate, step),
+        isPast: slotDate.getTime() <= now.getTime(),
+      });
+    }
+    return slots;
+  }
+
+  const slots: TimeSlotItem[] = [];
   for (let hour = CLINIC_START_HOUR; hour < CLINIC_END_HOUR; hour += 1) {
     for (let minute = 0; minute < 60; minute += SLOT_INTERVAL_MINUTES) {
       const slotDate = new Date(base);

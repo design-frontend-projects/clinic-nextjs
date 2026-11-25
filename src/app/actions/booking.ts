@@ -14,7 +14,9 @@ import {
   SLOT_INTERVAL_MINUTES,
   TERMINAL_BOOKING_STATUSES,
   computeBookingCapabilities,
+  normalizeDoctorAvailability,
   resolveBookingRoleScope,
+  validateDoctorSlotAvailability,
 } from "@/lib/booking-rules";
 import {
   bookingCreateSchema,
@@ -31,6 +33,7 @@ import {
   type BookingListStats,
   type BookingRoleScope,
   type BookingUpdateInput,
+  type ProfileStatusValue,
 } from "@/types/booking.types";
 import type { CreateAppointmentWithPatientData } from "@/types/appointment.types";
 import type { AppointmentStatus } from "@/types/staff.types";
@@ -258,9 +261,11 @@ async function hasActiveDoctorConflict(params: {
   clinicId: string;
   doctorId: string;
   targetDate: Date;
+  slotDurationMinutes?: number;
   excludeBookingId?: string;
 }): Promise<boolean> {
-  const windowMs = SLOT_INTERVAL_MINUTES * 60_000;
+  const intervalMinutes = params.slotDurationMinutes ?? SLOT_INTERVAL_MINUTES;
+  const windowMs = intervalMinutes * 60_000;
   const conflict = await prisma.appointments.findFirst({
     where: {
       clinic_id: params.clinicId,
@@ -279,7 +284,7 @@ async function hasActiveDoctorConflict(params: {
 
 /**
  * Resolve the current user's booking context: role scope, capabilities,
- * available doctors, and clinic branches.
+ * clinic doctors (including inactive status & schedule metadata), and branches.
  */
 export async function getBookingContext(): Promise<BookingContextData> {
   const tenant = await requireTenantInfo();
@@ -289,7 +294,6 @@ export async function getBookingContext(): Promise<BookingContextData> {
     prisma.profiles.findMany({
       where: {
         tenant_id: tenant.clinicId,
-        status: "active",
         OR: [{ role: { in: ["doctor", "owner"] } }, { is_owner: true }],
       },
       select: {
@@ -297,7 +301,12 @@ export async function getBookingContext(): Promise<BookingContextData> {
         full_name: true,
         specialty: true,
         email: true,
+        status: true,
         branch_id: true,
+        available_from: true,
+        available_to: true,
+        slot_duration_minutes: true,
+        available_days: true,
         profile_branches: {
           where: { clinic_id: tenant.clinicId },
           select: { branch_id: true },
@@ -314,20 +323,33 @@ export async function getBookingContext(): Promise<BookingContextData> {
     }),
   ]);
 
-  const doctors: BookingDoctorOption[] = doctorRows.map((d) => {
-    const branchSet = new Set<string>();
-    if (d.branch_id) branchSet.add(d.branch_id);
-    for (const pb of d.profile_branches) {
-      branchSet.add(pb.branch_id);
-    }
-    return {
-      id: d.id,
-      fullName: d.full_name || d.email || "Doctor",
-      specialty: d.specialty,
-      email: d.email,
-      branchIds: Array.from(branchSet),
-    };
-  });
+  const doctors: BookingDoctorOption[] = doctorRows
+    .map((d) => {
+      const branchSet = new Set<string>();
+      if (d.branch_id) branchSet.add(d.branch_id);
+      for (const pb of d.profile_branches) {
+        branchSet.add(pb.branch_id);
+      }
+      const availability = normalizeDoctorAvailability(d);
+      return {
+        id: d.id,
+        fullName: d.full_name || d.email || "Doctor",
+        specialty: d.specialty,
+        email: d.email,
+        status: (d.status || "active") as ProfileStatusValue,
+        branchIds: Array.from(branchSet),
+        availableFrom: availability.availableFrom,
+        availableTo: availability.availableTo,
+        slotDurationMinutes: availability.slotDurationMinutes,
+        availableDays: availability.availableDays,
+      };
+    })
+    .sort((a, b) => {
+      const aActive = a.status === "active" ? 0 : 1;
+      const bActive = b.status === "active" ? 0 : 1;
+      if (aActive !== bActive) return aActive - bActive;
+      return a.fullName.localeCompare(b.fullName);
+    });
 
   const branches: BookingBranchOption[] = clinicBranches
     .filter((cb) => cb.branches.status === "active")
@@ -627,13 +649,25 @@ export async function createBooking(
       where: {
         id: targetDoctorId,
         tenant_id: tenant.clinicId,
-        status: "active",
         OR: [{ role: { in: ["doctor", "owner"] } }, { is_owner: true }],
       },
-      select: { id: true },
+      select: {
+        id: true,
+        status: true,
+        available_from: true,
+        available_to: true,
+        slot_duration_minutes: true,
+        available_days: true,
+      },
     });
     if (!doctorRecord) {
-      return { error: "Selected doctor is not active in this clinic." };
+      return { error: "Selected doctor was not found in this clinic." };
+    }
+
+    const availability = normalizeDoctorAvailability(doctorRecord);
+    const slotCheck = validateDoctorSlotAvailability(availability, appointmentDate);
+    if (!slotCheck.valid) {
+      return { error: slotCheck.message };
     }
 
     let resolvedBranchId: string | null = tenant.branchId;
@@ -659,11 +693,11 @@ export async function createBooking(
       clinicId: tenant.clinicId,
       doctorId: targetDoctorId,
       targetDate: appointmentDate,
+      slotDurationMinutes: availability.slotDurationMinutes,
     });
     if (conflict) {
       return {
-        error:
-          "This doctor already has an appointment within 30 minutes of the selected time. Please choose another slot.",
+        error: `This doctor already has an appointment within ${availability.slotDurationMinutes} minutes of the selected time. Please choose another slot.`,
       };
     }
 
@@ -715,15 +749,40 @@ export async function registerPatientAndCreateBooking(
       return { error: "Invalid appointment date and time." };
     }
 
+    const doctorRecord = await prisma.profiles.findFirst({
+      where: {
+        id: doctorId,
+        tenant_id: tenant.clinicId,
+        OR: [{ role: { in: ["doctor", "owner"] } }, { is_owner: true }],
+      },
+      select: {
+        id: true,
+        status: true,
+        available_from: true,
+        available_to: true,
+        slot_duration_minutes: true,
+        available_days: true,
+      },
+    });
+    if (!doctorRecord) {
+      return { error: "Selected doctor was not found in this clinic." };
+    }
+
+    const availability = normalizeDoctorAvailability(doctorRecord);
+    const slotCheck = validateDoctorSlotAvailability(availability, appointmentDate);
+    if (!slotCheck.valid) {
+      return { error: slotCheck.message };
+    }
+
     const conflict = await hasActiveDoctorConflict({
       clinicId: tenant.clinicId,
       doctorId,
       targetDate: appointmentDate,
+      slotDurationMinutes: availability.slotDurationMinutes,
     });
     if (conflict) {
       return {
-        error:
-          "This doctor already has an appointment within 30 minutes of the selected time. Please choose another slot.",
+        error: `This doctor already has an appointment within ${availability.slotDurationMinutes} minutes of the selected time. Please choose another slot.`,
       };
     }
 
@@ -846,17 +905,43 @@ export async function updateBooking(
     }
 
     const targetDoctorId = data.doctor_id ?? existing.doctor_id;
-    if (isDoctorChanging && targetDoctorId) {
+    const shouldCheckSchedule =
+      Boolean(targetDoctorId) &&
+      !TERMINAL_BOOKING_STATUSES.has(nextStatus) &&
+      (isDoctorChanging ||
+        isDateChanging ||
+        (isStatusChanging &&
+          TERMINAL_BOOKING_STATUSES.has(existing.status as AppointmentStatus)));
+
+    let targetSlotDuration = SLOT_INTERVAL_MINUTES;
+    if ((isDoctorChanging || shouldCheckSchedule) && targetDoctorId) {
       const doctorRecord = await prisma.profiles.findFirst({
         where: {
           id: targetDoctorId,
           tenant_id: tenant.clinicId,
-          status: "active",
           OR: [{ role: { in: ["doctor", "owner"] } }, { is_owner: true }],
         },
-        select: { id: true },
+        select: {
+          id: true,
+          status: true,
+          available_from: true,
+          available_to: true,
+          slot_duration_minutes: true,
+          available_days: true,
+        },
       });
       if (!doctorRecord) {
+        return { error: "Selected doctor was not found in this clinic." };
+      }
+
+      const availability = normalizeDoctorAvailability(doctorRecord);
+      targetSlotDuration = availability.slotDurationMinutes;
+      if (shouldCheckSchedule) {
+        const slotCheck = validateDoctorSlotAvailability(availability, nextDate);
+        if (!slotCheck.valid) {
+          return { error: slotCheck.message };
+        }
+      } else if (!availability.isActive) {
         return { error: "Selected doctor is not active in this clinic." };
       }
     }
@@ -874,25 +959,17 @@ export async function updateBooking(
       }
     }
 
-    const shouldCheckConflict =
-      targetDoctorId &&
-      !TERMINAL_BOOKING_STATUSES.has(nextStatus) &&
-      (isDoctorChanging ||
-        isDateChanging ||
-        (isStatusChanging &&
-          TERMINAL_BOOKING_STATUSES.has(existing.status as AppointmentStatus)));
-
-    if (shouldCheckConflict && targetDoctorId) {
+    if (shouldCheckSchedule && targetDoctorId) {
       const conflict = await hasActiveDoctorConflict({
         clinicId: tenant.clinicId,
         doctorId: targetDoctorId,
         targetDate: nextDate,
+        slotDurationMinutes: targetSlotDuration,
         excludeBookingId: existing.id,
       });
       if (conflict) {
         return {
-          error:
-            "This doctor already has an appointment within 30 minutes of the selected time. Please choose another slot.",
+          error: `This doctor already has an appointment within ${targetSlotDuration} minutes of the selected time. Please choose another slot.`,
         };
       }
     }

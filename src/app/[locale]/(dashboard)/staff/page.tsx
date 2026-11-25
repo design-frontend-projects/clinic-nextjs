@@ -1,16 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { differenceInMinutes, format } from "date-fns";
-import { Users, CalendarDays, ClipboardList, Wallet, Plus } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Loader2,
+  LogIn,
+  MoreHorizontal,
+  Phone,
+  Plus,
+  RotateCcw,
+  Users,
+  UserX,
+  Wallet,
+  XCircle,
+} from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, XAxis } from "recharts";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { StatCard } from "@/components/ui/stat-card";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { LiveBadge } from "@/components/ui/live-badge";
+import { getBookingContext } from "@/app/actions/booking";
+import {
+  getStaffAppointments,
+  getStaffDashboardStats,
+} from "@/app/actions/staff";
+import { fetchTenantInfoAction } from "@/app/actions/tenant";
+import {
+  AppointmentDateFilter,
+  DEFAULT_APPT_FILTER,
+  type ApptDateFilter,
+} from "@/components/appointments/appointment-date-filter";
+import { BookingCreateDialog } from "@/components/bookings/booking-create-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,19 +59,18 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { NewAppointmentDialog } from "@/components/appointments/new-appointment-dialog";
 import {
-  AppointmentDateFilter,
-  DEFAULT_APPT_FILTER,
-  type ApptDateFilter,
-} from "@/components/appointments/appointment-date-filter";
-import {
-  getStaffDashboardStats,
-  getStaffAppointments,
-  createStaffAppointment,
-  registerPatientAndCreateStaffAppointment,
-} from "@/app/actions/staff";
-import { fetchTenantInfoAction } from "@/app/actions/tenant";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LiveBadge } from "@/components/ui/live-badge";
+import { StatCard } from "@/components/ui/stat-card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { usePermission } from "@/features/rbac/hooks/useAuthorization";
+import { useStaffAppointmentActions } from "@/hooks/use-staff-appointment-actions";
 import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
 import { cn } from "@/lib/utils";
 import type {
@@ -72,24 +105,42 @@ const STATUS_LABEL_KEY: Record<AppointmentStatus, string> = {
   no_show: "statusNoShow",
 };
 
-const INVALIDATE_KEYS = ["staff-dashboard", "staff-queue"];
+interface PendingCancelTarget {
+  id: string;
+  patientName: string;
+  status: AppointmentStatus;
+}
 
 export default function StaffDashboard() {
   const t = useTranslations("pages.staff");
+  const canManageQueue = usePermission("appointment.create");
+  const canCancel = usePermission("appointment.cancel");
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [apptFilter, setApptFilter] =
     useState<ApptDateFilter>(DEFAULT_APPT_FILTER);
+  const [pendingCancel, setPendingCancel] =
+    useState<PendingCancelTarget | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const { data: stats = defaultStats } = useQuery({
     queryKey: ["staff-dashboard"],
     queryFn: () => getStaffDashboardStats(),
   });
 
-  // Tenant context (cached — also used by the header/bell) drives the realtime
-  // subscription that keeps the queue and appointments panel live.
   const { data: tenant } = useQuery({
     queryKey: ["tenant-info"],
     queryFn: () => fetchTenantInfoAction(),
+  });
+
+  const { data: bookingContext } = useQuery({
+    queryKey: ["booking-context"],
+    queryFn: () => getBookingContext(),
   });
 
   useAppointmentsRealtime(tenant?.clinicId, {
@@ -102,6 +153,9 @@ export default function StaffDashboard() {
       getStaffAppointments({ range: apptFilter.mode, date: apptFilter.date }),
   });
 
+  const { pendingIds, checkIn, complete, markNoShow, undoCheckIn, cancel } =
+    useStaffAppointmentActions();
+
   const checkedInCount = stats.queue.filter(
     (item) => item.status === "checked_in",
   ).length;
@@ -113,6 +167,92 @@ export default function StaffDashboard() {
     fill: STATUS_COLORS[point.status],
   }));
   const hasThroughput = stats.throughput.some((point) => point.count > 0);
+  const nowDate = useMemo(() => new Date(nowMs), [nowMs]);
+
+  const renderRowActions = (
+    id: string,
+    patientName: string,
+    status: AppointmentStatus,
+  ) => {
+    if (!canManageQueue || (status !== "scheduled" && status !== "checked_in")) {
+      return null;
+    }
+    const isBusy = pendingIds.has(id);
+
+    return (
+      <div className="flex items-center gap-1.5">
+        {status === "scheduled" ? (
+          <Button
+            type="button"
+            size="sm"
+            disabled={isBusy}
+            onClick={() => checkIn(id, status)}
+          >
+            {isBusy ? (
+              <Loader2 className="me-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LogIn className="me-1.5 h-3.5 w-3.5" />
+            )}
+            {t("checkIn")}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={isBusy}
+            onClick={() => complete(id, status)}
+          >
+            {isBusy ? (
+              <Loader2 className="me-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="me-1.5 h-3.5 w-3.5" />
+            )}
+            {t("markComplete")}
+          </Button>
+        )}
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              disabled={isBusy}
+              aria-label={t("actionsMenuLabel")}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {status === "checked_in" ? (
+              <DropdownMenuItem onClick={() => undoCheckIn(id, status)}>
+                <RotateCcw className="me-2 h-4 w-4" />
+                {t("undoCheckIn")}
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => markNoShow(id, status)}>
+                <UserX className="me-2 h-4 w-4" />
+                {t("markNoShow")}
+              </DropdownMenuItem>
+            )}
+            {canCancel && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setPendingCancel({ id, patientName, status })}
+                >
+                  <XCircle className="me-2 h-4 w-4" />
+                  {t("cancelAppointment")}
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -121,10 +261,12 @@ export default function StaffDashboard() {
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t("newAppointment")}
-        </Button>
+        {canManageQueue && (
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="me-2 h-4 w-4" />
+            {t("newAppointment")}
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -181,13 +323,13 @@ export default function StaffDashboard() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {stats.queue.map((item) => {
                   const waitMins =
                     item.status === "checked_in" && item.checkedInAt
                       ? Math.max(
                           differenceInMinutes(
-                            new Date(),
+                            nowDate,
                             new Date(item.checkedInAt),
                           ),
                           0,
@@ -198,24 +340,43 @@ export default function StaffDashboard() {
                     <div
                       key={item.id}
                       className={cn(
-                        "flex items-center justify-between rounded-lg border p-4",
+                        "flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between",
                         isCheckedIn &&
-                          "border-l-4 border-l-amber-500 bg-amber-500/5",
+                          "border-s-4 border-s-amber-500 bg-amber-500/5",
                       )}
                     >
-                      <div>
-                        <p className="font-medium">{item.patientName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.doctorName} •{" "}
-                          {format(new Date(item.appointmentDate), "h:mm a")}
-                        </p>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium">{item.patientName}</p>
+                          <StatusBadge status={item.status} />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                          <span>
+                            {item.doctorName} •{" "}
+                            {format(new Date(item.appointmentDate), "h:mm a")}
+                          </span>
+                          {item.patientPhone && (
+                            <span
+                              dir="ltr"
+                              className="inline-flex items-center gap-1 text-xs tabular-nums"
+                            >
+                              <Phone className="h-3 w-3" />
+                              {item.patientPhone}
+                            </span>
+                          )}
+                          {waitMins !== null && (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 tabular-nums">
+                              <Clock className="h-3 w-3" />
+                              {t("waiting")}: {waitMins} {t("minsShort")}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <StatusBadge status={item.status} />
-                        {waitMins !== null && (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {t("waiting")}: {waitMins} {t("minsShort")}
-                          </p>
+                      <div className="flex shrink-0 items-center justify-end gap-2">
+                        {renderRowActions(
+                          item.id,
+                          item.patientName,
+                          item.status,
                         )}
                       </div>
                     </div>
@@ -289,33 +450,101 @@ export default function StaffDashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {appointments.map((appt) => (
-                <div
-                  key={appt.id}
-                  className="flex items-center justify-between rounded-lg border p-4"
-                >
-                  <div>
-                    <p className="font-medium">{appt.patientName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {appt.doctorName} •{" "}
-                      {format(new Date(appt.appointmentDate), "MMM d, h:mm a")}
-                    </p>
+              {appointments.map((appt) => {
+                const waitMins =
+                  appt.status === "checked_in" && appt.checkedInAt
+                    ? Math.max(
+                        differenceInMinutes(
+                          nowDate,
+                          new Date(appt.checkedInAt),
+                        ),
+                        0,
+                      )
+                    : null;
+                return (
+                  <div
+                    key={appt.id}
+                    className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{appt.patientName}</p>
+                        <StatusBadge status={appt.status} />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                        <span>
+                          {appt.doctorName} •{" "}
+                          {format(
+                            new Date(appt.appointmentDate),
+                            "MMM d, h:mm a",
+                          )}
+                        </span>
+                        {appt.patientPhone && (
+                          <span
+                            dir="ltr"
+                            className="inline-flex items-center gap-1 text-xs tabular-nums"
+                          >
+                            <Phone className="h-3 w-3" />
+                            {appt.patientPhone}
+                          </span>
+                        )}
+                        {waitMins !== null && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 tabular-nums">
+                            <Clock className="h-3 w-3" />
+                            {t("waiting")}: {waitMins} {t("minsShort")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center justify-end gap-2">
+                      {renderRowActions(appt.id, appt.patientName, appt.status)}
+                    </div>
                   </div>
-                  <StatusBadge status={appt.status} />
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <NewAppointmentDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onCreateAppointment={createStaffAppointment}
-        onRegisterPatient={registerPatientAndCreateStaffAppointment}
-        invalidateKeys={INVALIDATE_KEYS}
-      />
+      {bookingContext && (
+        <BookingCreateDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          context={bookingContext}
+        />
+      )}
+
+      <AlertDialog
+        open={pendingCancel !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingCancel(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("cancelConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("cancelConfirmDesc", {
+                patient: pendingCancel?.patientName ?? "",
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("keepAppointment")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (!pendingCancel) return;
+                cancel(pendingCancel.id, pendingCancel.status);
+                setPendingCancel(null);
+              }}
+            >
+              {t("confirmCancel")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

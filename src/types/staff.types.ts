@@ -19,9 +19,13 @@ export type AppointmentStatus =
 export interface StaffQueueItem {
   id: string;
   patientName: string;
+  patientPhone: string | null;
+  doctorId: string | null;
   doctorName: string;
+  doctorSpecialty: string | null;
   appointmentDate: string;
   status: AppointmentStatus;
+  notes: string | null;
   /** Set once the patient is checked in; used to compute live wait-time. */
   checkedInAt: string | null;
 }
@@ -36,9 +40,11 @@ export interface StaffThroughputPoint {
 export interface StaffAppointmentRow {
   id: string;
   patientName: string;
+  patientPhone: string | null;
   doctorName: string;
   appointmentDate: string;
   status: AppointmentStatus;
+  checkedInAt: string | null;
   /** Reason/notes, surfaced as the visit type; empty string when none. */
   visitType: string;
 }

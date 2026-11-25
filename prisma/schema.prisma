@@ -22,6 +22,10 @@ model profiles {
   is_owner                                               Boolean                  @default(false)
   clinic_id                                              String?                  @db.Uuid
   branch_id                                              String?                  @db.Uuid
+  available_from                                         String?                  @default("09:00")
+  available_to                                           String?                  @default("17:00")
+  slot_duration_minutes                                  Int                      @default(30)
+  available_days                                         Int[]                    @default([0, 1, 2, 3, 4])
   reviews_approved                                       appointment_reviews[]    @relation("review_approver")
   reviews_as_doctor                                      appointment_reviews[]    @relation("review_doctor")
   appointments                                           appointments[]

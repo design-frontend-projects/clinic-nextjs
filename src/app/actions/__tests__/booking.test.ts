@@ -40,6 +40,7 @@ import {
   cancelBooking,
   createBooking,
   getBookingById,
+  getBookingContext,
   getBookings,
   updateBooking,
 } from "@/app/actions/booking";
@@ -55,8 +56,26 @@ const PATIENT_ID = "33333333-3333-4333-8333-333333333333";
 const DOCTOR_ID = "44444444-4444-4444-8444-444444444444";
 const BOOKING_ID = "55555555-5555-4555-8555-555555555555";
 
-const FUTURE_DATE = new Date("2028-06-15T10:00:00.000Z");
-const PAST_DATE = new Date("2020-01-10T10:00:00.000Z");
+// Local-time future working weekday (Thursday, June 15, 2028 at 10:00)
+const FUTURE_DATE = new Date(2028, 5, 15, 10, 0, 0, 0);
+const PAST_DATE = new Date(2020, 0, 10, 10, 0, 0, 0);
+
+function makeDoctorProfileRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: DOCTOR_ID,
+    full_name: "Dr. Ahmed",
+    specialty: "Cardiology",
+    email: "ahmed@clinic.test",
+    status: "active",
+    branch_id: BRANCH_ID,
+    available_from: "09:00",
+    available_to: "17:00",
+    slot_duration_minutes: 30,
+    available_days: [0, 1, 2, 3, 4],
+    profile_branches: [{ branch_id: BRANCH_ID }],
+    ...overrides,
+  };
+}
 
 function makeTenant(overrides: Record<string, unknown> = {}) {
   return {
@@ -172,11 +191,13 @@ describe("booking server actions", () => {
     expect(prismaMock.appointments.create).not.toHaveBeenCalled();
   });
 
-  it("rejects createBooking when doctor has a 30-min conflict", async () => {
+  it("rejects createBooking when doctor has a conflict within their configured slot duration", async () => {
     mockRequireTenant.mockResolvedValue(
       makeTenant({ role: "patient", branchId: null, branchLocked: false }),
     );
-    prismaMock.profiles.findFirst.mockResolvedValue({ id: DOCTOR_ID });
+    prismaMock.profiles.findFirst.mockResolvedValue(
+      makeDoctorProfileRow({ slot_duration_minutes: 15 }),
+    );
     prismaMock.appointments.findFirst.mockResolvedValue({ id: "existing-appt" });
 
     const res = await createBooking({
@@ -186,16 +207,82 @@ describe("booking server actions", () => {
 
     expect(res).toEqual({
       error:
-        "This doctor already has an appointment within 30 minutes of the selected time. Please choose another slot.",
+        "This doctor already has an appointment within 15 minutes of the selected time. Please choose another slot.",
     });
     expect(prismaMock.appointments.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects createBooking for inactive doctors, off-days, and outside-hours times", async () => {
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({ role: "patient", branchId: null, branchLocked: false }),
+    );
+
+    // Inactive doctor
+    prismaMock.profiles.findFirst.mockResolvedValueOnce(
+      makeDoctorProfileRow({ status: "inactive" }),
+    );
+    const inactiveRes = await createBooking({
+      doctor_id: DOCTOR_ID,
+      appointment_date: FUTURE_DATE.toISOString(),
+    });
+    expect(inactiveRes).toEqual({
+      error: "Selected doctor is currently inactive and unavailable for booking.",
+    });
+
+    // Day off (Friday June 16, 2028)
+    prismaMock.profiles.findFirst.mockResolvedValueOnce(makeDoctorProfileRow());
+    const fridayDate = new Date(2028, 5, 16, 10, 0, 0, 0);
+    const offDayRes = await createBooking({
+      doctor_id: DOCTOR_ID,
+      appointment_date: fridayDate.toISOString(),
+    });
+    expect(offDayRes).toEqual({
+      error: "Selected doctor is not available on this day of the week.",
+    });
+
+    // Outside working hours (08:00 when doctor starts at 09:00)
+    prismaMock.profiles.findFirst.mockResolvedValueOnce(makeDoctorProfileRow());
+    const earlyDate = new Date(2028, 5, 15, 8, 0, 0, 0);
+    const earlyRes = await createBooking({
+      doctor_id: DOCTOR_ID,
+      appointment_date: earlyDate.toISOString(),
+    });
+    expect(earlyRes).toEqual({
+      error:
+        "Selected time is outside this doctor's working hours (09:00 - 17:00).",
+    });
+  });
+
+  it("returns active and inactive doctors with schedule metadata in getBookingContext", async () => {
+    prismaMock.profiles.findMany.mockResolvedValue([
+      makeDoctorProfileRow({
+        id: "66666666-6666-4666-8666-666666666666",
+        full_name: "Dr. Inactive",
+        status: "inactive",
+        slot_duration_minutes: 15,
+      }),
+      makeDoctorProfileRow(),
+    ]);
+    prismaMock.clinic_branches.findMany.mockResolvedValue([
+      {
+        is_primary: true,
+        branches: { id: BRANCH_ID, name: "Main Branch", status: "active" },
+      },
+    ]);
+
+    const ctx = await getBookingContext();
+    expect(ctx.doctors).toHaveLength(2);
+    expect(ctx.doctors[0].status).toBe("active");
+    expect(ctx.doctors[1].status).toBe("inactive");
+    expect(ctx.doctors[1].slotDurationMinutes).toBe(15);
+    expect(ctx.doctors[0].availableFrom).toBe("09:00");
   });
 
   it("creates a patient booking and revalidates paths when slot is free", async () => {
     mockRequireTenant.mockResolvedValue(
       makeTenant({ role: "patient", branchId: null, branchLocked: false }),
     );
-    prismaMock.profiles.findFirst.mockResolvedValue({ id: DOCTOR_ID });
+    prismaMock.profiles.findFirst.mockResolvedValue(makeDoctorProfileRow());
     prismaMock.appointments.findFirst.mockResolvedValue(null);
     prismaMock.appointments.create.mockResolvedValue(makeAppointmentRow());
 
@@ -228,7 +315,8 @@ describe("booking server actions", () => {
     mockRequireTenant.mockResolvedValue(
       makeTenant({ role: "patient", branchId: null, branchLocked: false }),
     );
-    const nextSlot = new Date("2028-06-16T11:00:00.000Z");
+    const nextSlot = new Date(2028, 5, 19, 11, 0, 0, 0); // Monday
+    prismaMock.profiles.findFirst.mockResolvedValue(makeDoctorProfileRow());
     prismaMock.appointments.findFirst
       .mockResolvedValueOnce(makeAppointmentRow()) // existing fetch
       .mockResolvedValueOnce(null); // conflict check

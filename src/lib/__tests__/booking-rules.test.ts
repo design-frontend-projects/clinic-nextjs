@@ -3,7 +3,10 @@ import {
   buildDayTimeSlots,
   computeBookingCapabilities,
   hasDoctorSlotConflict,
+  isDoctorWorkingOnDay,
+  normalizeDoctorAvailability,
   resolveBookingRoleScope,
+  validateDoctorSlotAvailability,
 } from "@/lib/booking-rules";
 
 describe("resolveBookingRoleScope", () => {
@@ -192,5 +195,80 @@ describe("buildDayTimeSlots", () => {
     expect(slot1000?.isOccupied).toBe(true);
     expect(slot1000?.isPast).toBe(false);
     expect(slot1030?.isOccupied).toBe(false);
+  });
+
+  it("generates 15-minute slots strictly inside doctor availability and returns empty on inactive or off-days", () => {
+    const availability = normalizeDoctorAvailability({
+      status: "active",
+      available_from: "10:00",
+      available_to: "12:00",
+      slot_duration_minutes: 15,
+      available_days: [1, 3], // Mon, Wed
+    });
+
+    const monday = new Date(2026, 11, 7, 0, 0, 0, 0); // Monday
+    const tuesday = new Date(2026, 11, 8, 0, 0, 0, 0); // Tuesday
+    const occupied = [new Date(2026, 11, 7, 10, 30, 0, 0)];
+
+    expect(isDoctorWorkingOnDay(availability, monday)).toBe(true);
+    expect(isDoctorWorkingOnDay(availability, tuesday)).toBe(false);
+
+    const monSlots = buildDayTimeSlots(monday, occupied, {
+      now: new Date(2026, 11, 7, 9, 0, 0, 0),
+      availability,
+    });
+    expect(monSlots).toHaveLength(8); // 10:00..11:45
+    expect(monSlots[0].time).toBe("10:00");
+    expect(monSlots[7].time).toBe("11:45");
+    expect(monSlots.find((s) => s.time === "10:30")?.isOccupied).toBe(true);
+    expect(monSlots.find((s) => s.time === "10:45")?.isOccupied).toBe(false);
+
+    expect(buildDayTimeSlots(tuesday, [], { availability })).toEqual([]);
+
+    const inactive = { ...availability, isActive: false };
+    expect(buildDayTimeSlots(monday, [], { availability: inactive })).toEqual(
+      [],
+    );
+  });
+});
+
+describe("validateDoctorSlotAvailability", () => {
+  const availability = normalizeDoctorAvailability({
+    status: "active",
+    available_from: "09:00",
+    available_to: "17:00",
+    slot_duration_minutes: 30,
+    available_days: [0, 1, 2, 3, 4],
+  });
+
+  it("rejects inactive doctors, off days, and times outside working hours", () => {
+    const monday10am = new Date(2026, 11, 7, 10, 0, 0, 0);
+    const friday10am = new Date(2026, 11, 11, 10, 0, 0, 0);
+    const monday0830 = new Date(2026, 11, 7, 8, 30, 0, 0);
+    const monday1645 = new Date(2026, 11, 7, 16, 45, 0, 0); // ends at 17:15 > 17:00
+    const monday1630 = new Date(2026, 11, 7, 16, 30, 0, 0); // ends at 17:00 (valid)
+
+    expect(
+      validateDoctorSlotAvailability(
+        { ...availability, isActive: false },
+        monday10am,
+      ),
+    ).toMatchObject({ valid: false, reason: "inactive" });
+
+    expect(
+      validateDoctorSlotAvailability(availability, friday10am),
+    ).toMatchObject({ valid: false, reason: "day_off" });
+
+    expect(
+      validateDoctorSlotAvailability(availability, monday0830),
+    ).toMatchObject({ valid: false, reason: "outside_hours" });
+
+    expect(
+      validateDoctorSlotAvailability(availability, monday1645),
+    ).toMatchObject({ valid: false, reason: "outside_hours" });
+
+    expect(validateDoctorSlotAvailability(availability, monday1630)).toEqual({
+      valid: true,
+    });
   });
 });

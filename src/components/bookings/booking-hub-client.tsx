@@ -11,6 +11,7 @@ import {
   CalendarClock,
   CalendarDays,
   CheckCircle2,
+  Clock,
   Eye,
   LayoutGrid,
   Loader2,
@@ -49,6 +50,7 @@ import {
 import { BookingCard } from "@/components/bookings/booking-card";
 import { BookingCreateDialog } from "@/components/bookings/booking-create-dialog";
 import { BookingDetailSheet } from "@/components/bookings/booking-detail-sheet";
+import { BookingSlotsView } from "@/components/bookings/booking-slots-view";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -103,7 +105,7 @@ export function BookingHubClient({ variant = "shared" }: BookingHubClientProps) 
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  const [viewMode, setViewMode] = useState<"agenda" | "table">("agenda");
+  const [viewMode, setViewMode] = useState<"agenda" | "table" | "slots">("agenda");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [doctorFilter, setDoctorFilter] = useState<string>("all");
   const [dateFilterOverride, setDateFilterOverride] =
@@ -117,6 +119,10 @@ export function BookingHubClient({ variant = "shared" }: BookingHubClientProps) 
     open: boolean;
   }>({ id: null, tab: "view", open: false });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createPrefill, setCreatePrefill] = useState<{
+    doctorId?: string;
+    appointmentDate?: Date;
+  } | null>(null);
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -195,6 +201,7 @@ export function BookingHubClient({ variant = "shared" }: BookingHubClientProps) 
   function handleCreateOpenChange(next: boolean) {
     setIsCreateOpen(next);
     if (!next) {
+      setCreatePrefill(null);
       clearUrlParam("action");
     }
   }
@@ -644,24 +651,45 @@ export function BookingHubClient({ variant = "shared" }: BookingHubClientProps) 
                   <Table2 className="me-1.5 h-3.5 w-3.5" />
                   {t("viewTable")}
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={viewMode === "slots" ? "default" : "ghost"}
+                  onClick={() => setViewMode("slots")}
+                  className="h-8 px-3"
+                >
+                  <Clock className="me-1.5 h-3.5 w-3.5" />
+                  {t("viewSlots")}
+                </Button>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
-            <AppointmentDateFilter
-              value={effectiveDateFilter}
-              onChange={(next) => setDateFilterOverride(next)}
-            />
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {t("resultsCount", { count: items.length })}
-            </span>
-          </div>
+          {viewMode !== "slots" && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
+              <AppointmentDateFilter
+                value={effectiveDateFilter}
+                onChange={(next) => setDateFilterOverride(next)}
+              />
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {t("resultsCount", { count: items.length })}
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Main Content */}
-      {isBookingsLoading ? (
+      {viewMode === "slots" ? (
+        <BookingSlotsView
+          context={context}
+          doctorFilter={doctorFilter}
+          onSelectSlot={(doctorId, appointmentDate) => {
+            setCreatePrefill({ doctorId, appointmentDate });
+            setIsCreateOpen(true);
+          }}
+        />
+      ) : isBookingsLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full rounded-[var(--radius-card)]" />
@@ -752,6 +780,7 @@ export function BookingHubClient({ variant = "shared" }: BookingHubClientProps) 
         open={effectiveCreateOpen}
         onOpenChange={handleCreateOpenChange}
         context={context}
+        prefill={createPrefill}
       />
 
       {/* Quick Cancel Confirmation */}

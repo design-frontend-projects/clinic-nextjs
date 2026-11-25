@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
+import { resolveActiveIntlState } from "@/lib/intl-state";
 import {
   resolveStatusBadge,
   statusConfig,
@@ -231,5 +232,88 @@ describe("i18n locale messages integrity", () => {
     });
     expect(hasFn).toHaveBeenCalledWith("custom_unknown");
     expect(callFn).not.toHaveBeenCalled();
+  });
+});
+
+describe("IntlProvider state synchronization", () => {
+  it("uses updated initialMessages immediately when no client override is active", () => {
+    const staleAr = {
+      pages: { staff: { title: "عمليات الموظفين" } },
+    };
+    const updatedAr = {
+      pages: {
+        staff: {
+          title: "عمليات الموظفين",
+          actionsMenuLabel: "المزيد من الإجراءات",
+        },
+      },
+    };
+
+    const initial = resolveActiveIntlState("ar", staleAr, null, ["en", "ar"] as const, "en");
+    expect(initial.locale).toBe("ar");
+    expect(initial.messages).toBe(staleAr);
+
+    const refreshed = resolveActiveIntlState("ar", updatedAr, null, ["en", "ar"] as const, "en");
+    expect(refreshed.locale).toBe("ar");
+    expect(refreshed.messages).toBe(updatedAr);
+  });
+
+  it("uses override locale and messages when switched to a different locale client-side", () => {
+    const initialEn = { pages: { staff: { title: "Staff Operations" } } };
+    const loadedAr = {
+      pages: {
+        staff: {
+          title: "عمليات الموظفين",
+          actionsMenuLabel: "المزيد من الإجراءات",
+        },
+      },
+    };
+
+    const active = resolveActiveIntlState(
+      "en",
+      initialEn,
+      {
+        locale: "ar",
+        messages: loadedAr,
+      },
+      ["en", "ar"] as const,
+      "en",
+    );
+    expect(active.normalizedInitialLocale).toBe("en");
+    expect(active.locale).toBe("ar");
+    expect(active.messages).toBe(loadedAr);
+  });
+
+  it("falls back to fresh server initialMessages once initialLocale matches the override", () => {
+    const staleOverrideAr = { pages: { staff: { title: "قديم" } } };
+    const freshServerAr = {
+      pages: {
+        staff: {
+          title: "عمليات الموظفين",
+          actionsMenuLabel: "المزيد من الإجراءات",
+        },
+      },
+    };
+
+    const active = resolveActiveIntlState(
+      "ar",
+      freshServerAr,
+      {
+        locale: "ar",
+        messages: staleOverrideAr,
+      },
+      ["en", "ar"] as const,
+      "en",
+    );
+    expect(active.locale).toBe("ar");
+    expect(active.messages).toBe(freshServerAr);
+  });
+
+  it("falls back to defaultLocale when initialLocale is unknown", () => {
+    const enMessages = { pages: { staff: { title: "Staff Operations" } } };
+    const active = resolveActiveIntlState("fr", enMessages, null, ["en", "ar"] as const, "en");
+    expect(active.normalizedInitialLocale).toBe("en");
+    expect(active.locale).toBe("en");
+    expect(active.messages).toBe(enMessages);
   });
 });

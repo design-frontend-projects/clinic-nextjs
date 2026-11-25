@@ -58,14 +58,14 @@ export const viewport: Viewport = {
   ],
 };
 
-import { getLocale } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
 import { getPublicSupabaseEnv } from "@/lib/supabase/env";
 
 export default async function RootLayout({
   children,
 }: { children: React.ReactNode }) {
   const locale = await getLocale();
-  const messages = (await import(`../../messages/${locale}.json`)).default;
+  const messages = await getMessages();
   const { url: supabaseUrl, anonKey: supabaseAnonKey } = getPublicSupabaseEnv();
   const publicEnvScript = `window.__PUBLIC_ENV__=${JSON.stringify({
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,

@@ -65,12 +65,34 @@ export interface BookingDetail extends BookingItem {
   hasReview: boolean;
 }
 
+export type DoctorSlotDuration = 15 | 30;
+export type ProfileStatusValue = "active" | "inactive" | "blocked";
+
+export interface DoctorAvailabilityConfig {
+  isActive: boolean;
+  availableFrom: string;
+  availableTo: string;
+  slotDurationMinutes: DoctorSlotDuration;
+  availableDays: number[];
+}
+
+export type SlotAvailabilityReason = "inactive" | "day_off" | "outside_hours";
+
+export type SlotAvailabilityCheckResult =
+  | { valid: true }
+  | { valid: false; reason: SlotAvailabilityReason; message: string };
+
 export interface BookingDoctorOption {
   id: string;
   fullName: string;
   specialty: string | null;
   email: string | null;
+  status: ProfileStatusValue;
   branchIds: string[];
+  availableFrom: string;
+  availableTo: string;
+  slotDurationMinutes: DoctorSlotDuration;
+  availableDays: number[];
 }
 
 export interface BookingBranchOption {

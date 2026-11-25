@@ -9,6 +9,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -19,6 +20,7 @@ import {
 } from "next-intl";
 import { Toaster } from "sonner";
 import { routing } from "@/i18n/routing";
+import { resolveActiveIntlState, type LocaleOverride } from "@/lib/intl-state";
 
 type AppLocale = (typeof routing.locales)[number];
 
@@ -40,10 +42,13 @@ export function useLocaleSwitcher(): LocaleSwitcherContextValue {
 }
 
 // Lazy-load a message bundle on demand so we never ship both eagerly.
-// Relative path (not the @/ alias) so webpack builds a static import context.
+// Explicit per-locale imports give Turbopack/Webpack exact HMR module edges.
 async function loadMessages(locale: AppLocale): Promise<AbstractIntlMessages> {
-  const mod = await import(`../../messages/${locale}.json`);
-  return mod.default as AbstractIntlMessages;
+  const mod =
+    locale === "ar"
+      ? await import("@/messages/ar.json")
+      : await import("@/messages/en.json");
+  return mod.default as unknown as AbstractIntlMessages;
 }
 
 function isAppLocale(value: string): value is AppLocale {
@@ -70,26 +75,40 @@ export function IntlProvider({
   initialMessages,
   children,
 }: IntlProviderProps) {
-  const [locale, setLocale] = useState<AppLocale>(
-    isAppLocale(initialLocale) ? initialLocale : routing.defaultLocale
-  );
-  const [messages, setMessages] =
-    useState<AbstractIntlMessages>(initialMessages);
+  const [override, setOverride] = useState<LocaleOverride<
+    AppLocale,
+    AbstractIntlMessages
+  > | null>(null);
+  const switchRequestIdRef = useRef(0);
+  const { normalizedInitialLocale, locale, messages } =
+    resolveActiveIntlState(
+      initialLocale,
+      initialMessages,
+      override,
+      routing.locales,
+      routing.defaultLocale,
+    );
 
   const switchLocale = useCallback(
     async (next: AppLocale) => {
       if (next === locale || !isAppLocale(next)) return;
 
-      const nextMessages = await loadMessages(next);
-      setMessages(nextMessages);
-      setLocale(next);
+      const requestId = ++switchRequestIdRef.current;
+
+      if (next === normalizedInitialLocale) {
+        setOverride(null);
+      } else {
+        const nextMessages = await loadMessages(next);
+        if (switchRequestIdRef.current !== requestId) return;
+        setOverride({ locale: next, messages: nextMessages });
+      }
 
       document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; SameSite=Lax`;
       document.documentElement.lang = next;
       document.documentElement.dir = next === "ar" ? "rtl" : "ltr";
       syncUrlPrefix(next);
     },
-    [locale]
+    [locale, normalizedInitialLocale]
   );
 
   const value = useMemo(

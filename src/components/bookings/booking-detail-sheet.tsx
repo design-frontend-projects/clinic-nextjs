@@ -268,6 +268,10 @@ export function BookingDetailSheet({
 
   const watchedDoctorId = form.watch("doctor_id");
   const watchedDate = form.watch("appointment_date");
+  const selectedDoctor = useMemo(
+    () => context.doctors.find((d) => d.id === watchedDoctorId),
+    [context.doctors, watchedDoctorId],
+  );
 
   return (
     <>
@@ -578,14 +582,26 @@ export function BookingDetailSheet({
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {context.doctors.map((doctor) => (
-                                    <SelectItem key={doctor.id} value={doctor.id}>
-                                      {doctor.fullName}
-                                      {doctor.specialty
-                                        ? ` — ${doctor.specialty}`
-                                        : ""}
-                                    </SelectItem>
-                                  ))}
+                                  {context.doctors.map((doctor) => {
+                                    const isInactive =
+                                      doctor.status !== "active" &&
+                                      doctor.id !== booking.doctor?.id;
+                                    return (
+                                      <SelectItem
+                                        key={doctor.id}
+                                        value={doctor.id}
+                                        disabled={isInactive}
+                                      >
+                                        {doctor.fullName}
+                                        {doctor.specialty
+                                          ? ` — ${doctor.specialty}`
+                                          : ""}
+                                        {doctor.status !== "active"
+                                          ? ` (${tStatus(doctor.status)})`
+                                          : ""}
+                                      </SelectItem>
+                                    );
+                                  })}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -695,15 +711,22 @@ export function BookingDetailSheet({
                                   <Calendar
                                     mode="single"
                                     selected={field.value}
-                                    disabled={
-                                      context.roleScope === "patient"
-                                        ? (d) => {
-                                            const today = new Date();
-                                            today.setHours(0, 0, 0, 0);
-                                            return d < today;
-                                          }
-                                        : undefined
-                                    }
+                                    disabled={(d) => {
+                                      if (context.roleScope === "patient") {
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        if (d < today) return true;
+                                      }
+                                      if (
+                                        selectedDoctor &&
+                                        !selectedDoctor.availableDays.includes(
+                                          d.getDay(),
+                                        )
+                                      ) {
+                                        return true;
+                                      }
+                                      return false;
+                                    }}
                                     onSelect={(selectedDay) => {
                                       if (!selectedDay) return;
                                       const next = new Date(selectedDay);
@@ -715,7 +738,15 @@ export function BookingDetailSheet({
                                           0,
                                         );
                                       } else {
-                                        next.setHours(9, 0, 0, 0);
+                                        const [hStr, mStr] = (
+                                          selectedDoctor?.availableFrom ?? "09:00"
+                                        ).split(":");
+                                        next.setHours(
+                                          Number.parseInt(hStr ?? "9", 10),
+                                          Number.parseInt(mStr ?? "0", 10),
+                                          0,
+                                          0,
+                                        );
                                       }
                                       field.onChange(next);
                                     }}
@@ -726,6 +757,7 @@ export function BookingDetailSheet({
 
                               <TimeSlotPicker
                                 doctorId={watchedDoctorId}
+                                doctor={selectedDoctor}
                                 date={watchedDate}
                                 value={field.value}
                                 onChange={field.onChange}

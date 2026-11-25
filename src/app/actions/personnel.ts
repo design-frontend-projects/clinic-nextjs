@@ -6,11 +6,13 @@ import { requirePermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import {
   profileSchema,
+  doctorAvailabilitySchema,
   invitableRoleEnum,
   isBranchLockedRole,
   isMultiBranchRole,
   rolesForPersonnelPage,
   type Profile,
+  type DoctorAvailabilityInput,
   type DoctorBranchAssignment,
   type CreateAccountResult,
 } from "@/types/clinic.types";
@@ -202,6 +204,31 @@ async function syncDoctorRoles(
  * stamped onto the profile from the primary, `profile_branches` records the full
  * set, and the RBAC role is granted in every assigned clinic.
  */
+function resolveAvailabilityPayload(validatedData: Profile) {
+  const availableFrom = validatedData.available_from || "09:00";
+  const availableTo = validatedData.available_to || "17:00";
+  const slotDurationMinutes =
+    validatedData.slot_duration_minutes === 15 ? 15 : 30;
+  const availableDays =
+    validatedData.available_days && validatedData.available_days.length > 0
+      ? Array.from(new Set(validatedData.available_days)).sort((a, b) => a - b)
+      : [0, 1, 2, 3, 4];
+
+  return {
+    available_from: availableFrom,
+    available_to: availableTo,
+    slot_duration_minutes: slotDurationMinutes,
+    available_days: availableDays,
+  };
+}
+
+function revalidatePersonnelAndBookingPaths(): void {
+  revalidatePath("/admin/doctors");
+  revalidatePath("/admin/staff");
+  revalidatePath("/booking");
+  revalidatePath("/staff/booking");
+}
+
 export async function upsertPersonnel(
   data: Profile,
 ): Promise<CreateAccountResult | { success: true }> {
@@ -226,7 +253,7 @@ export async function upsertPersonnel(
       throw new Error("Profile not found in this clinic");
     }
 
-    // Doctor edit: replace the (clinic, branch) assignment set.
+    // Doctor edit: replace the (clinic, branch) assignment set + schedule.
     if (isMultiBranchRole(existing.role) && validatedData.assignments) {
       const ownerClinicIds = await getOwnerClinicIds(tenant.clinicId);
       const plan = await resolveDoctorAssignments(
@@ -234,6 +261,7 @@ export async function upsertPersonnel(
         validatedData.primary_branch_id,
         ownerClinicIds,
       );
+      const availability = resolveAvailabilityPayload(validatedData);
 
       await prisma.$transaction(async (tx) => {
         await tx.profiles.update({
@@ -247,6 +275,7 @@ export async function upsertPersonnel(
             tenant_id: plan.homeClinicId,
             clinic_id: plan.homeClinicId,
             branch_id: plan.homeBranchId,
+            ...availability,
           },
         });
         await tx.profile_branches.deleteMany({
@@ -263,8 +292,7 @@ export async function upsertPersonnel(
         actor,
       );
 
-      revalidatePath("/admin/doctors");
-      revalidatePath("/admin/staff");
+      revalidatePersonnelAndBookingPaths();
       return { success: true };
     }
 
@@ -291,8 +319,7 @@ export async function upsertPersonnel(
       },
     });
 
-    revalidatePath("/admin/doctors");
-    revalidatePath("/admin/staff");
+    revalidatePersonnelAndBookingPaths();
     return { success: true };
   }
 
@@ -334,6 +361,9 @@ export async function upsertPersonnel(
   const homeBranchId = doctorPlan
     ? doctorPlan.homeBranchId
     : (validatedData.branch_id ?? null);
+  const doctorAvailability = isMultiBranchRole(profileRole)
+    ? resolveAvailabilityPayload(validatedData)
+    : {};
 
   // Block duplicates within the home clinic (by email or phone).
   const duplicate = await findClinicDuplicate({
@@ -370,6 +400,7 @@ export async function upsertPersonnel(
         is_owner: false,
         is_profile_completed: false,
         branch_id: homeBranchId,
+        ...doctorAvailability,
       },
       create: {
         auth_user_id: user.id,
@@ -384,6 +415,7 @@ export async function upsertPersonnel(
         is_owner: false,
         is_profile_completed: false,
         branch_id: homeBranchId,
+        ...doctorAvailability,
       },
     });
 
@@ -421,9 +453,39 @@ export async function upsertPersonnel(
     );
   }
 
-  revalidatePath("/admin/doctors");
-  revalidatePath("/admin/staff");
+  revalidatePersonnelAndBookingPaths();
   return { success: true, tempPassword, fullName: validatedData.full_name };
+}
+
+/**
+ * Allows the clinic owner (who may practice as a doctor on /admin/doctors)
+ * to configure their own availability hours, working days, and slot duration.
+ */
+export async function updateOwnerDoctorAvailability(
+  input: DoctorAvailabilityInput,
+): Promise<{ success: true }> {
+  const tenant = await requireTenantInfo();
+  if (!tenant.is_owner && tenant.role !== "owner") {
+    throw new Error("Only the clinic owner can update the owner schedule");
+  }
+
+  const parsed = doctorAvailabilitySchema.parse(input);
+  const availableDays = Array.from(new Set(parsed.available_days)).sort(
+    (a, b) => a - b,
+  );
+
+  await prisma.profiles.update({
+    where: { id: tenant.profileId },
+    data: {
+      available_from: parsed.available_from,
+      available_to: parsed.available_to,
+      slot_duration_minutes: parsed.slot_duration_minutes,
+      available_days: availableDays,
+    },
+  });
+
+  revalidatePersonnelAndBookingPaths();
+  return { success: true };
 }
 
 export async function deletePersonnel(id: string) {
@@ -434,6 +496,5 @@ export async function deletePersonnel(id: string) {
     where: { id },
   });
 
-  revalidatePath("/admin/doctors");
-  revalidatePath("/admin/staff");
+  revalidatePersonnelAndBookingPaths();
 }

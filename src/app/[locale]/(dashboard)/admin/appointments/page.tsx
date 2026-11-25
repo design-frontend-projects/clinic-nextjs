@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAppointments, updateAppointmentStatus } from "@/app/actions/admin";
+import { getBookingContext } from "@/app/actions/booking";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
 import { DataTable } from "@/components/ui/data-table";
@@ -32,7 +33,7 @@ import {
 import { useState } from "react";
 import { format } from "date-fns";
 import { useTranslations } from "next-intl";
-import { NewAppointmentDialog } from "@/components/appointments/new-appointment-dialog";
+import { BookingCreateDialog } from "@/components/bookings/booking-create-dialog";
 
 type Appointment = {
   id: string;
@@ -58,6 +59,11 @@ export default function AppointmentsPage() {
     queryFn: () => fetchTenantInfoAction(),
   });
   const role = tenant?.role;
+
+  const { data: bookingContext } = useQuery({
+    queryKey: ["booking-context"],
+    queryFn: () => getBookingContext(),
+  });
 
   useAppointmentsRealtime(tenant?.clinicId);
 
@@ -202,15 +208,18 @@ export default function AppointmentsPage() {
           </p>
         </div>
         <Button onClick={() => setIsNewAppointmentOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="me-2 h-4 w-4" />
           {t("newAppointment")}
         </Button>
       </div>
 
-      <NewAppointmentDialog
-        open={isNewAppointmentOpen}
-        onOpenChange={setIsNewAppointmentOpen}
-      />
+      {bookingContext && (
+        <BookingCreateDialog
+          open={isNewAppointmentOpen}
+          onOpenChange={setIsNewAppointmentOpen}
+          context={bookingContext}
+        />
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-4">

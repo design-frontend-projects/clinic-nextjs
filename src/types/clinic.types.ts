@@ -107,27 +107,91 @@ export const doctorBranchAssignmentSchema = z.object({
 });
 export type DoctorBranchAssignment = z.infer<typeof doctorBranchAssignmentSchema>;
 
-export const profileSchema = z.object({
-  id: z.string().uuid().optional(),
-  auth_user_id: z.string().optional(),
-  full_name: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.email("Invalid email address").optional().nullable(),
-  phone: z.string().optional().nullable(),
-  role: z.string(),
-  // RBAC role (from the tenant's `roles` table) to assign on creation.
-  role_id: z.string().uuid().optional().nullable(),
-  specialty: z.string().optional().nullable(),
-  status: profileStatusEnum,
-  // Home branch within the clinic; required for new invites (enforced in the
-  // server action so legacy edit payloads without the field keep working).
-  branch_id: z.string().uuid().optional().nullable(),
-  // Multi-branch roles (doctor): the full set of (clinic, branch) pairs the
-  // person can work across. When present, drives `profile_branches` and the
-  // home clinic/branch is derived from `primary_branch_id`.
-  assignments: z.array(doctorBranchAssignmentSchema).optional(),
-  // Which assigned branch is the home/default (must be one of `assignments`).
-  primary_branch_id: z.string().uuid().optional().nullable(),
-});
+export const SLOT_DURATION_OPTIONS = [15, 30] as const;
+export type SlotDurationOption = (typeof SLOT_DURATION_OPTIONS)[number];
+export const WEEKDAY_INDICES = [0, 1, 2, 3, 4, 5, 6] as const;
+export const HH_MM_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export const doctorAvailabilitySchema = z
+  .object({
+    available_from: z.string().regex(HH_MM_REGEX, "Invalid start time (HH:mm)"),
+    available_to: z.string().regex(HH_MM_REGEX, "Invalid end time (HH:mm)"),
+    slot_duration_minutes: z.union([z.literal(15), z.literal(30)]),
+    available_days: z
+      .array(z.number().int().min(0).max(6))
+      .min(1, "Select at least one working day"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.available_from >= data.available_to) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End time must be after start time",
+        path: ["available_to"],
+      });
+    }
+  });
+
+export type DoctorAvailabilityInput = z.infer<typeof doctorAvailabilitySchema>;
+
+export const profileSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    auth_user_id: z.string().optional(),
+    full_name: z.string().min(2, "Full name must be at least 2 characters"),
+    email: z.email("Invalid email address").optional().nullable(),
+    phone: z.string().optional().nullable(),
+    role: z.string(),
+    // RBAC role (from the tenant's `roles` table) to assign on creation.
+    role_id: z.string().uuid().optional().nullable(),
+    specialty: z.string().optional().nullable(),
+    status: profileStatusEnum,
+    // Home branch within the clinic; required for new invites (enforced in the
+    // server action so legacy edit payloads without the field keep working).
+    branch_id: z.string().uuid().optional().nullable(),
+    // Multi-branch roles (doctor): the full set of (clinic, branch) pairs the
+    // person can work across. When present, drives `profile_branches` and the
+    // home clinic/branch is derived from `primary_branch_id`.
+    assignments: z.array(doctorBranchAssignmentSchema).optional(),
+    // Which assigned branch is the home/default (must be one of `assignments`).
+    primary_branch_id: z.string().uuid().optional().nullable(),
+    // Doctor availability schedule fields
+    available_from: z
+      .string()
+      .regex(HH_MM_REGEX, "Invalid start time")
+      .optional()
+      .nullable(),
+    available_to: z
+      .string()
+      .regex(HH_MM_REGEX, "Invalid end time")
+      .optional()
+      .nullable(),
+    slot_duration_minutes: z.union([z.literal(15), z.literal(30)]).optional(),
+    available_days: z.array(z.number().int().min(0).max(6)).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.available_from &&
+      data.available_to &&
+      data.available_from >= data.available_to
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End time must be after start time",
+        path: ["available_to"],
+      });
+    }
+    if (
+      isMultiBranchRole(data.role) &&
+      data.available_days !== undefined &&
+      data.available_days.length === 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select at least one working day",
+        path: ["available_days"],
+      });
+    }
+  });
 
 /** Result of a create-and-invite action that surfaces a temp password. */
 export type CreateAccountResult =

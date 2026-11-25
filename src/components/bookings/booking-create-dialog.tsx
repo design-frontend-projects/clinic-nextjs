@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { addDays, startOfDay } from "date-fns";
 import {
   AlertCircle,
-  CalendarIcon,
+  CalendarPlus,
   Check,
   ChevronsUpDown,
+  Clock,
   Loader2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -27,15 +28,18 @@ import {
   createAppointmentWithPatientSchema,
   type CreateAppointmentWithPatientData,
 } from "@/types/appointment.types";
-import type { BookingContextData } from "@/types/booking.types";
+import type {
+  BookingContextData,
+  BookingDoctorOption,
+} from "@/types/booking.types";
 
 import { TimeSlotPicker } from "@/components/bookings/time-slot-picker";
 import {
   TempPasswordDialog,
   type TempPasswordInfo,
 } from "@/components/admin/temp-password-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Command,
   CommandEmpty,
@@ -44,6 +48,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -87,20 +92,53 @@ const createFormSchema = z.object({
 
 type CreateFormValues = z.infer<typeof createFormSchema>;
 
+export interface BookingCreatePrefill {
+  doctorId?: string;
+  appointmentDate?: Date;
+}
+
 interface BookingCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   context: BookingContextData;
+  prefill?: BookingCreatePrefill | null;
+}
+
+function DoctorScheduleSummary({ doctor }: { doctor?: BookingDoctorOption }) {
+  const t = useTranslations("pages.booking");
+  const tDaysShort = useTranslations("common.daysShort");
+  if (!doctor) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-input)] border border-hairline bg-canvas-soft px-3 py-2 text-xs text-muted-foreground">
+      <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />
+      <span className="font-medium text-foreground tabular-nums">
+        {doctor.availableFrom} – {doctor.availableTo}
+      </span>
+      <Badge
+        variant="secondary"
+        className="h-5 px-1.5 text-[10px] tabular-nums"
+      >
+        {t("durationMinutes", { minutes: doctor.slotDurationMinutes })}
+      </Badge>
+      <span className="text-[11px]">
+        {doctor.availableDays.map((d) => tDaysShort(String(d))).join(" · ")}
+      </span>
+    </div>
+  );
 }
 
 export function BookingCreateDialog({
   open,
   onOpenChange,
   context,
+  prefill,
 }: BookingCreateDialogProps) {
   const t = useTranslations("pages.booking");
   const tDialog = useTranslations("appointments.newDialog");
   const tGender = useTranslations("enums.gender");
+  const tStatus = useTranslations("enums.status");
+  const tCommon = useTranslations("common");
   const queryClient = useQueryClient();
 
   const isPatient = context.roleScope === "patient";
@@ -158,11 +196,16 @@ export function BookingCreateDialog({
     if (open) {
       setServerError(null);
       setActiveTab("existing");
+      const initialDoctorId = prefill?.doctorId || defaultDoctorId;
+      const initialDate = prefill?.appointmentDate
+        ? new Date(prefill.appointmentDate)
+        : undefined;
+
       existingForm.reset({
         patient_id: "",
-        doctor_id: defaultDoctorId,
+        doctor_id: initialDoctorId,
         branch_id: defaultBranchId,
-        appointment_date: undefined,
+        appointment_date: initialDate,
         notes: "",
       });
       newPatientForm.reset({
@@ -175,7 +218,8 @@ export function BookingCreateDialog({
           gender: undefined,
         },
         appointment: {
-          doctor_id: defaultDoctorId,
+          doctor_id: initialDoctorId,
+          appointment_date: initialDate,
           status: "scheduled",
           notes: "",
         },
@@ -183,24 +227,40 @@ export function BookingCreateDialog({
       setSelectedPatientLabel("");
       setPatientQuery("");
     }
-  }, [open, defaultDoctorId, defaultBranchId, existingForm, newPatientForm]);
+  }, [
+    open,
+    prefill,
+    defaultDoctorId,
+    defaultBranchId,
+    existingForm,
+    newPatientForm,
+  ]);
 
-  const { data: patientResults = [], isLoading: isSearchingPatients } = useQuery({
-    queryKey: ["booking-patients-search", patientQuery],
-    queryFn: () => searchBookingPatients(patientQuery),
-    enabled: !isPatient && patientQuery.trim().length >= 2,
-  });
+  const { data: patientResults = [], isLoading: isSearchingPatients } =
+    useQuery({
+      queryKey: ["booking-patients-search", patientQuery],
+      queryFn: () => searchBookingPatients(patientQuery),
+      enabled: !isPatient && patientQuery.trim().length >= 2,
+    });
 
   function invalidateAllBookingQueries() {
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookings });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookingSlots });
-    queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.staffAppointments });
-    queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.staffDashboard });
+    queryClient.invalidateQueries({
+      queryKey: APPOINTMENT_KEYS.staffAppointments,
+    });
+    queryClient.invalidateQueries({
+      queryKey: APPOINTMENT_KEYS.staffDashboard,
+    });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.staffQueue });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.doctor });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.admin });
-    queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.patientUpcoming });
-    queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.patientHistory });
+    queryClient.invalidateQueries({
+      queryKey: APPOINTMENT_KEYS.patientUpcoming,
+    });
+    queryClient.invalidateQueries({
+      queryKey: APPOINTMENT_KEYS.patientHistory,
+    });
   }
 
   const createMutation = useMutation({
@@ -258,6 +318,68 @@ export function BookingCreateDialog({
   const watchedNewDoctorId = newPatientForm.watch("appointment.doctor_id");
   const watchedNewDate = newPatientForm.watch("appointment.appointment_date");
 
+  const selectedExistingDoctor = useMemo(
+    () => context.doctors.find((d) => d.id === watchedExistingDoctorId),
+    [context.doctors, watchedExistingDoctorId],
+  );
+  const selectedNewDoctor = useMemo(
+    () => context.doctors.find((d) => d.id === watchedNewDoctorId),
+    [context.doctors, watchedNewDoctorId],
+  );
+
+  const todayStart = useMemo(() => startOfDay(new Date()), []);
+  const tomorrowStart = useMemo(() => addDays(todayStart, 1), [todayStart]);
+
+  const makeDisabledDateCheck = (doctor?: BookingDoctorOption) => {
+    return (d: Date) => {
+      if (isPatient && d < todayStart) return true;
+      if (doctor && !doctor.availableDays.includes(d.getDay())) return true;
+      return false;
+    };
+  };
+
+  const applyDayToField = (
+    selectedDay: Date | undefined,
+    currentValue: Date | undefined,
+    doctor: BookingDoctorOption | undefined,
+    onChange: (next: Date) => void,
+  ) => {
+    if (!selectedDay) return;
+    const next = new Date(selectedDay);
+    if (currentValue) {
+      next.setHours(currentValue.getHours(), currentValue.getMinutes(), 0, 0);
+    } else {
+      const [hStr, mStr] = (doctor?.availableFrom ?? "09:00").split(":");
+      next.setHours(
+        Number.parseInt(hStr ?? "9", 10),
+        Number.parseInt(mStr ?? "0", 10),
+        0,
+        0,
+      );
+    }
+    onChange(next);
+  };
+
+  const renderDoctorSelectItems = () =>
+    context.doctors.map((doctor) => {
+      const isInactive = doctor.status !== "active";
+      return (
+        <SelectItem key={doctor.id} value={doctor.id} disabled={isInactive}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate">
+              {doctor.fullName}
+              {doctor.specialty ? ` — ${doctor.specialty}` : ""}
+            </span>
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {isInactive
+                ? `(${tStatus(doctor.status)})`
+                : `${doctor.availableFrom}–${doctor.availableTo} · ${doctor.slotDurationMinutes}m`}
+            </span>
+          </div>
+        </SelectItem>
+      );
+    });
+
   const existingFormBody = (
     <Form {...existingForm}>
       <form
@@ -304,7 +426,10 @@ export function BookingCreateDialog({
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[360px] p-0" align="start">
+                  <PopoverContent
+                    className="w-[min(360px,calc(100vw-2rem))] p-0"
+                    align="start"
+                  >
                     <Command shouldFilter={false}>
                       <CommandInput
                         placeholder={tDialog("searchPatientsPlaceholder")}
@@ -315,7 +440,9 @@ export function BookingCreateDialog({
                         {patientResults.length === 0 &&
                           patientQuery.trim().length >= 2 &&
                           !isSearchingPatients && (
-                            <CommandEmpty>{tDialog("noPatientsFound")}</CommandEmpty>
+                            <CommandEmpty>
+                              {tDialog("noPatientsFound")}
+                            </CommandEmpty>
                           )}
                         {isSearchingPatients && (
                           <div className="p-4 text-center text-sm text-muted-foreground">
@@ -332,9 +459,13 @@ export function BookingCreateDialog({
                                 key={patient.id}
                                 value={patient.id}
                                 onSelect={() => {
-                                  existingForm.setValue("patient_id", patient.id, {
-                                    shouldValidate: true,
-                                  });
+                                  existingForm.setValue(
+                                    "patient_id",
+                                    patient.id,
+                                    {
+                                      shouldValidate: true,
+                                    },
+                                  );
                                   setSelectedPatientLabel(name);
                                   setPatientDropdownOpen(false);
                                 }}
@@ -382,14 +513,7 @@ export function BookingCreateDialog({
                       <SelectValue placeholder={t("selectDoctor")} />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
-                    {context.doctors.map((doctor) => (
-                      <SelectItem key={doctor.id} value={doctor.id}>
-                        {doctor.fullName}
-                        {doctor.specialty ? ` — ${doctor.specialty}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectContent>{renderDoctorSelectItems()}</SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
@@ -431,63 +555,75 @@ export function BookingCreateDialog({
           )}
         </div>
 
+        <DoctorScheduleSummary doctor={selectedExistingDoctor} />
+
         <FormField
           control={existingForm.control}
           name="appointment_date"
           render={({ field }) => (
             <FormItem className="flex flex-col space-y-2">
-              <FormLabel>{t("dateLabel")}</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-start font-normal",
-                        !field.value && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="me-2 h-4 w-4 opacity-60" />
-                      {field.value ? format(field.value, "PPPp") : t("pickDate")}
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    disabled={
-                      isPatient
-                        ? (d) => {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            return d < today;
-                          }
-                        : undefined
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FormLabel>{t("dateLabel")}</FormLabel>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={makeDisabledDateCheck(selectedExistingDoctor)(
+                      todayStart,
+                    )}
+                    onClick={() =>
+                      applyDayToField(
+                        todayStart,
+                        field.value,
+                        selectedExistingDoctor,
+                        field.onChange,
+                      )
                     }
-                    onSelect={(selectedDay) => {
-                      if (!selectedDay) return;
-                      const next = new Date(selectedDay);
-                      if (field.value) {
-                        next.setHours(
-                          field.value.getHours(),
-                          field.value.getMinutes(),
-                          0,
-                          0,
-                        );
-                      } else {
-                        next.setHours(9, 0, 0, 0);
-                      }
-                      field.onChange(next);
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+                  >
+                    {t("quickToday")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={makeDisabledDateCheck(selectedExistingDoctor)(
+                      tomorrowStart,
+                    )}
+                    onClick={() =>
+                      applyDayToField(
+                        tomorrowStart,
+                        field.value,
+                        selectedExistingDoctor,
+                        field.onChange,
+                      )
+                    }
+                  >
+                    {t("quickTomorrow")}
+                  </Button>
+                </div>
+              </div>
+
+              <DatePicker
+                value={field.value}
+                onChange={(selectedDay) =>
+                  applyDayToField(
+                    selectedDay,
+                    field.value,
+                    selectedExistingDoctor,
+                    field.onChange,
+                  )
+                }
+                placeholder={t("pickDate")}
+                dateFormat="PPPp"
+                disabledDates={makeDisabledDateCheck(selectedExistingDoctor)}
+              />
 
               <TimeSlotPicker
                 doctorId={watchedExistingDoctorId}
+                doctor={selectedExistingDoctor}
                 date={watchedExistingDate}
                 value={field.value}
                 onChange={field.onChange}
@@ -518,15 +654,20 @@ export function BookingCreateDialog({
           )}
         />
 
-        <div className="flex justify-end gap-2 border-t border-hairline pt-4">
+        <div className="flex flex-col-reverse gap-2 border-t border-hairline pt-4 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"
+            className="w-full sm:w-auto"
             onClick={() => onOpenChange(false)}
           >
             {t("btnCancel")}
           </Button>
-          <Button type="submit" disabled={createMutation.isPending}>
+          <Button
+            type="submit"
+            className="w-full sm:w-auto"
+            disabled={createMutation.isPending}
+          >
             {createMutation.isPending && (
               <Loader2 className="me-2 h-4 w-4 animate-spin" />
             )}
@@ -540,356 +681,377 @@ export function BookingCreateDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-hairline bg-surface">
-          <DialogHeader>
-            <DialogTitle>
-              {isPatient ? t("createTitlePatient") : t("createTitleStaff")}
-            </DialogTitle>
-            <DialogDescription>
-              {isPatient
-                ? t("createSubtitlePatient")
-                : t("createSubtitleStaff")}
-            </DialogDescription>
+        <DialogContent className="flex max-h-[92dvh] w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden border-hairline bg-surface p-0 sm:max-w-2xl">
+          <DialogHeader className="border-b border-hairline px-5 py-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <CalendarPlus className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 text-start">
+                <DialogTitle>
+                  {isPatient ? t("createTitlePatient") : t("createTitleStaff")}
+                </DialogTitle>
+                <DialogDescription className="mt-0.5">
+                  {isPatient
+                    ? t("createSubtitlePatient")
+                    : t("createSubtitleStaff")}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
-          {serverError && (
-            <div className="flex items-start gap-2 rounded-[var(--radius-input)] border border-destructive/30 bg-accent-red-soft p-3 text-xs text-destructive">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{serverError}</span>
-            </div>
-          )}
+          <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6">
+            {serverError && (
+              <div className="flex items-start gap-2 rounded-[var(--radius-input)] border border-destructive/30 bg-accent-red-soft p-3 text-xs text-destructive">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{serverError}</span>
+              </div>
+            )}
 
-          {isPatient || !context.canCreateNewPatient ? (
-            existingFormBody
-          ) : (
-            <Tabs
-              value={activeTab}
-              onValueChange={(val) => {
-                setServerError(null);
-                setActiveTab(val as "existing" | "new");
-              }}
-              className="w-full"
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="existing">{tDialog("tabExisting")}</TabsTrigger>
-                <TabsTrigger value="new">{tDialog("tabNew")}</TabsTrigger>
-              </TabsList>
+            {isPatient || !context.canCreateNewPatient ? (
+              existingFormBody
+            ) : (
+              <Tabs
+                value={activeTab}
+                onValueChange={(val) => {
+                  setServerError(null);
+                  setActiveTab(val as "existing" | "new");
+                }}
+                className="w-full"
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="existing">
+                    {tDialog("tabExisting")}
+                  </TabsTrigger>
+                  <TabsTrigger value="new">{tDialog("tabNew")}</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="existing" className="mt-4">
-                {existingFormBody}
-              </TabsContent>
+                <TabsContent value="existing" className="mt-4">
+                  {existingFormBody}
+                </TabsContent>
 
-              <TabsContent value="new" className="mt-4">
-                <Form {...newPatientForm}>
-                  <form
-                    onSubmit={newPatientForm.handleSubmit((data) => {
-                      setServerError(null);
-                      registerMutation.mutate(data);
-                    })}
-                    className="space-y-5"
-                  >
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {tDialog("patientDetailsTitle")}
-                      </h3>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <FormField
-                          control={newPatientForm.control}
-                          name="patient.first_name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                {tDialog("firstNameLabel")}{" "}
-                                <span className="text-destructive">*</span>
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder={tDialog("firstNamePlaceholder")}
-                                  {...field}
+                <TabsContent value="new" className="mt-4">
+                  <Form {...newPatientForm}>
+                    <form
+                      onSubmit={newPatientForm.handleSubmit((data) => {
+                        setServerError(null);
+                        registerMutation.mutate(data);
+                      })}
+                      className="space-y-5"
+                    >
+                      <div className="space-y-3 rounded-[var(--radius-card)] border border-hairline bg-canvas-soft/60 p-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {tDialog("patientDetailsTitle")}
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <FormField
+                            control={newPatientForm.control}
+                            name="patient.first_name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  {tDialog("firstNameLabel")}{" "}
+                                  <span className="text-destructive">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder={tDialog(
+                                      "firstNamePlaceholder",
+                                    )}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={newPatientForm.control}
+                            name="patient.last_name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  {tDialog("lastNameLabel")}{" "}
+                                  <span className="text-destructive">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder={tDialog("lastNamePlaceholder")}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <FormField
+                            control={newPatientForm.control}
+                            name="patient.email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  {tDialog("emailLabel")}{" "}
+                                  <span className="text-destructive">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="email"
+                                    dir="ltr"
+                                    placeholder={tDialog("emailPlaceholder")}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={newPatientForm.control}
+                            name="patient.phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{tDialog("phoneLabel")}</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    dir="ltr"
+                                    placeholder="+20 100..."
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <FormField
+                            control={newPatientForm.control}
+                            name="patient.gender"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{tDialog("genderLabel")}</FormLabel>
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue
+                                        placeholder={tDialog("selectGender")}
+                                      />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="male">
+                                      {tGender("male")}
+                                    </SelectItem>
+                                    <SelectItem value="female">
+                                      {tGender("female")}
+                                    </SelectItem>
+                                    <SelectItem value="other">
+                                      {tGender("other")}
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={newPatientForm.control}
+                            name="patient.date_of_birth"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col">
+                                <FormLabel>{tDialog("dobLabel")}</FormLabel>
+                                <DatePicker
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  placeholder={tDialog("pickDate")}
+                                  captionLayout="dropdown"
+                                  fromYear={1900}
+                                  toYear={new Date().getFullYear()}
+                                  disabledDates={(d) =>
+                                    d > new Date() || d < new Date("1900-01-01")
+                                  }
+                                  clearable
+                                  clearLabel={tCommon("clear")}
                                 />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={newPatientForm.control}
-                          name="patient.last_name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                {tDialog("lastNameLabel")}{" "}
-                                <span className="text-destructive">*</span>
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder={tDialog("lastNamePlaceholder")}
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-4 border-t border-hairline pt-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {tDialog("appointmentDetailsTitle")}
+                        </h3>
+
                         <FormField
                           control={newPatientForm.control}
-                          name="patient.email"
+                          name="appointment.doctor_id"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>
-                                {tDialog("emailLabel")}{" "}
+                                {t("doctorLabel")}{" "}
                                 <span className="text-destructive">*</span>
                               </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="email"
-                                  placeholder={tDialog("emailPlaceholder")}
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={newPatientForm.control}
-                          name="patient.phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{tDialog("phoneLabel")}</FormLabel>
-                              <FormControl>
-                                <Input placeholder="+20 100..." {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <FormField
-                          control={newPatientForm.control}
-                          name="patient.gender"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{tDialog("genderLabel")}</FormLabel>
                               <Select
                                 value={field.value}
                                 onValueChange={field.onChange}
+                                disabled={isDoctor}
                               >
                                 <FormControl>
                                   <SelectTrigger className="w-full">
                                     <SelectValue
-                                      placeholder={tDialog("selectGender")}
+                                      placeholder={t("selectDoctor")}
                                     />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="male">
-                                    {tGender("male")}
-                                  </SelectItem>
-                                  <SelectItem value="female">
-                                    {tGender("female")}
-                                  </SelectItem>
-                                  <SelectItem value="other">
-                                    {tGender("other")}
-                                  </SelectItem>
+                                  {renderDoctorSelectItems()}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+
+                        <DoctorScheduleSummary doctor={selectedNewDoctor} />
+
                         <FormField
                           control={newPatientForm.control}
-                          name="patient.date_of_birth"
+                          name="appointment.appointment_date"
                           render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel>{tDialog("dobLabel")}</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      className={cn(
-                                        "w-full justify-start text-start font-normal",
-                                        !field.value && "text-muted-foreground",
-                                      )}
-                                    >
-                                      <CalendarIcon className="me-2 h-4 w-4 opacity-50" />
-                                      {field.value
-                                        ? format(field.value, "PPP")
-                                        : tDialog("pickDate")}
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    disabled={(d) =>
-                                      d > new Date() ||
-                                      d < new Date("1900-01-01")
+                            <FormItem className="flex flex-col space-y-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <FormLabel>
+                                  {t("dateLabel")}{" "}
+                                  <span className="text-destructive">*</span>
+                                </FormLabel>
+                                <div className="flex items-center gap-1.5">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-xs"
+                                    disabled={makeDisabledDateCheck(
+                                      selectedNewDoctor,
+                                    )(todayStart)}
+                                    onClick={() =>
+                                      applyDayToField(
+                                        todayStart,
+                                        field.value,
+                                        selectedNewDoctor,
+                                        field.onChange,
+                                      )
                                     }
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                                  >
+                                    {t("quickToday")}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-xs"
+                                    disabled={makeDisabledDateCheck(
+                                      selectedNewDoctor,
+                                    )(tomorrowStart)}
+                                    onClick={() =>
+                                      applyDayToField(
+                                        tomorrowStart,
+                                        field.value,
+                                        selectedNewDoctor,
+                                        field.onChange,
+                                      )
+                                    }
+                                  >
+                                    {t("quickTomorrow")}
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <DatePicker
+                                value={field.value}
+                                onChange={(selectedDay) =>
+                                  applyDayToField(
+                                    selectedDay,
+                                    field.value,
+                                    selectedNewDoctor,
+                                    field.onChange,
+                                  )
+                                }
+                                placeholder={t("pickDate")}
+                                dateFormat="PPPp"
+                                disabledDates={makeDisabledDateCheck(
+                                  selectedNewDoctor,
+                                )}
+                              />
+
+                              <TimeSlotPicker
+                                doctorId={watchedNewDoctorId}
+                                doctor={selectedNewDoctor}
+                                date={watchedNewDate}
+                                value={field.value}
+                                onChange={field.onChange}
+                                allowCustomTime
+                              />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={newPatientForm.control}
+                          name="appointment.notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("notesLabel")}</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  rows={3}
+                                  placeholder={t("notesPlaceholder")}
+                                  className="resize-none"
+                                  {...field}
+                                />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
                       </div>
-                    </div>
 
-                    <div className="space-y-4 border-t border-hairline pt-4">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {tDialog("appointmentDetailsTitle")}
-                      </h3>
-
-                      <FormField
-                        control={newPatientForm.control}
-                        name="appointment.doctor_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {t("doctorLabel")}{" "}
-                              <span className="text-destructive">*</span>
-                            </FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              disabled={isDoctor}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder={t("selectDoctor")} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {context.doctors.map((doctor) => (
-                                  <SelectItem key={doctor.id} value={doctor.id}>
-                                    {doctor.fullName}
-                                    {doctor.specialty
-                                      ? ` — ${doctor.specialty}`
-                                      : ""}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={newPatientForm.control}
-                        name="appointment.appointment_date"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col space-y-2">
-                            <FormLabel>
-                              {t("dateLabel")}{" "}
-                              <span className="text-destructive">*</span>
-                            </FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    className={cn(
-                                      "w-full justify-start text-start font-normal",
-                                      !field.value && "text-muted-foreground",
-                                    )}
-                                  >
-                                    <CalendarIcon className="me-2 h-4 w-4 opacity-50" />
-                                    {field.value
-                                      ? format(field.value, "PPPp")
-                                      : t("pickDate")}
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={(selectedDay) => {
-                                    if (!selectedDay) return;
-                                    const next = new Date(selectedDay);
-                                    if (field.value) {
-                                      next.setHours(
-                                        field.value.getHours(),
-                                        field.value.getMinutes(),
-                                        0,
-                                        0,
-                                      );
-                                    } else {
-                                      next.setHours(9, 0, 0, 0);
-                                    }
-                                    field.onChange(next);
-                                  }}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-
-                            <TimeSlotPicker
-                              doctorId={watchedNewDoctorId}
-                              date={watchedNewDate}
-                              value={field.value}
-                              onChange={field.onChange}
-                              allowCustomTime
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={newPatientForm.control}
-                        name="appointment.notes"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("notesLabel")}</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                rows={3}
-                                placeholder={t("notesPlaceholder")}
-                                className="resize-none"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2 border-t border-hairline pt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                      >
-                        {t("btnCancel")}
-                      </Button>
-                      <Button type="submit" disabled={registerMutation.isPending}>
-                        {registerMutation.isPending && (
-                          <Loader2 className="me-2 h-4 w-4 animate-spin" />
-                        )}
-                        {tDialog("registerAndBook")}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </TabsContent>
-            </Tabs>
-          )}
+                      <div className="flex flex-col-reverse gap-2 border-t border-hairline pt-4 sm:flex-row sm:justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                          onClick={() => onOpenChange(false)}
+                        >
+                          {t("btnCancel")}
+                        </Button>
+                        <Button
+                          type="submit"
+                          className="w-full sm:w-auto"
+                          disabled={registerMutation.isPending}
+                        >
+                          {registerMutation.isPending && (
+                            <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                          )}
+                          {tDialog("registerAndBook")}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </TabsContent>
+              </Tabs>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
