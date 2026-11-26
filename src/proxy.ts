@@ -22,6 +22,7 @@ export default async function middleware(request: NextRequest) {
   // outside the [locale] tree and must not be locale-redirected or auth-gated.
   if (
     request.nextUrl.pathname === "/api/health" ||
+    request.nextUrl.pathname.startsWith("/api/sync/") ||
     request.nextUrl.pathname === "/robots.txt" ||
     request.nextUrl.pathname === "/sitemap.xml" ||
     request.nextUrl.pathname.startsWith("/auth/")

@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { findMany, findFirst, upsert } = vi.hoisted(() => ({
+const { findMany, upsert, transaction } = vi.hoisted(() => ({
   findMany: vi.fn(),
-  findFirst: vi.fn(),
   upsert: vi.fn(),
+  transaction: vi.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
 }));
 
 vi.mock("@/lib/prisma", () => ({
-  prismaBase: { patients: { findMany, findFirst, upsert } },
+  prismaBase: {
+    patients: { findMany, upsert },
+    $transaction: transaction,
+  },
 }));
 
 import { COLLECTION_BY_NAME } from "../collection-registry";
@@ -20,8 +23,8 @@ const patients = COLLECTION_BY_NAME.get("patients")!;
 
 beforeEach(() => {
   findMany.mockReset();
-  findFirst.mockReset();
   upsert.mockReset();
+  transaction.mockClear();
 });
 
 describe("pullChangesForClinic", () => {
@@ -74,7 +77,7 @@ describe("pullChangesForClinic", () => {
 
 describe("pushChangesForClinic", () => {
   it("stamps clinic_id from the tenant and ignores the client's clinic_id", async () => {
-    findFirst.mockResolvedValue(null); // new record
+    findMany.mockResolvedValue([]); // new record
     upsert.mockResolvedValue({});
 
     const conflicts = await pushChangesForClinic(patients, "REAL", "branchX", [
@@ -91,6 +94,8 @@ describe("pushChangesForClinic", () => {
     ]);
 
     expect(conflicts).toEqual([]);
+    expect(findMany).toHaveBeenCalledOnce();
+    expect(transaction).toHaveBeenCalledOnce();
     const args = upsert.mock.calls[0][0];
     expect(args.where).toEqual({ id: "p9" });
     expect(args.create.clinic_id).toBe("REAL");
@@ -101,13 +106,15 @@ describe("pushChangesForClinic", () => {
   });
 
   it("returns the master doc as a conflict when the server moved ahead", async () => {
-    findFirst.mockResolvedValue({
-      id: "p9",
-      clinic_id: "REAL",
-      updated_at: new Date("2026-02-01T00:00:00.000Z"),
-      first_name: "Server",
-      deleted_at: null,
-    });
+    findMany.mockResolvedValue([
+      {
+        id: "p9",
+        clinic_id: "REAL",
+        updated_at: new Date("2026-02-01T00:00:00.000Z"),
+        first_name: "Server",
+        deleted_at: null,
+      },
+    ]);
 
     const conflicts = await pushChangesForClinic(patients, "REAL", null, [
       {
@@ -128,17 +135,20 @@ describe("pushChangesForClinic", () => {
     ]);
 
     expect(upsert).not.toHaveBeenCalled();
+    expect(transaction).not.toHaveBeenCalled();
     expect(conflicts).toHaveLength(1);
     expect(conflicts[0].first_name).toBe("Server");
   });
 
   it("applies the write when the client's assumed base matches the server", async () => {
-    findFirst.mockResolvedValue({
-      id: "p9",
-      clinic_id: "REAL",
-      updated_at: new Date("2026-01-10T00:00:00.000Z"),
-      deleted_at: null,
-    });
+    findMany.mockResolvedValue([
+      {
+        id: "p9",
+        clinic_id: "REAL",
+        updated_at: new Date("2026-01-10T00:00:00.000Z"),
+        deleted_at: null,
+      },
+    ]);
     upsert.mockResolvedValue({});
 
     const conflicts = await pushChangesForClinic(patients, "REAL", null, [
@@ -161,5 +171,78 @@ describe("pushChangesForClinic", () => {
 
     expect(conflicts).toEqual([]);
     expect(upsert).toHaveBeenCalledOnce();
+    expect(transaction).toHaveBeenCalledOnce();
+  });
+
+  it("batches N rows into one findMany lookup and one $transaction", async () => {
+    findMany.mockResolvedValue([
+      {
+        id: "p-match",
+        clinic_id: "REAL",
+        updated_at: new Date("2026-01-10T00:00:00.000Z"),
+        deleted_at: null,
+      },
+      {
+        id: "p-conflict",
+        clinic_id: "REAL",
+        updated_at: new Date("2026-02-01T00:00:00.000Z"),
+        first_name: "ServerWins",
+        deleted_at: null,
+      },
+    ]);
+    upsert.mockResolvedValue({});
+
+    const conflicts = await pushChangesForClinic(patients, "REAL", "b1", [
+      {
+        newDocumentState: {
+          id: "p-new",
+          clinic_id: "REAL",
+          updated_at: "2026-01-12T00:00:00.000Z",
+          first_name: "New",
+          _deleted: false,
+        },
+        assumedMasterState: null,
+      },
+      {
+        newDocumentState: {
+          id: "p-match",
+          clinic_id: "REAL",
+          updated_at: "2026-01-15T00:00:00.000Z",
+          first_name: "Updated",
+          _deleted: false,
+        },
+        assumedMasterState: {
+          id: "p-match",
+          clinic_id: "REAL",
+          updated_at: "2026-01-10T00:00:00.000Z",
+          _deleted: false,
+        },
+      },
+      {
+        newDocumentState: {
+          id: "p-conflict",
+          clinic_id: "REAL",
+          updated_at: "2026-01-15T00:00:00.000Z",
+          first_name: "StaleClient",
+          _deleted: false,
+        },
+        assumedMasterState: {
+          id: "p-conflict",
+          clinic_id: "REAL",
+          updated_at: "2026-01-10T00:00:00.000Z",
+          _deleted: false,
+        },
+      },
+    ]);
+
+    expect(findMany).toHaveBeenCalledOnce();
+    expect(findMany.mock.calls[0][0].where).toEqual({
+      clinic_id: "REAL",
+      id: { in: ["p-new", "p-match", "p-conflict"] },
+    });
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].id).toBe("p-conflict");
+    expect(upsert).toHaveBeenCalledTimes(2);
+    expect(transaction).toHaveBeenCalledOnce();
   });
 });

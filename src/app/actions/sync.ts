@@ -17,7 +17,10 @@ function specOrThrow(collection: string) {
   return spec;
 }
 
-/** RXDB pull handler backend — see replicateRxCollection in replication.ts. */
+/**
+ * @deprecated RXDB replication now calls `/api/sync/pull` directly for parallel execution.
+ * Kept for backwards compatibility.
+ */
 export async function pullChanges(
   collection: string,
   checkpoint: SyncCheckpoint | null,
@@ -28,7 +31,10 @@ export async function pullChanges(
   return pullChangesForClinic(spec, tenant.clinicId, checkpoint, batchSize);
 }
 
-/** RXDB push handler backend — returns conflicting master docs (LWW). */
+/**
+ * @deprecated RXDB replication now calls `/api/sync/push` directly for parallel execution.
+ * Kept for backwards compatibility.
+ */
 export async function pushChanges(
   collection: string,
   rows: PushRow[],

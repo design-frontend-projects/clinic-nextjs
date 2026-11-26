@@ -30,6 +30,8 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   searchKey?: string;
   searchPlaceholder?: string;
+  getRowId?: (originalRow: TData, index: number) => string;
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -37,6 +39,8 @@ export function DataTable<TData, TValue>({
   data,
   searchKey,
   searchPlaceholder,
+  getRowId,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations("common.table");
   const resolvedPlaceholder = searchPlaceholder ?? t("searchPlaceholder");
@@ -46,6 +50,7 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -112,6 +117,22 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className={onRowClick ? "cursor-pointer" : undefined}
+                  onClick={
+                    onRowClick
+                      ? (e) => {
+                          const target = e.target as HTMLElement | null;
+                          if (
+                            target?.closest(
+                              'button, a, input, select, textarea, [role="button"], [role="menuitem"], [data-row-click-ignore]',
+                            )
+                          ) {
+                            return;
+                          }
+                          onRowClick(row.original);
+                        }
+                      : undefined
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

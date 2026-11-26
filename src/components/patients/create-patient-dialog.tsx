@@ -91,17 +91,21 @@ export function CreatePatientDialog({ onCreated }: CreatePatientDialogProps) {
     return yrs >= 0 ? yrs : null;
   }, [dobDate]);
 
-  if (!canCreate) {
+  // Keep an already-open modal mounted if permissions briefly refetch/flicker.
+  if (!canCreate && !open) {
     return null;
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && isPending) return;
     setOpen(nextOpen);
     if (!nextOpen) {
       form.reset(DEFAULT_VALUES);
       setServerError(null);
     }
   };
+
+  const blockDismiss = isPending || form.formState.isDirty;
 
   const onSubmit = (data: CreatePatientInput) => {
     setServerError(null);
@@ -118,8 +122,7 @@ export function CreatePatientDialog({ onCreated }: CreatePatientDialogProps) {
         handleOpenChange(false);
         onCreated?.();
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : t("failed");
+        const message = error instanceof Error ? error.message : t("failed");
         setServerError(message);
         toast.error(message);
       }
@@ -134,7 +137,15 @@ export function CreatePatientDialog({ onCreated }: CreatePatientDialogProps) {
           {t("trigger")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="flex max-h-[92dvh] w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+      <DialogContent
+        onInteractOutside={(e) => {
+          if (blockDismiss) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (blockDismiss) e.preventDefault();
+        }}
+        className="flex max-h-[92dvh] w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
+      >
         <DialogHeader className="border-b border-hairline px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -164,7 +175,7 @@ export function CreatePatientDialog({ onCreated }: CreatePatientDialogProps) {
             )}
 
             {/* Personal Information Section */}
-            <div className="space-y-4 rounded-[var(--radius-card)] border border-hairline bg-canvas-soft/60 p-4">
+            <div className="space-y-4 rounded-(--radius-card) border border-hairline bg-canvas-soft/60 p-4">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 <User className="h-3.5 w-3.5 text-primary" />
                 <span>{t("personalInfoTitle")}</span>
@@ -275,7 +286,7 @@ export function CreatePatientDialog({ onCreated }: CreatePatientDialogProps) {
             </div>
 
             {/* Contact & Address Section */}
-            <div className="space-y-4 rounded-[var(--radius-card)] border border-hairline bg-canvas-soft/60 p-4">
+            <div className="space-y-4 rounded-(--radius-card) border border-hairline bg-canvas-soft/60 p-4">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 <Phone className="h-3.5 w-3.5 text-primary" />
                 <span>{t("contactInfoTitle")}</span>
@@ -341,6 +352,7 @@ export function CreatePatientDialog({ onCreated }: CreatePatientDialogProps) {
               type="button"
               variant="outline"
               className="w-full sm:w-auto"
+              disabled={isPending}
               onClick={() => handleOpenChange(false)}
             >
               {t("cancel")}

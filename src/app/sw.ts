@@ -38,9 +38,12 @@ function shouldBypassServiceWorker(request: Request): boolean {
     return true;
   }
 
-  // Never let the SW touch Supabase (auth tokens, Realtime, PostgREST). RXDB
-  // owns offline data; intercepting auth/token traffic can corrupt sessions.
-  if (url.hostname.endsWith(".supabase.co")) {
+  // Never let the SW touch Supabase (auth tokens, Realtime, PostgREST) or
+  // offline sync API endpoints.
+  if (
+    url.hostname.endsWith(".supabase.co") ||
+    (url.origin === self.location.origin && url.pathname.startsWith("/api/sync/"))
+  ) {
     return true;
   }
 
@@ -56,12 +59,17 @@ const supabaseNetworkOnly: RuntimeCaching = {
   handler: new NetworkOnly(),
 };
 
+const syncNetworkOnly: RuntimeCaching = {
+  matcher: ({ url }) => url.pathname.startsWith("/api/sync/"),
+  handler: new NetworkOnly(),
+};
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: [supabaseNetworkOnly, ...defaultCache],
+  runtimeCaching: [syncNetworkOnly, supabaseNetworkOnly, ...defaultCache],
   fallbacks: {
     entries: [
       {

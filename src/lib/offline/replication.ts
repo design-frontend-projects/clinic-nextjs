@@ -10,17 +10,44 @@ import type {
   WithDeleted,
 } from "rxdb";
 import type { Subject } from "rxjs";
-import { pullChanges, pushChanges } from "@/app/actions/sync";
 import { COLLECTIONS } from "./collection-registry";
 import type { OfflineDatabase } from "./db";
 import type { SyncDocType } from "./schema";
-import type { PushRow, SyncCheckpoint } from "./sync-types";
+import type { PullResult, PushRow, SyncCheckpoint } from "./sync-types";
 import {
   createRealtimeStreams,
   type PullStreamItem,
 } from "./realtime-stream";
 
 type Checkpoint = SyncCheckpoint | null;
+
+const PULL_BATCH_SIZE = 300;
+const PUSH_BATCH_SIZE = 100;
+
+async function postSyncJson<T>(url: string, payload: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Sync request failed (${response.status})`;
+    try {
+      const data = (await response.json()) as { error?: unknown };
+      if (typeof data?.error === "string" && data.error) {
+        errorMessage = data.error;
+      }
+    } catch {
+      // Ignore non-JSON error payloads.
+    }
+    throw new Error(errorMessage);
+  }
+
+  return (await response.json()) as T;
+}
 
 export interface CollectionReplication {
   name: string;
@@ -45,10 +72,14 @@ function replicateCollection(
     waitForLeadership: true, // only the leader tab replicates
     autoStart: true,
     pull: {
-      batchSize: 60,
+      batchSize: PULL_BATCH_SIZE,
       stream$: stream$.asObservable(),
       async handler(lastCheckpoint, batchSize) {
-        const result = await pullChanges(name, lastCheckpoint ?? null, batchSize);
+        const result = await postSyncJson<PullResult>("/api/sync/pull", {
+          collection: name,
+          checkpoint: lastCheckpoint ?? null,
+          batchSize,
+        });
         return {
           documents: result.documents,
           checkpoint: result.checkpoint,
@@ -56,13 +87,16 @@ function replicateCollection(
       },
     },
     push: {
-      batchSize: 40,
+      batchSize: PUSH_BATCH_SIZE,
       async handler(rows) {
-        const conflicts = await pushChanges(
-          name,
-          rows as unknown as PushRow[],
+        const result = await postSyncJson<{ conflicts: SyncDocType[] }>(
+          "/api/sync/push",
+          {
+            collection: name,
+            rows: rows as unknown as PushRow[],
+          },
         );
-        return conflicts as unknown as WithDeleted<SyncDocType>[];
+        return result.conflicts as unknown as WithDeleted<SyncDocType>[];
       },
     },
   });

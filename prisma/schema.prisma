@@ -93,6 +93,7 @@ model patients {
   prescriptions          prescriptions[]
 
   @@index([clinic_id])
+  @@index([clinic_id, updated_at, id])
 }
 
 model appointments {
@@ -118,6 +119,7 @@ model appointments {
 
   @@index([appointment_date])
   @@index([clinic_id])
+  @@index([clinic_id, updated_at, id])
 }
 
 model payments {
@@ -133,6 +135,7 @@ model payments {
   invoices       invoices      @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
+  @@index([clinic_id, updated_at, id])
 }
 
 model invoices {
@@ -160,6 +163,7 @@ model invoices {
 
   @@index([branch_id])
   @@index([created_by])
+  @@index([clinic_id, updated_at, id])
 }
 
 model invoice_history {
@@ -202,6 +206,8 @@ model encounters {
   patients         patients           @relation(fields: [patient_id], references: [id])
   insurance_claims insurance_claims[]
   lab_orders       lab_orders[]
+
+  @@index([clinic_id, updated_at, id])
 }
 
 model lab_orders {
@@ -233,6 +239,7 @@ model lab_orders {
 
   @@index([appointment_id])
   @@index([confirmed_by])
+  @@index([clinic_id, updated_at, id])
 }
 
 model lab_results {
@@ -247,6 +254,7 @@ model lab_results {
   lab_orders      lab_orders @relation(fields: [lab_order_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
+  @@index([clinic_id, updated_at, id])
 }
 
 model prescription_dispenses {
@@ -265,6 +273,8 @@ model prescription_dispenses {
   profiles                    profiles?                     @relation(fields: [dispensed_by], references: [id])
   medical_records             medical_records?              @relation(fields: [medical_record_id], references: [id])
   patients                    patients?                     @relation(fields: [patient_id], references: [id])
+
+  @@index([clinic_id, updated_at, id])
 }
 
 model roles {
@@ -717,6 +727,7 @@ model invoice_items {
   invoices              invoices               @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
+  @@index([clinic_id, updated_at, id])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -751,6 +762,8 @@ model medical_records {
   profiles               profiles?                @relation(fields: [doctor_id], references: [id])
   patients               patients                 @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   prescription_dispenses prescription_dispenses[]
+
+  @@index([clinic_id, updated_at, id])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -918,6 +931,7 @@ model prescription_dispense_items {
   medication_batches     medication_batches     @relation(fields: [medication_batch_id], references: [id])
 
   @@index([clinic_id])
+  @@index([clinic_id, updated_at, id])
 }
 
 /// Doctor-authored prescription (the prescribing act). One header per

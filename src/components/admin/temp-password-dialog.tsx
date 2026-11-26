@@ -116,7 +116,10 @@ export function TempPasswordDialog({ info, onClose }: TempPasswordDialogProps) {
         }
       }}
     >
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent
+        onInteractOutside={(e) => e.preventDefault()}
+        className="sm:max-w-[460px]"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5" />

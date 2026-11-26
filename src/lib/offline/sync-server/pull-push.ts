@@ -20,19 +20,26 @@ export type { PullResult, PushRow, SyncCheckpoint };
 
 // Minimal structural view of the Prisma delegate we drive dynamically by model
 // name. The app's queries stay fully typed; only this generic sync path is loose.
+interface SyncUpsertArgs {
+  where: Record<string, unknown>;
+  create: Record<string, unknown>;
+  update: Record<string, unknown>;
+}
+
 interface SyncDelegate {
   findMany(args: {
     where?: Record<string, unknown>;
     orderBy?: unknown;
     take?: number;
   }): Promise<ServerRow[]>;
-  findFirst(args: { where: Record<string, unknown> }): Promise<ServerRow | null>;
-  upsert(args: {
-    where: Record<string, unknown>;
-    create: Record<string, unknown>;
-    update: Record<string, unknown>;
-  }): Promise<ServerRow>;
+  upsert(args: SyncUpsertArgs): Promise<ServerRow>;
 }
+
+interface SyncTransactionRunner {
+  $transaction(operations: Promise<unknown>[]): Promise<unknown[]>;
+}
+
+const PUSH_TRANSACTION_CHUNK_SIZE = 50;
 
 // NOTE: prismaBase deliberately bypasses the soft-delete filter — the PULL must
 // see tombstoned (deleted_at != null) rows to propagate deletes to clients.
@@ -91,19 +98,32 @@ export async function pushChangesForClinic(
   branchId: string | null,
   rows: PushRow[],
 ): Promise<SyncDocType[]> {
+  if (rows.length === 0) return [];
+
   const delegate = delegateFor(spec.name);
   const hasBranch = "branch_id" in allFields(spec);
   const conflicts: SyncDocType[] = [];
+
+  // Single batched lookup instead of N sequential findFirst queries.
+  const ids = Array.from(
+    new Set(rows.map((change) => String(change.newDocumentState.id))),
+  );
+  const existingRows = await delegate.findMany({
+    where: { clinic_id: clinicId, id: { in: ids } },
+  });
+  const existingById = new Map<string, ServerRow>();
+  for (const row of existingRows) {
+    existingById.set(String(row.id), row);
+  }
+
+  const writes: SyncUpsertArgs[] = [];
 
   for (const change of rows) {
     const newState = change.newDocumentState;
     const assumed = change.assumedMasterState ?? null;
     const id = String(newState.id);
 
-    const current = await delegate.findFirst({
-      where: { id, clinic_id: clinicId },
-    });
-
+    const current = existingById.get(id);
     if (current) {
       const serverUpdated = updatedAtIso(current);
       const assumedUpdated =
@@ -133,7 +153,28 @@ export async function pushChangesForClinic(
     const updateData: Record<string, unknown> = { ...data };
     delete updateData.clinic_id;
 
-    await delegate.upsert({ where: { id }, create: createData, update: updateData });
+    writes.push({ where: { id }, create: createData, update: updateData });
+
+    // Track the latest timestamp in-batch so duplicate IDs within one push
+    // array don't conflict against an older snapshot.
+    if (typeof newState.updated_at === "string") {
+      existingById.set(id, {
+        ...(current ?? {}),
+        ...createData,
+        id,
+        clinic_id: clinicId,
+        updated_at: new Date(newState.updated_at),
+        deleted_at: deleted ? new Date() : null,
+      });
+    }
+  }
+
+  if (writes.length > 0) {
+    const txRunner = prismaBase as unknown as SyncTransactionRunner;
+    for (let i = 0; i < writes.length; i += PUSH_TRANSACTION_CHUNK_SIZE) {
+      const chunk = writes.slice(i, i + PUSH_TRANSACTION_CHUNK_SIZE);
+      await txRunner.$transaction(chunk.map((args) => delegate.upsert(args)));
+    }
   }
 
   return conflicts;
