@@ -194,28 +194,18 @@ export const getTenantInfo = reactCache(async () => {
   const clinicSelect = {
     id: true,
     name: true,
+    auth_user_id: true,
     subscription_plan: true,
     status: true,
     request_ref: true,
     activated_at: true,
     rejection_reason: true,
-    tenant_subscription: {
-      select: {
-        status: true,
-        payment_status: true,
-        start_date: true,
-        end_date: true,
-        activated_at: true,
-        billing_cycle: true,
-        price: true,
-        grace_period_days: true,
-      },
-    },
   } as const;
 
   const baseClinicSelect = {
     id: true,
     name: true,
+    auth_user_id: true,
     subscription_plan: true,
     status: true,
   } as const;
@@ -249,7 +239,6 @@ export const getTenantInfo = reactCache(async () => {
       request_ref: null,
       activated_at: null,
       rejection_reason: null,
-      tenant_subscription: null,
     };
   };
 
@@ -269,6 +258,52 @@ export const getTenantInfo = reactCache(async () => {
         "[auth] Missing columns in DB (P2022) — apply prisma/migrations/27_tenant_approval_and_subscription_gate.sql. Falling back to base clinic columns.",
       );
       clinic = await queryBaseClinic();
+    }
+  }
+
+  // Subscriptions live on the tenant owner's auth_user_id so every clinic
+  // owned by the same user shares one subscription plan.
+  const subscriptionOwnerAuthId =
+    clinic?.auth_user_id ?? (profile.is_owner ? userId : null);
+
+  let ownerSubscription: {
+    status: string;
+    payment_status: string;
+    start_date: Date;
+    end_date: Date | null;
+    activated_at: Date | null;
+    billing_cycle: string;
+    price: unknown;
+    grace_period_days: number;
+  } | null = null;
+
+  if (!isPlatformAppOwner && subscriptionOwnerAuthId) {
+    try {
+      ownerSubscription = await prisma.tenant_subscriptions.findUnique({
+        where: { tenant_id: subscriptionOwnerAuthId },
+        select: {
+          status: true,
+          payment_status: true,
+          start_date: true,
+          end_date: true,
+          activated_at: true,
+          billing_cycle: true,
+          price: true,
+          grace_period_days: true,
+        },
+      });
+    } catch (err) {
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? (err as { code?: unknown }).code
+          : undefined;
+      if (code !== "P2022") {
+        throw err;
+      }
+      console.warn(
+        "[auth] Missing columns in DB (P2022) when loading tenant subscription — falling back to null subscription.",
+      );
+      ownerSubscription = null;
     }
   }
 
@@ -326,16 +361,16 @@ export const getTenantInfo = reactCache(async () => {
           activated_at: clinic.activated_at,
         }
       : null,
-    subscription: clinic?.tenant_subscription
+    subscription: ownerSubscription
       ? {
-          status: clinic.tenant_subscription.status,
-          payment_status: clinic.tenant_subscription.payment_status,
-          start_date: clinic.tenant_subscription.start_date,
-          end_date: clinic.tenant_subscription.end_date,
-          activated_at: clinic.tenant_subscription.activated_at,
-          billing_cycle: clinic.tenant_subscription.billing_cycle,
-          price: Number(clinic.tenant_subscription.price),
-          grace_period_days: clinic.tenant_subscription.grace_period_days,
+          status: ownerSubscription.status,
+          payment_status: ownerSubscription.payment_status,
+          start_date: ownerSubscription.start_date,
+          end_date: ownerSubscription.end_date,
+          activated_at: ownerSubscription.activated_at,
+          billing_cycle: ownerSubscription.billing_cycle,
+          price: Number(ownerSubscription.price),
+          grace_period_days: ownerSubscription.grace_period_days,
         }
       : null,
   });

@@ -18,9 +18,14 @@ import {
   useLocale,
   type AbstractIntlMessages,
 } from "next-intl";
+import { Direction } from "radix-ui";
 import { Toaster } from "sonner";
 import { routing } from "@/i18n/routing";
-import { resolveActiveIntlState, type LocaleOverride } from "@/lib/intl-state";
+import {
+  DEFAULT_TIME_ZONE,
+  resolveActiveIntlState,
+  type LocaleOverride,
+} from "@/lib/intl-state";
 
 type AppLocale = (typeof routing.locales)[number];
 
@@ -67,12 +72,14 @@ function syncUrlPrefix(next: AppLocale): void {
 interface IntlProviderProps {
   initialLocale: string;
   initialMessages: AbstractIntlMessages;
+  timeZone?: string;
   children: ReactNode;
 }
 
 export function IntlProvider({
   initialLocale,
   initialMessages,
+  timeZone = DEFAULT_TIME_ZONE,
   children,
 }: IntlProviderProps) {
   const [override, setOverride] = useState<LocaleOverride<
@@ -116,10 +123,18 @@ export function IntlProvider({
     [locale, switchLocale]
   );
 
+  const dir = locale === "ar" ? "rtl" : "ltr";
+
   return (
     <LocaleSwitcherContext.Provider value={value}>
-      <NextIntlClientProvider locale={locale} messages={messages}>
-        {children}
+      <NextIntlClientProvider
+        locale={locale}
+        messages={messages}
+        timeZone={timeZone}
+      >
+        <Direction.DirectionProvider dir={dir}>
+          {children}
+        </Direction.DirectionProvider>
       </NextIntlClientProvider>
     </LocaleSwitcherContext.Provider>
   );

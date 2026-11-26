@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { requirePermission } from "@/lib/permissions";
+import { planToLegacyTier } from "@/lib/subscription-provisioning";
 import { revalidatePath } from "next/cache";
 import {
   clinicSchema,
@@ -214,6 +215,36 @@ export async function createClinic(data: z.infer<typeof clinicSchema>) {
         ? validatedData.primary_branch_id
         : uniqueBranchIds[0];
 
+    let inheritedPlan = tenant.subscriptionPlan || "trial";
+    let inheritedStatus: "active" | "trial" =
+      tenant.clinicStatus === "active" ? "active" : "trial";
+
+    if (ownerAuthId) {
+      const [primaryClinic, ownerSub] = await Promise.all([
+        prisma.clinics.findFirst?.({
+          where: { auth_user_id: ownerAuthId, is_primary: true },
+          select: { status: true, subscription_plan: true },
+        }),
+        prisma.tenant_subscriptions.findUnique?.({
+          where: { tenant_id: ownerAuthId },
+          include: { plan: { select: { name: true, price: true } } },
+        }),
+      ]);
+
+      if (ownerSub?.plan) {
+        inheritedPlan = planToLegacyTier(ownerSub.plan);
+      } else if (primaryClinic?.subscription_plan) {
+        inheritedPlan = primaryClinic.subscription_plan;
+      }
+
+      if (
+        primaryClinic?.status === "active" ||
+        ownerSub?.status === "active"
+      ) {
+        inheritedStatus = "active";
+      }
+    }
+
     const clinic = await prisma.$transaction(async (tx) => {
       const newClinic = await tx.clinics.create({
         data: {
@@ -223,8 +254,8 @@ export async function createClinic(data: z.infer<typeof clinicSchema>) {
           registration_number: validatedData.registration_number || null,
           email: validatedData.email || null,
           phone: validatedData.phone || null,
-          subscription_plan: "trial",
-          status: "trial",
+          subscription_plan: inheritedPlan,
+          status: inheritedStatus,
           have_pharmacy: validatedData.have_pharmacy ?? false,
           have_lab: validatedData.have_lab ?? false,
           have_radio_center: validatedData.have_radio_center ?? false,

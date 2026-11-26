@@ -15,6 +15,10 @@ import {
   tenantRequestSchema,
   type TenantRequestFormData,
 } from "@/types/tenant-request.types";
+import type {
+  TenantOwnerProfileRecord,
+  TenantSubscriptionRecord,
+} from "@/types/subscription.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -27,6 +31,8 @@ type SubmittedRequest = {
   requestRef: string;
   clinicName: string;
   email: string;
+  subscription: TenantSubscriptionRecord;
+  profile: TenantOwnerProfileRecord;
 };
 
 export function SignUpForm({ planId }: { planId?: string }) {
@@ -93,6 +99,8 @@ export function SignUpForm({ planId }: { planId?: string }) {
         requestRef: result.requestRef,
         clinicName: result.clinicName,
         email: result.email,
+        subscription: result.subscription,
+        profile: result.profile,
       });
       toast.success(t("requestSubmittedTitle"));
     } catch (error: unknown) {
@@ -161,6 +169,30 @@ export function SignUpForm({ planId }: { planId?: string }) {
               )}
             </Button>
           </div>
+          <dl className="grid grid-cols-1 gap-1.5 border-t border-border pt-3 text-start text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <dt className="text-muted-foreground">{t("ownerLabel")}</dt>
+              <dd className="font-medium text-foreground">
+                {submitted.profile.full_name || submitted.profile.email}
+              </dd>
+            </div>
+            {submitted.subscription.plan?.name && (
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-muted-foreground">{t("planLabel")}</dt>
+                <dd className="font-medium text-foreground">
+                  {submitted.subscription.plan.name}
+                </dd>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <dt className="text-muted-foreground">
+                {t("subscriptionStatusLabel")}
+              </dt>
+              <dd>
+                <StatusBadge status={submitted.subscription.status} />
+              </dd>
+            </div>
+          </dl>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">

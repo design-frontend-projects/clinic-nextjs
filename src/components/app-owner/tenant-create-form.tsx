@@ -79,9 +79,9 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
       }
       setCreated({
         tempPassword: result.tempPassword,
-        fullName: result.ownerName,
-        email: result.ownerEmail,
-        phone: data.owner.phone,
+        fullName: result.profile.full_name ?? result.ownerName,
+        email: result.profile.email ?? result.ownerEmail,
+        phone: result.profile.phone ?? data.owner.phone,
       });
     });
   };

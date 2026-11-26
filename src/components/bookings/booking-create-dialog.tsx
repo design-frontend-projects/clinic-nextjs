@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addDays, startOfDay } from "date-fns";
+import { addDays, format, isSameDay, startOfDay } from "date-fns";
+import { ar as arLocale } from "date-fns/locale";
 import {
   AlertCircle,
   CalendarPlus,
@@ -13,7 +14,7 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -53,6 +54,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -81,6 +83,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 const NO_BRANCH_SENTINEL = "__none__";
+const EXISTING_FORM_ID = "booking-existing-form";
+const NEW_PATIENT_FORM_ID = "booking-new-form";
 
 const createFormSchema = z.object({
   patient_id: z.string().optional(),
@@ -112,7 +116,7 @@ function DoctorScheduleSummary({ doctor }: { doctor?: BookingDoctorOption }) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-input)] border border-hairline bg-canvas-soft px-3 py-2 text-xs text-muted-foreground">
       <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />
-      <span className="font-medium text-foreground tabular-nums">
+      <span className="font-medium text-foreground tabular-nums" dir="ltr">
         {doctor.availableFrom} – {doctor.availableTo}
       </span>
       <Badge
@@ -139,6 +143,8 @@ export function BookingCreateDialog({
   const tGender = useTranslations("enums.gender");
   const tStatus = useTranslations("enums.status");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
+  const dateLocale = locale === "ar" ? arLocale : undefined;
   const queryClient = useQueryClient();
 
   const isPatient = context.roleScope === "patient";
@@ -318,6 +324,14 @@ export function BookingCreateDialog({
   const watchedNewDoctorId = newPatientForm.watch("appointment.doctor_id");
   const watchedNewDate = newPatientForm.watch("appointment.appointment_date");
 
+  const showTabs = !isPatient && context.canCreateNewPatient;
+  const isNewTab = showTabs && activeTab === "new";
+  const activeFormId = isNewTab ? NEW_PATIENT_FORM_ID : EXISTING_FORM_ID;
+  const isSubmitting = isNewTab
+    ? registerMutation.isPending
+    : createMutation.isPending;
+  const activeSelectedDate = isNewTab ? watchedNewDate : watchedExistingDate;
+
   const selectedExistingDoctor = useMemo(
     () => context.doctors.find((d) => d.id === watchedExistingDoctorId),
     [context.doctors, watchedExistingDoctorId],
@@ -365,12 +379,15 @@ export function BookingCreateDialog({
       const isInactive = doctor.status !== "active";
       return (
         <SelectItem key={doctor.id} value={doctor.id} disabled={isInactive}>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex w-full min-w-0 items-center justify-between gap-2">
             <span className="truncate">
               {doctor.fullName}
               {doctor.specialty ? ` — ${doctor.specialty}` : ""}
             </span>
-            <span className="text-[11px] text-muted-foreground tabular-nums">
+            <span
+              dir="ltr"
+              className="shrink-0 text-[11px] text-muted-foreground tabular-nums"
+            >
               {isInactive
                 ? `(${tStatus(doctor.status)})`
                 : `${doctor.availableFrom}–${doctor.availableTo} · ${doctor.slotDurationMinutes}m`}
@@ -383,6 +400,7 @@ export function BookingCreateDialog({
   const existingFormBody = (
     <Form {...existingForm}>
       <form
+        id={EXISTING_FORM_ID}
         onSubmit={existingForm.handleSubmit((values) => {
           if (!isPatient && !values.patient_id) {
             existingForm.setError("patient_id", {
@@ -560,7 +578,14 @@ export function BookingCreateDialog({
         <FormField
           control={existingForm.control}
           name="appointment_date"
-          render={({ field }) => (
+          render={({ field }) => {
+            const isTodaySelected = Boolean(
+              field.value && isSameDay(field.value, todayStart),
+            );
+            const isTomorrowSelected = Boolean(
+              field.value && isSameDay(field.value, tomorrowStart),
+            );
+            return (
             <FormItem className="flex flex-col space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <FormLabel>{t("dateLabel")}</FormLabel>
@@ -569,7 +594,11 @@ export function BookingCreateDialog({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-7 px-2 text-xs"
+                    className={cn(
+                      "h-7 px-2.5 text-xs transition-colors",
+                      isTodaySelected &&
+                        "border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+                    )}
                     disabled={makeDisabledDateCheck(selectedExistingDoctor)(
                       todayStart,
                     )}
@@ -588,7 +617,11 @@ export function BookingCreateDialog({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-7 px-2 text-xs"
+                    className={cn(
+                      "h-7 px-2.5 text-xs transition-colors",
+                      isTomorrowSelected &&
+                        "border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+                    )}
                     disabled={makeDisabledDateCheck(selectedExistingDoctor)(
                       tomorrowStart,
                     )}
@@ -632,7 +665,8 @@ export function BookingCreateDialog({
               />
               <FormMessage />
             </FormItem>
-          )}
+            );
+          }}
         />
 
         <FormField
@@ -653,27 +687,6 @@ export function BookingCreateDialog({
             </FormItem>
           )}
         />
-
-        <div className="flex flex-col-reverse gap-2 border-t border-hairline pt-4 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => onOpenChange(false)}
-          >
-            {t("btnCancel")}
-          </Button>
-          <Button
-            type="submit"
-            className="w-full sm:w-auto"
-            disabled={createMutation.isPending}
-          >
-            {createMutation.isPending && (
-              <Loader2 className="me-2 h-4 w-4 animate-spin" />
-            )}
-            {t("confirmBookingCta")}
-          </Button>
-        </div>
       </form>
     </Form>
   );
@@ -681,8 +694,8 @@ export function BookingCreateDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[92dvh] w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden border-hairline bg-surface p-0 sm:max-w-2xl">
-          <DialogHeader className="border-b border-hairline px-5 py-4 sm:px-6">
+        <DialogContent className="flex max-h-[92dvh] w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden border-hairline bg-surface p-0 sm:w-full sm:max-w-2xl">
+          <DialogHeader className="shrink-0 border-b border-hairline px-4 py-3.5 pe-12 sm:px-6 sm:py-4 sm:pe-12">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <CalendarPlus className="h-5 w-5" />
@@ -700,7 +713,7 @@ export function BookingCreateDialog({
             </div>
           </DialogHeader>
 
-          <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
             {serverError && (
               <div className="flex items-start gap-2 rounded-[var(--radius-input)] border border-destructive/30 bg-accent-red-soft p-3 text-xs text-destructive">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -708,7 +721,7 @@ export function BookingCreateDialog({
               </div>
             )}
 
-            {isPatient || !context.canCreateNewPatient ? (
+            {!showTabs ? (
               existingFormBody
             ) : (
               <Tabs
@@ -733,6 +746,7 @@ export function BookingCreateDialog({
                 <TabsContent value="new" className="mt-4">
                   <Form {...newPatientForm}>
                     <form
+                      id={NEW_PATIENT_FORM_ID}
                       onSubmit={newPatientForm.handleSubmit((data) => {
                         setServerError(null);
                         registerMutation.mutate(data);
@@ -927,7 +941,15 @@ export function BookingCreateDialog({
                         <FormField
                           control={newPatientForm.control}
                           name="appointment.appointment_date"
-                          render={({ field }) => (
+                          render={({ field }) => {
+                            const isTodaySelected = Boolean(
+                              field.value && isSameDay(field.value, todayStart),
+                            );
+                            const isTomorrowSelected = Boolean(
+                              field.value &&
+                                isSameDay(field.value, tomorrowStart),
+                            );
+                            return (
                             <FormItem className="flex flex-col space-y-2">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <FormLabel>
@@ -939,7 +961,11 @@ export function BookingCreateDialog({
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 px-2 text-xs"
+                                    className={cn(
+                                      "h-7 px-2.5 text-xs transition-colors",
+                                      isTodaySelected &&
+                                        "border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+                                    )}
                                     disabled={makeDisabledDateCheck(
                                       selectedNewDoctor,
                                     )(todayStart)}
@@ -958,7 +984,11 @@ export function BookingCreateDialog({
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 px-2 text-xs"
+                                    className={cn(
+                                      "h-7 px-2.5 text-xs transition-colors",
+                                      isTomorrowSelected &&
+                                        "border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+                                    )}
                                     disabled={makeDisabledDateCheck(
                                       selectedNewDoctor,
                                     )(tomorrowStart)}
@@ -1003,7 +1033,8 @@ export function BookingCreateDialog({
                               />
                               <FormMessage />
                             </FormItem>
-                          )}
+                            );
+                          }}
                         />
 
                         <FormField
@@ -1025,33 +1056,46 @@ export function BookingCreateDialog({
                           )}
                         />
                       </div>
-
-                      <div className="flex flex-col-reverse gap-2 border-t border-hairline pt-4 sm:flex-row sm:justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full sm:w-auto"
-                          onClick={() => onOpenChange(false)}
-                        >
-                          {t("btnCancel")}
-                        </Button>
-                        <Button
-                          type="submit"
-                          className="w-full sm:w-auto"
-                          disabled={registerMutation.isPending}
-                        >
-                          {registerMutation.isPending && (
-                            <Loader2 className="me-2 h-4 w-4 animate-spin" />
-                          )}
-                          {tDialog("registerAndBook")}
-                        </Button>
-                      </div>
                     </form>
                   </Form>
                 </TabsContent>
               </Tabs>
             )}
           </div>
+
+          <DialogFooter className="shrink-0 border-t border-hairline bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-3.5">
+            <div className="hidden min-w-0 items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+              {activeSelectedDate && (
+                <>
+                  <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="truncate font-medium text-foreground">
+                    {format(activeSelectedDate, "PPp", { locale: dateLocale })}
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => onOpenChange(false)}
+              >
+                {t("btnCancel")}
+              </Button>
+              <Button
+                type="submit"
+                form={activeFormId}
+                className="w-full sm:w-auto"
+                disabled={isSubmitting}
+              >
+                {isSubmitting && (
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                )}
+                {isNewTab ? tDialog("registerAndBook") : t("confirmBookingCta")}
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

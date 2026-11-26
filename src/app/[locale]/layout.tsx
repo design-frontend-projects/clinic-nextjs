@@ -58,14 +58,17 @@ export const viewport: Viewport = {
   ],
 };
 
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTimeZone } from "next-intl/server";
 import { getPublicSupabaseEnv } from "@/lib/supabase/env";
 
 export default async function RootLayout({
   children,
 }: { children: React.ReactNode }) {
-  const locale = await getLocale();
-  const messages = await getMessages();
+  const [locale, messages, timeZone] = await Promise.all([
+    getLocale(),
+    getMessages(),
+    getTimeZone(),
+  ]);
   const { url: supabaseUrl, anonKey: supabaseAnonKey } = getPublicSupabaseEnv();
   const publicEnvScript = `window.__PUBLIC_ENV__=${JSON.stringify({
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
@@ -78,7 +81,11 @@ export default async function RootLayout({
       </head>
       <body className={`${inter.variable} ${ibmPlexSansArabic.variable} font-sans antialiased`}>
         <ServiceWorkerProvider />
-        <IntlProvider initialLocale={locale} initialMessages={messages}>
+        <IntlProvider
+          initialLocale={locale}
+          initialMessages={messages}
+          timeZone={timeZone}
+        >
           <ThemeProvider
             attribute="class"
             defaultTheme="light"

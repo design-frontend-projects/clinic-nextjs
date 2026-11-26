@@ -1,9 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { NextIntlClientProvider, useTranslations } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
-import { resolveActiveIntlState } from "@/lib/intl-state";
+import { DEFAULT_TIME_ZONE, resolveActiveIntlState } from "@/lib/intl-state";
 import {
   resolveStatusBadge,
   statusConfig,
@@ -315,5 +318,36 @@ describe("IntlProvider state synchronization", () => {
     expect(active.normalizedInitialLocale).toBe("en");
     expect(active.locale).toBe("en");
     expect(active.messages).toBe(enMessages);
+  });
+});
+
+describe("i18n timeZone configuration", () => {
+  it("defines a valid IANA DEFAULT_TIME_ZONE", () => {
+    expect(DEFAULT_TIME_ZONE).toBeTruthy();
+    const resolved = Intl.DateTimeFormat("en", {
+      timeZone: DEFAULT_TIME_ZONE,
+    }).resolvedOptions();
+    expect(resolved.timeZone).toBe(DEFAULT_TIME_ZONE);
+  });
+
+  it("renders NextIntlClientProvider with DEFAULT_TIME_ZONE without triggering ENVIRONMENT_FALLBACK", () => {
+    function SampleSignInProbe() {
+      const t = useTranslations("auth.signIn");
+      return createElement("span", null, t("signInButton"));
+    }
+
+    const onError = vi.fn();
+    const html = renderToStaticMarkup(
+      createElement(NextIntlClientProvider, {
+        locale: "en",
+        messages: en,
+        timeZone: DEFAULT_TIME_ZONE,
+        onError,
+        children: createElement(SampleSignInProbe),
+      }),
+    );
+
+    expect(html).toContain(en.auth.signIn.signInButton);
+    expect(onError).not.toHaveBeenCalled();
   });
 });

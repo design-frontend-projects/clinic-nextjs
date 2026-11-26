@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { billingPeriodEnum, paymentStatusEnum } from "@/types/subscription.types";
+import {
+  billingPeriodEnum,
+  paymentStatusEnum,
+  type TenantOwnerProfileRecord,
+  type TenantSubscriptionRecord,
+} from "@/types/subscription.types";
 import type { TenantAccessDenied } from "@/lib/tenant-access";
 
 /**
@@ -39,6 +44,8 @@ export type RequestTenantAccountResult =
       requestRef: string;
       clinicName: string;
       email: string;
+      subscription: TenantSubscriptionRecord;
+      profile: TenantOwnerProfileRecord;
     }
   | { error: string };
 

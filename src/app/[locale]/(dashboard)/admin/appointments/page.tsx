@@ -32,7 +32,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
-import { useTranslations } from "next-intl";
+import { ar as arLocale } from "date-fns/locale";
+import { useLocale, useTranslations } from "next-intl";
 import { BookingCreateDialog } from "@/components/bookings/booking-create-dialog";
 
 type Appointment = {
@@ -50,6 +51,8 @@ type Appointment = {
 
 export default function AppointmentsPage() {
   const t = useTranslations("admin.appointments");
+  const locale = useLocale();
+  const dateLocale = locale === "ar" ? arLocale : undefined;
   const [statusFilter, setStatusFilter] = useState("all");
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -124,10 +127,16 @@ export default function AppointmentsPage() {
       cell: ({ row }) => (
         <div>
           <p className="text-sm font-medium">
-            {format(new Date(row.original.appointment_date), "MMM d, yyyy")}
+            {format(new Date(row.original.appointment_date), "MMM d, yyyy", {
+              locale: dateLocale,
+            })}
           </p>
           <p className="text-xs text-muted-foreground">
-            {format(new Date(row.original.appointment_date), "h:mm a")}
+            <span dir="ltr">
+              {format(new Date(row.original.appointment_date), "h:mm a", {
+                locale: dateLocale,
+              })}
+            </span>
           </p>
         </div>
       ),
@@ -163,7 +172,7 @@ export default function AppointmentsPage() {
                 })
               }
             >
-              <LogIn className="mr-2 h-4 w-4" />
+              <LogIn className="me-2 h-4 w-4" />
               {t("checkIn")}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -174,7 +183,7 @@ export default function AppointmentsPage() {
                 })
               }
             >
-              <CheckCircle className="mr-2 h-4 w-4" />
+              <CheckCircle className="me-2 h-4 w-4" />
               {t("complete")}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -186,7 +195,7 @@ export default function AppointmentsPage() {
                 })
               }
             >
-              <XCircle className="mr-2 h-4 w-4" />
+              <XCircle className="me-2 h-4 w-4" />
               {t("cancel")}
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -202,12 +211,17 @@ export default function AppointmentsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            {t("title")}
+          </h1>
           <p className="text-muted-foreground">
             {t("subtitle")}
           </p>
         </div>
-        <Button onClick={() => setIsNewAppointmentOpen(true)}>
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => setIsNewAppointmentOpen(true)}
+        >
           <Plus className="me-2 h-4 w-4" />
           {t("newAppointment")}
         </Button>
@@ -224,7 +238,7 @@ export default function AppointmentsPage() {
       {/* Filters */}
       <div className="flex items-center gap-4">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder={t("filterByStatus")} />
           </SelectTrigger>
           <SelectContent>

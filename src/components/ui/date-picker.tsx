@@ -2,8 +2,11 @@
 
 import * as React from "react";
 import { format } from "date-fns";
+import { ar as arDateFnsLocale } from "date-fns/locale";
 import { CalendarIcon, X } from "lucide-react";
+import { useLocale } from "next-intl";
 import type { Matcher } from "react-day-picker";
+import { ar as arCalendarLocale } from "react-day-picker/locale";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -55,6 +58,10 @@ export function DatePicker({
   className,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
+  const locale = useLocale();
+  const isRtl = locale === "ar";
+  const dateLocale = isRtl ? arDateFnsLocale : undefined;
+  const calendarLocale = isRtl ? arCalendarLocale : undefined;
 
   const showClear = Boolean(clearable && value && !disabled);
   const defaultMonth =
@@ -70,14 +77,14 @@ export function DatePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              "w-full justify-start text-start font-normal",
+              "h-10 w-full min-w-0 justify-start text-start font-normal",
               showClear && "pe-9",
               !value && "text-muted-foreground",
             )}
           >
             <CalendarIcon className="me-2 h-4 w-4 shrink-0 opacity-60" />
             <span className="truncate">
-              {value ? format(value, dateFormat) : placeholder}
+              {value ? format(value, dateFormat, { locale: dateLocale }) : placeholder}
             </span>
           </Button>
         </PopoverTrigger>
@@ -94,13 +101,15 @@ export function DatePicker({
             startMonth={new Date(fromYear, 0, 1)}
             endMonth={new Date(toYear, 11, 31)}
             disabled={disabledDates}
+            locale={calendarLocale}
+            dir={isRtl ? "rtl" : "ltr"}
             onSelect={(selectedDay) => {
               onChange(selectedDay);
               if (selectedDay) {
                 setOpen(false);
               }
             }}
-            initialFocus
+            autoFocus
           />
           {showTodayButton && (
             <div className="flex items-center justify-between border-t border-hairline px-3 py-2">

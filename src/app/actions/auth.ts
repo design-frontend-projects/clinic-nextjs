@@ -14,6 +14,7 @@ import { canRunClinicOnboarding } from "@/lib/role-resolution";
 import { createUserAccountWithPassword, rollbackAuthUser } from "@/lib/invitations";
 import { planToLegacyTier } from "@/lib/subscription-provisioning";
 import { formatRequestRef } from "@/lib/tenant-access";
+import { fetchTenantAccountSnapshot } from "@/lib/tenant-subscription-snapshot";
 import {
   checkRequestStatusSchema,
   tenantRequestSchema,
@@ -271,7 +272,7 @@ export async function requestTenantAccountAction(
 
         await tx.tenant_subscriptions.create({
           data: {
-            tenant_id: clinic.id,
+            tenant_id: authUserId,
             plan_id: plan.id,
             start_date: now,
             end_date: null,
@@ -330,7 +331,17 @@ export async function requestTenantAccountAction(
           });
         }
 
-        return { requestRef, clinicName: clinic.name };
+        const snapshot = await fetchTenantAccountSnapshot(tx, authUserId);
+        if (!snapshot.subscription) {
+          throw new Error("Created tenant subscription could not be loaded.");
+        }
+
+        return {
+          requestRef,
+          clinicName: clinic.name,
+          subscription: snapshot.subscription,
+          profile: snapshot.profile,
+        };
       });
 
       return {
@@ -338,6 +349,8 @@ export async function requestTenantAccountAction(
         requestRef: result.requestRef,
         clinicName: result.clinicName,
         email: normalizedEmail,
+        subscription: result.subscription,
+        profile: result.profile,
       };
     } catch (error) {
       console.error("Tenant request transaction failed, rolling back:", error);
@@ -387,13 +400,8 @@ export async function checkTenantRequestStatusAction(
       include: {
         staff_profiles: {
           where: { role: "owner" },
-          select: { email: true },
+          select: { email: true, auth_user_id: true },
           take: 1,
-        },
-        tenant_subscription: {
-          include: {
-            plan: { select: { name: true } },
-          },
         },
       },
     });
@@ -406,20 +414,30 @@ export async function checkTenantRequestStatusAction(
       };
     }
 
+    const ownerAuthUserId =
+      clinic.auth_user_id ?? clinic.staff_profiles[0]?.auth_user_id ?? null;
+    const tenantSubscription = ownerAuthUserId
+      ? await prisma.tenant_subscriptions.findUnique({
+          where: { tenant_id: ownerAuthUserId },
+          include: {
+            plan: { select: { name: true } },
+          },
+        })
+      : null;
+
     return {
       success: true,
       request: {
         requestRef: clinic.request_ref ?? normalizedRef,
         clinicName: clinic.name,
         status: clinic.status,
-        planName: clinic.tenant_subscription?.plan?.name ?? null,
+        planName: tenantSubscription?.plan?.name ?? null,
         submittedAt: clinic.created_at.toISOString(),
         reviewedAt: clinic.reviewed_at?.toISOString() ?? null,
         rejectionReason: clinic.rejection_reason ?? null,
-        paymentStatus: clinic.tenant_subscription?.payment_status ?? null,
-        startDate:
-          clinic.tenant_subscription?.start_date?.toISOString() ?? null,
-        endDate: clinic.tenant_subscription?.end_date?.toISOString() ?? null,
+        paymentStatus: tenantSubscription?.payment_status ?? null,
+        startDate: tenantSubscription?.start_date?.toISOString() ?? null,
+        endDate: tenantSubscription?.end_date?.toISOString() ?? null,
       },
     };
   } catch (error) {

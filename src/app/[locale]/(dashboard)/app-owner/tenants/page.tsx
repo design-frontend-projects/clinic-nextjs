@@ -233,11 +233,13 @@ export default async function TenantsPage({
                           id: tenant.id,
                           name: tenant.name,
                           status: tenant.status,
+                          auth_user_id: tenant.auth_user_id,
                         }}
                         owner={
                           owner
                             ? {
                                 id: owner.id,
+                                auth_user_id: owner.auth_user_id,
                                 full_name: owner.full_name,
                                 email: owner.email,
                                 status: owner.status,

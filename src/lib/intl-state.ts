@@ -1,3 +1,5 @@
+export const DEFAULT_TIME_ZONE = "UTC";
+
 export interface LocaleOverride<TLocale extends string, TMessages> {
   locale: TLocale;
   messages: TMessages;

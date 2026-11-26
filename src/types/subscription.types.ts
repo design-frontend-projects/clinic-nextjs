@@ -117,3 +117,55 @@ export type PublicPlan = {
   display_order: number;
   features: PublicPlanFeature[];
 };
+
+export interface TenantSubscriptionPlanSummary {
+  id: string;
+  name: string;
+  billing_period: string;
+  price: number;
+  currency: string;
+}
+
+export interface TenantSubscriptionRecord {
+  id: string;
+  tenant_id: string;
+  plan_id: string;
+  plan: TenantSubscriptionPlanSummary | null;
+  start_date: string;
+  end_date: string | null;
+  renewal_date: string | null;
+  activated_at: string | null;
+  grace_period_days: number;
+  status: string;
+  billing_cycle: string;
+  price: number;
+  discount: number | null;
+  currency: string;
+  payment_status: string;
+  payment_reference: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantOwnerProfileRecord {
+  id: string;
+  auth_user_id: string;
+  tenant_id: string | null;
+  clinic_id: string | null;
+  branch_id: string | null;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  specialty: string | null;
+  role: string | null;
+  is_owner: boolean;
+  status: string;
+  is_profile_completed: boolean;
+  created_at: string;
+}
+
+export interface TenantAccountSnapshot {
+  subscription: TenantSubscriptionRecord | null;
+  profile: TenantOwnerProfileRecord;
+}

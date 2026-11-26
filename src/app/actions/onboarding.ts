@@ -22,6 +22,7 @@ import {
   resolveEffectiveProfileRole,
 } from "@/lib/role-resolution";
 import { roleHomePath } from "@/lib/role-routes";
+import { fetchTenantAccountSnapshot } from "@/lib/tenant-subscription-snapshot";
 import { cookies } from "next/headers";
 
 const UUID_RE =
@@ -508,7 +509,7 @@ export async function saveClinicStep(
     }
 
     await prisma.tenant_subscriptions.upsert({
-      where: { tenant_id: clinic.id },
+      where: { tenant_id: authId },
       update: {
         plan_id: plan.id,
         start_date: startDate,
@@ -519,7 +520,7 @@ export async function saveClinicStep(
         price: plan.price,
       },
       create: {
-        tenant_id: clinic.id,
+        tenant_id: authId,
         plan_id: plan.id,
         start_date: startDate,
         end_date: endDate,
@@ -542,6 +543,8 @@ export async function saveClinicStep(
       data: { subscription_plan: tier },
     });
 
+    const snapshot = await fetchTenantAccountSnapshot(prisma, authId);
+
     // Set the owner's active branch cookie to the clinic's primary branch.
     const cookieStore = await cookies();
     cookieStore.set("active_branch_id", primaryBranchId, {
@@ -549,7 +552,12 @@ export async function saveClinicStep(
       maxAge: 60 * 60 * 24 * 365,
     });
 
-    return { success: true, clinicId: clinic.id };
+    return {
+      success: true,
+      clinicId: clinic.id,
+      subscription: snapshot.subscription,
+      profile: snapshot.profile,
+    };
   } catch (error) {
     console.error("Error saving clinic:", error);
     return { error: "Failed to save clinic" };

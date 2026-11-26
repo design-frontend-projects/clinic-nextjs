@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { requireAppOwner } from "@/lib/app-owner-auth";
 import { revalidatePath } from "next/cache";
 import {
+  fetchTenantAccountSnapshot,
+  resolveTenantOwnerAuthId,
+} from "@/lib/tenant-subscription-snapshot";
+import {
   tenantSubscriptionUpsertSchema,
   type TenantSubscriptionUpsertData,
 } from "@/types/subscription.types";
@@ -16,7 +20,7 @@ export async function getTenantSubscriptions() {
 
   return await prisma.tenant_subscriptions.findMany({
     include: {
-      tenant: true,
+      owner_profile: true,
       plan: true,
     },
     orderBy: { created_at: "desc" },
@@ -47,20 +51,15 @@ export async function upsertTenantSubscription(data: TenantSubscriptionUpsertDat
     notes,
   } = parsed.data;
 
-  // Verify tenant owner
-  const owner = await prisma.profiles.findFirst({
-    where: {
-      tenant_id,
-      role: "owner",
-    },
-  });
-
-  if (!owner) {
+  // Resolve tenant owner auth_user_id (accepts auth_user_id directly or clinic.id)
+  const resolvedOwner = await resolveTenantOwnerAuthId(prisma, tenant_id);
+  if (!resolvedOwner) {
     throw new Error("Tenant must have a primary owner before assigning a subscription.");
   }
+  const ownerAuthUserId = resolvedOwner.ownerAuthUserId;
 
   const existingSub = await prisma.tenant_subscriptions.findUnique({
-    where: { tenant_id },
+    where: { tenant_id: ownerAuthUserId },
   });
 
   let subscription;
@@ -68,7 +67,7 @@ export async function upsertTenantSubscription(data: TenantSubscriptionUpsertDat
   if (existingSub) {
     // Update
     subscription = await prisma.tenant_subscriptions.update({
-      where: { tenant_id },
+      where: { tenant_id: ownerAuthUserId },
       data: {
         plan_id,
         status,
@@ -98,7 +97,7 @@ export async function upsertTenantSubscription(data: TenantSubscriptionUpsertDat
     // Create
     subscription = await prisma.tenant_subscriptions.create({
       data: {
-        tenant_id,
+        tenant_id: ownerAuthUserId,
         plan_id,
         status,
         start_date: new Date(start_date),
@@ -136,7 +135,13 @@ export async function upsertTenantSubscription(data: TenantSubscriptionUpsertDat
     });
   }
 
+  const snapshot = await fetchTenantAccountSnapshot(prisma, ownerAuthUserId);
+
   revalidatePath("/app-owner/tenants");
   revalidatePath(`/app-owner/tenants/${tenant_id}`);
-  return subscription;
+  return {
+    success: true as const,
+    subscription: snapshot.subscription,
+    profile: snapshot.profile,
+  };
 }

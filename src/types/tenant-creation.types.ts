@@ -1,4 +1,8 @@
 import { z } from "zod";
+import type {
+  TenantOwnerProfileRecord,
+  TenantSubscriptionRecord,
+} from "@/types/subscription.types";
 
 /**
  * Payload for the app-owner "create tenant" action: owner account, clinic,
@@ -43,6 +47,8 @@ export type CreateTenantResult =
       ownerName: string;
       /** Whether the set-password email was dispatched successfully. */
       emailSent: boolean;
+      subscription: TenantSubscriptionRecord;
+      profile: TenantOwnerProfileRecord;
     }
   | { error: string };
 

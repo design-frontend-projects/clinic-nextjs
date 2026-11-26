@@ -49,6 +49,7 @@ const prismaMock = vi.hoisted(() => {
       create: vi.fn(),
     },
     tenant_subscriptions: {
+      findUnique: vi.fn(),
       upsert: vi.fn(),
     },
     specialties: {
@@ -235,6 +236,23 @@ describe("saveOnboardingBranchesStep", () => {
 
 describe("saveClinicStep & saveSpecialtiesStep", () => {
   it("links selected owner branches to the clinic and sets active_branch_id cookie", async () => {
+    prismaMock.profiles.findUnique.mockResolvedValue({
+      id: PROFILE_ID,
+      auth_user_id: AUTH_ID,
+      tenant_id: CLINIC_ID,
+      clinic_id: CLINIC_ID,
+      branch_id: null,
+      full_name: "Dr. Owner",
+      email: "owner@test.io",
+      phone: null,
+      specialty: null,
+      role: "owner",
+      is_owner: true,
+      status: "active",
+      is_profile_completed: false,
+      created_at: new Date("2026-06-01T00:00:00Z"),
+      user_roles: [],
+    });
     prismaMock.branches.findMany.mockResolvedValue([
       { id: BRANCH_1 },
       { id: BRANCH_2 },
@@ -250,6 +268,33 @@ describe("saveClinicStep & saveSpecialtiesStep", () => {
       billing_period: "monthly",
       price: 99,
     });
+    prismaMock.tenant_subscriptions.findUnique.mockResolvedValue({
+      id: "sub-1",
+      tenant_id: AUTH_ID,
+      plan_id: PLAN_ID,
+      plan: {
+        id: PLAN_ID,
+        name: "Pro",
+        billing_period: "monthly",
+        price: 99,
+        currency: "USD",
+      },
+      start_date: new Date("2026-06-01T00:00:00Z"),
+      end_date: new Date("2026-07-01T00:00:00Z"),
+      renewal_date: new Date("2026-07-01T00:00:00Z"),
+      activated_at: null,
+      grace_period_days: 7,
+      status: "active",
+      billing_cycle: "monthly",
+      price: 99,
+      discount: null,
+      currency: "USD",
+      payment_status: "pending",
+      payment_reference: null,
+      notes: null,
+      created_at: new Date("2026-06-01T00:00:00Z"),
+      updated_at: new Date("2026-06-01T00:00:00Z"),
+    });
 
     const res = await saveClinicStep(
       {
@@ -260,7 +305,25 @@ describe("saveClinicStep & saveSpecialtiesStep", () => {
       { plan_id: PLAN_ID },
     );
 
-    expect(res).toEqual({ success: true, clinicId: CLINIC_ID });
+    expect(res).toMatchObject({
+      success: true,
+      clinicId: CLINIC_ID,
+      subscription: {
+        id: "sub-1",
+        tenant_id: AUTH_ID,
+        plan_id: PLAN_ID,
+      },
+      profile: {
+        id: PROFILE_ID,
+        auth_user_id: AUTH_ID,
+      },
+    });
+    expect(prismaMock.tenant_subscriptions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tenant_id: AUTH_ID },
+        create: expect.objectContaining({ tenant_id: AUTH_ID }),
+      }),
+    );
     expect(prismaMock._tx.clinic_branches.upsert).toHaveBeenCalledTimes(2);
     expect(cookieSetMock).toHaveBeenCalledWith(
       "active_branch_id",

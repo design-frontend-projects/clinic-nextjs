@@ -53,6 +53,7 @@ model profiles {
   stock_transfers_stock_transfers_initiated_byToprofiles stock_transfers[]        @relation("stock_transfers_initiated_byToprofiles")
   user_permissions                                       user_permissions[]
   user_roles                                             user_roles[]
+  tenant_subscription                                    tenant_subscriptions?
 
   @@index([auth_user_id])
   @@index([tenant_id])
@@ -630,11 +631,11 @@ model clinics {
   suppliers               suppliers[]
   tenant_permissions      tenant_permissions[]
   tenant_roles            tenant_roles[]
-  tenant_subscription     tenant_subscriptions?
   user_permissions        user_permissions[]
   user_roles              user_roles[]
 
   @@index([status])
+  @@index([auth_user_id])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -1130,7 +1131,7 @@ model tenant_subscriptions {
   payments          payment_records[]
   history           tenant_subscription_history[]
   plan              subscription_plans            @relation(fields: [plan_id], references: [id])
-  tenant            clinics                       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  owner_profile     profiles                      @relation(fields: [tenant_id], references: [auth_user_id], onDelete: Cascade)
 }
 
 model tenant_subscription_history {

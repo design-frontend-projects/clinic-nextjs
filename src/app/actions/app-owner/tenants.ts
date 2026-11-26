@@ -16,8 +16,14 @@ import {
   subscriptionWindow,
 } from "@/lib/subscription-provisioning";
 import {
+  fetchTenantAccountSnapshot,
+  resolveTenantOwnerAuthId,
+} from "@/lib/tenant-subscription-snapshot";
+import {
   tenantSubscriptionSchema,
+  type TenantOwnerProfileRecord,
   type TenantSubscriptionData,
+  type TenantSubscriptionRecord,
 } from "@/types/subscription.types";
 import {
   createTenantSchema,
@@ -32,18 +38,13 @@ import {
 } from "@/types/tenant-request.types";
 
 /**
- * Fetch all tenants (clinics) with their primary owner and subscription.
+ * Fetch all tenants (clinics) with their primary owner and owner-scoped subscription.
  */
 export async function getTenants() {
   await requireAppOwner();
 
-  return await prisma.clinics.findMany({
+  const clinics = await prisma.clinics.findMany({
     include: {
-      tenant_subscription: {
-        include: {
-          plan: true,
-        },
-      },
       staff_profiles: {
         where: { role: "owner" },
         take: 1,
@@ -53,6 +54,37 @@ export async function getTenants() {
       },
     },
     orderBy: { created_at: "desc" },
+  });
+
+  const ownerAuthIds = Array.from(
+    new Set(
+      clinics
+        .map((c) => c.auth_user_id ?? c.staff_profiles[0]?.auth_user_id ?? null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+
+  const subscriptions =
+    ownerAuthIds.length > 0
+      ? await prisma.tenant_subscriptions.findMany({
+          where: { tenant_id: { in: ownerAuthIds } },
+          include: { plan: true },
+        })
+      : [];
+
+  const subByOwnerAuthId = new Map(
+    subscriptions.map((sub) => [sub.tenant_id, sub]),
+  );
+
+  return clinics.map((clinic) => {
+    const ownerAuthId =
+      clinic.auth_user_id ?? clinic.staff_profiles[0]?.auth_user_id ?? null;
+    return {
+      ...clinic,
+      tenant_subscription: ownerAuthId
+        ? (subByOwnerAuthId.get(ownerAuthId) ?? null)
+        : null,
+    };
   });
 }
 
@@ -152,9 +184,13 @@ export async function createTenant(
     };
   }
 
-  let tenantId: string;
+  let provisioned: {
+    clinicId: string;
+    subscription: TenantSubscriptionRecord;
+    profile: TenantOwnerProfileRecord;
+  };
   try {
-    tenantId = await prisma.$transaction(async (tx) => {
+    provisioned = await prisma.$transaction(async (tx) => {
       const now = new Date();
 
       const clinic = await tx.clinics.create({
@@ -199,7 +235,7 @@ export async function createTenant(
       );
       await tx.tenant_subscriptions.create({
         data: {
-          tenant_id: clinic.id,
+          tenant_id: authUserId,
           plan_id: activePlan.id,
           start_date: startDate,
           end_date: endDate,
@@ -254,7 +290,16 @@ export async function createTenant(
         },
       });
 
-      return clinic.id;
+      const snapshot = await fetchTenantAccountSnapshot(tx, authUserId);
+      if (!snapshot.subscription) {
+        throw new Error("Created tenant subscription could not be loaded.");
+      }
+
+      return {
+        clinicId: clinic.id,
+        subscription: snapshot.subscription,
+        profile: snapshot.profile,
+      };
     });
   } catch (error) {
     console.error("Tenant provisioning failed, rolling back auth user:", error);
@@ -282,11 +327,13 @@ export async function createTenant(
   revalidatePath("/app-owner/tenants");
   return {
     success: true,
-    tenantId,
+    tenantId: provisioned.clinicId,
     tempPassword,
     ownerEmail,
     ownerName: input.owner.full_name,
     emailSent,
+    subscription: provisioned.subscription,
+    profile: provisioned.profile,
   };
 }
 
@@ -435,18 +482,16 @@ export async function assignTenantPlan(data: TenantSubscriptionData) {
   }
   const input = parsed.data;
 
-  const owner = await prisma.profiles.findFirst({
-    where: { tenant_id: input.tenant_id, role: "owner" },
-    select: { id: true },
-  });
-  if (!owner) {
+  const resolvedOwner = await resolveTenantOwnerAuthId(prisma, input.tenant_id);
+  if (!resolvedOwner) {
     return {
       error: "Tenant must have a primary owner before assigning a subscription.",
     };
   }
+  const ownerAuthUserId = resolvedOwner.ownerAuthUserId;
 
   const existing = await prisma.tenant_subscriptions.findUnique({
-    where: { tenant_id: input.tenant_id },
+    where: { tenant_id: ownerAuthUserId },
   });
 
   const now = new Date();
@@ -483,7 +528,7 @@ export async function assignTenantPlan(data: TenantSubscriptionData) {
 
   const subscription = existing
     ? await prisma.tenant_subscriptions.update({
-        where: { tenant_id: input.tenant_id },
+        where: { tenant_id: ownerAuthUserId },
         data: {
           plan_id: input.plan_id,
           status: input.status,
@@ -504,7 +549,7 @@ export async function assignTenantPlan(data: TenantSubscriptionData) {
       })
     : await prisma.tenant_subscriptions.create({
         data: {
-          tenant_id: input.tenant_id,
+          tenant_id: ownerAuthUserId,
           plan_id: input.plan_id,
           status: input.status,
           start_date: startDate,
@@ -522,6 +567,17 @@ export async function assignTenantPlan(data: TenantSubscriptionData) {
           created_by: admin.id,
         },
       });
+
+  const assignedPlan = await prisma.subscription_plans.findFirst({
+    where: { id: input.plan_id, deleted_at: null },
+    select: { name: true, price: true },
+  });
+  if (assignedPlan) {
+    await prisma.clinics.updateMany({
+      where: { auth_user_id: ownerAuthUserId },
+      data: { subscription_plan: planToLegacyTier(assignedPlan) },
+    });
+  }
 
   const transitionedToPaid =
     nextPaymentStatus === "paid" &&
@@ -559,9 +615,15 @@ export async function assignTenantPlan(data: TenantSubscriptionData) {
     },
   });
 
+  const snapshot = await fetchTenantAccountSnapshot(prisma, ownerAuthUserId);
+
   revalidatePath("/app-owner/tenants");
   revalidatePath("/app-owner");
-  return { success: true };
+  return {
+    success: true as const,
+    subscription: snapshot.subscription,
+    profile: snapshot.profile,
+  };
 }
 
 /**
@@ -572,7 +634,14 @@ export async function assignTenantPlan(data: TenantSubscriptionData) {
  */
 export async function approveTenantRequest(
   data: ApproveTenantRequestData,
-): Promise<{ success: true } | { error: string }> {
+): Promise<
+  | {
+      success: true;
+      subscription: TenantSubscriptionRecord | null;
+      profile: TenantOwnerProfileRecord;
+    }
+  | { error: string }
+> {
   const admin = await requireAppOwner();
   if (admin.role !== "app_owner") {
     return { error: "Only the platform app-owner can approve tenant requests." };
@@ -590,7 +659,7 @@ export async function approveTenantRequest(
       include: {
         staff_profiles: {
           where: { role: "owner" },
-          select: { id: true, email: true },
+          select: { id: true, email: true, auth_user_id: true },
           take: 1,
         },
       },
@@ -620,6 +689,11 @@ export async function approveTenantRequest(
     return { error: "Tenant must have a primary owner profile to approve." };
   }
 
+  const ownerAuthUserId = clinic.auth_user_id ?? owner.auth_user_id;
+  if (!ownerAuthUserId) {
+    return { error: "Tenant must have a primary owner account to approve." };
+  }
+
   const startDate = new Date(input.startDate);
   if (Number.isNaN(startDate.getTime())) {
     return { error: "Invalid start date." };
@@ -639,8 +713,12 @@ export async function approveTenantRequest(
     return { error: "End date must be on or after the start date." };
   }
 
+  let snapshot: {
+    subscription: TenantSubscriptionRecord | null;
+    profile: TenantOwnerProfileRecord;
+  };
   try {
-    await prisma.$transaction(async (tx) => {
+    snapshot = await prisma.$transaction(async (tx) => {
       const now = new Date();
 
       await tx.clinics.update({
@@ -673,7 +751,7 @@ export async function approveTenantRequest(
       if (branchCount === 0) {
         const mainBranch = await tx.branches.create({
           data: {
-            owner_id: clinic.auth_user_id,
+            owner_id: ownerAuthUserId,
             clinic_id: clinic.id,
             name: "Main Branch",
             status: "active",
@@ -689,7 +767,7 @@ export async function approveTenantRequest(
       }
 
       const subscription = await tx.tenant_subscriptions.upsert({
-        where: { tenant_id: clinic.id },
+        where: { tenant_id: ownerAuthUserId },
         update: {
           plan_id: plan.id,
           status: "active",
@@ -708,7 +786,7 @@ export async function approveTenantRequest(
           updated_by: admin.id,
         },
         create: {
-          tenant_id: clinic.id,
+          tenant_id: ownerAuthUserId,
           plan_id: plan.id,
           status: "active",
           start_date: startDate,
@@ -773,6 +851,8 @@ export async function approveTenantRequest(
           },
         },
       });
+
+      return await fetchTenantAccountSnapshot(tx, ownerAuthUserId);
     });
   } catch (error) {
     console.error("approveTenantRequest failed:", error);
@@ -781,7 +861,11 @@ export async function approveTenantRequest(
 
   revalidatePath("/app-owner/tenants");
   revalidatePath("/app-owner");
-  return { success: true };
+  return {
+    success: true,
+    subscription: snapshot.subscription,
+    profile: snapshot.profile,
+  };
 }
 
 /**
@@ -789,7 +873,14 @@ export async function approveTenantRequest(
  */
 export async function rejectTenantRequest(
   data: RejectTenantRequestData,
-): Promise<{ success: true } | { error: string }> {
+): Promise<
+  | {
+      success: true;
+      subscription: TenantSubscriptionRecord | null;
+      profile: TenantOwnerProfileRecord | null;
+    }
+  | { error: string }
+> {
   const admin = await requireAppOwner();
   if (admin.role !== "app_owner") {
     return { error: "Only the platform app-owner can reject tenant requests." };
@@ -803,7 +894,17 @@ export async function rejectTenantRequest(
 
   const clinic = await prisma.clinics.findUnique({
     where: { id: input.tenantId },
-    select: { id: true, status: true, request_ref: true },
+    select: {
+      id: true,
+      status: true,
+      request_ref: true,
+      auth_user_id: true,
+      staff_profiles: {
+        where: { role: "owner" },
+        select: { auth_user_id: true },
+        take: 1,
+      },
+    },
   });
 
   if (!clinic) {
@@ -813,8 +914,15 @@ export async function rejectTenantRequest(
     return { error: "Only requests currently under review can be rejected." };
   }
 
+  const ownerAuthUserId =
+    clinic.auth_user_id ?? clinic.staff_profiles?.[0]?.auth_user_id ?? null;
+
+  let snapshot: {
+    subscription: TenantSubscriptionRecord | null;
+    profile: TenantOwnerProfileRecord | null;
+  } = { subscription: null, profile: null };
   try {
-    await prisma.$transaction(async (tx) => {
+    snapshot = await prisma.$transaction(async (tx) => {
       const now = new Date();
       const reason = input.reason?.trim() || null;
 
@@ -828,13 +936,15 @@ export async function rejectTenantRequest(
         },
       });
 
-      await tx.tenant_subscriptions.updateMany({
-        where: { tenant_id: clinic.id },
-        data: {
-          status: "cancelled",
-          updated_by: admin.id,
-        },
-      });
+      if (ownerAuthUserId) {
+        await tx.tenant_subscriptions.updateMany({
+          where: { tenant_id: ownerAuthUserId },
+          data: {
+            status: "cancelled",
+            updated_by: admin.id,
+          },
+        });
+      }
 
       await tx.audit_logs.create({
         data: {
@@ -850,6 +960,11 @@ export async function rejectTenantRequest(
           },
         },
       });
+
+      if (!ownerAuthUserId) {
+        return { subscription: null, profile: null };
+      }
+      return await fetchTenantAccountSnapshot(tx, ownerAuthUserId);
     });
   } catch (error) {
     console.error("rejectTenantRequest failed:", error);
@@ -858,5 +973,9 @@ export async function rejectTenantRequest(
 
   revalidatePath("/app-owner/tenants");
   revalidatePath("/app-owner");
-  return { success: true };
+  return {
+    success: true,
+    subscription: snapshot.subscription,
+    profile: snapshot.profile,
+  };
 }

@@ -35,8 +35,12 @@ const prismaMock = vi.hoisted(() => {
     ...tx,
     clinics: {
       ...tx.clinics,
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+    },
+    tenant_subscriptions: {
+      findUnique: vi.fn(),
     },
     branches: {
       ...tx.branches,
@@ -100,6 +104,8 @@ beforeEach(() => {
   });
 
   prismaMock.clinics.findUnique.mockResolvedValue({ auth_user_id: OWNER_ID });
+  prismaMock.clinics.findFirst.mockResolvedValue(null);
+  prismaMock.tenant_subscriptions.findUnique.mockResolvedValue(null);
   prismaMock.clinics.findMany.mockResolvedValue([
     { id: CLINIC_1 },
     { id: CLINIC_2 },
@@ -246,6 +252,44 @@ describe("createClinic", () => {
         { clinic_id: CLINIC_2, branch_id: BRANCH_2, is_primary: true },
       ],
     });
+  });
+
+  it("inherits owner subscription tier and active status for secondary clinics", async () => {
+    prismaMock.branches.findMany.mockResolvedValue([{ id: BRANCH_1 }]);
+    prismaMock.clinics.findFirst.mockResolvedValueOnce({
+      status: "active",
+      subscription_plan: "pro",
+    });
+    prismaMock.tenant_subscriptions.findUnique.mockResolvedValueOnce({
+      status: "active",
+      plan: { name: "Enterprise", price: 199 },
+    });
+    prismaMock._tx.clinics.create.mockResolvedValue({
+      id: CLINIC_2,
+      name: "Cardiology Clinic",
+    });
+
+    await createClinic({
+      name: "Cardiology Clinic",
+      status: "trial",
+      have_pharmacy: false,
+      have_lab: false,
+      have_radio_center: false,
+      branch_ids: [BRANCH_1],
+    });
+
+    expect(prismaMock.tenant_subscriptions.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { tenant_id: OWNER_ID } }),
+    );
+    expect(prismaMock._tx.clinics.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          auth_user_id: OWNER_ID,
+          subscription_plan: "enterprise",
+          status: "active",
+        }),
+      }),
+    );
   });
 
   it("rejects creating a clinic without at least one branch", async () => {

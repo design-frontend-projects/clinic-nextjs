@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   mockRequireAppOwner,
+  mockCreateUserAccount,
   mockCreateUserWithPassword,
   mockRollbackAuthUser,
+  mockSendSetPasswordLink,
   mockRevalidatePath,
   mockTx,
   mockPrisma,
@@ -11,8 +13,14 @@ const {
   const tx = {
     $queryRaw: vi.fn(),
     clinics: { create: vi.fn(), update: vi.fn() },
-    profiles: { upsert: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+    profiles: {
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn(),
+    },
     tenant_subscriptions: {
+      findUnique: vi.fn(),
       create: vi.fn(),
       upsert: vi.fn(),
       updateMany: vi.fn(),
@@ -26,14 +34,27 @@ const {
   };
   return {
     mockRequireAppOwner: vi.fn(),
+    mockCreateUserAccount: vi.fn(),
     mockCreateUserWithPassword: vi.fn(),
     mockRollbackAuthUser: vi.fn(),
+    mockSendSetPasswordLink: vi.fn(),
     mockRevalidatePath: vi.fn(),
     mockTx: tx,
     mockPrisma: {
-      profiles: { findFirst: vi.fn() },
+      profiles: { findFirst: vi.fn(), findUnique: vi.fn() },
       subscription_plans: { findFirst: vi.fn() },
-      clinics: { findFirst: vi.fn(), findUnique: vi.fn() },
+      clinics: {
+        findFirst: vi.fn(),
+        findUnique: vi.fn(),
+        updateMany: vi.fn(),
+      },
+      tenant_subscriptions: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+      },
+      payment_records: { create: vi.fn() },
+      tenant_subscription_history: { create: vi.fn() },
       $transaction: vi.fn(async (fn: (client: typeof tx) => Promise<unknown>) =>
         fn(tx),
       ),
@@ -46,10 +67,10 @@ vi.mock("@/lib/app-owner-auth", () => ({
   requireAppOwner: mockRequireAppOwner,
 }));
 vi.mock("@/lib/invitations", () => ({
-  createUserAccount: vi.fn(),
+  createUserAccount: mockCreateUserAccount,
   createUserAccountWithPassword: mockCreateUserWithPassword,
   rollbackAuthUser: mockRollbackAuthUser,
-  sendSetPasswordLink: vi.fn(),
+  sendSetPasswordLink: mockSendSetPasswordLink,
 }));
 vi.mock("@/lib/auth", () => ({
   getSupabaseSession: vi.fn(),
@@ -71,12 +92,67 @@ import {
 } from "../auth";
 import {
   approveTenantRequest,
+  assignTenantPlan,
+  createTenant,
   rejectTenantRequest,
 } from "../app-owner/tenants";
 
 const PLAN_ID = "11111111-1111-4111-8111-111111111111";
 const TENANT_ID = "22222222-2222-4222-8222-222222222222";
 const OWNER_ID = "33333333-3333-4333-8333-333333333333";
+const AUTH_USER_ID = "44444444-4444-4444-8444-444444444444";
+const SUB_ID = "55555555-5555-4555-8555-555555555555";
+
+function makeProfileRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: OWNER_ID,
+    auth_user_id: AUTH_USER_ID,
+    tenant_id: TENANT_ID,
+    clinic_id: TENANT_ID,
+    branch_id: null,
+    full_name: "Dr. Sara Ali",
+    email: "sara@clinic.com",
+    phone: "+201001234567",
+    specialty: null,
+    role: "owner",
+    is_owner: true,
+    status: "inactive",
+    is_profile_completed: false,
+    created_at: new Date("2026-06-01T00:00:00Z"),
+    ...overrides,
+  };
+}
+
+function makeSubscriptionRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: SUB_ID,
+    tenant_id: AUTH_USER_ID,
+    plan_id: PLAN_ID,
+    plan: {
+      id: PLAN_ID,
+      name: "Pro",
+      billing_period: "monthly",
+      price: 99,
+      currency: "USD",
+    },
+    start_date: new Date("2026-06-01T00:00:00Z"),
+    end_date: null,
+    renewal_date: null,
+    activated_at: null,
+    grace_period_days: 7,
+    status: "pending_approval",
+    billing_cycle: "monthly",
+    price: 99,
+    discount: null,
+    currency: "USD",
+    payment_status: "pending",
+    payment_reference: null,
+    notes: null,
+    created_at: new Date("2026-06-01T00:00:00Z"),
+    updated_at: new Date("2026-06-01T00:00:00Z"),
+    ...overrides,
+  };
+}
 
 describe("tenant request & app_owner approval actions", () => {
   beforeEach(() => {
@@ -113,7 +189,7 @@ describe("tenant request & app_owner approval actions", () => {
       expect(mockCreateUserWithPassword).not.toHaveBeenCalled();
     });
 
-    it("creates under_review clinic with Ref #, inactive profile, pending_approval sub, and notifies app_owners", async () => {
+    it("creates under_review clinic, stores subscription under authUserId, and returns scoped subscription + profile", async () => {
       mockPrisma.profiles.findFirst.mockResolvedValueOnce(null);
       mockPrisma.subscription_plans.findFirst.mockResolvedValueOnce({
         id: PLAN_ID,
@@ -123,7 +199,7 @@ describe("tenant request & app_owner approval actions", () => {
         currency: "USD",
       });
       mockCreateUserWithPassword.mockResolvedValueOnce({
-        user: { id: "auth-1" },
+        user: { id: AUTH_USER_ID },
       });
       mockTx.$queryRaw.mockResolvedValueOnce([{ nextval: BigInt(7) }]);
       mockTx.clinics.create.mockResolvedValueOnce({
@@ -132,6 +208,10 @@ describe("tenant request & app_owner approval actions", () => {
       });
       mockTx.profiles.upsert.mockResolvedValueOnce({ id: OWNER_ID });
       mockTx.profiles.findMany.mockResolvedValueOnce([{ id: "app-owner-1" }]);
+      mockTx.profiles.findUnique.mockResolvedValueOnce(makeProfileRow());
+      mockTx.tenant_subscriptions.findUnique.mockResolvedValueOnce(
+        makeSubscriptionRow(),
+      );
 
       const res = await requestTenantAccountAction(validRequest);
 
@@ -139,34 +219,41 @@ describe("tenant request & app_owner approval actions", () => {
         success: true,
         clinicName: "Al Noor Clinic",
         email: "sara@clinic.com",
+        subscription: {
+          id: SUB_ID,
+          tenant_id: AUTH_USER_ID,
+          plan_id: PLAN_ID,
+          status: "pending_approval",
+          payment_status: "pending",
+          plan: { id: PLAN_ID, name: "Pro", price: 99, currency: "USD" },
+        },
+        profile: {
+          id: OWNER_ID,
+          auth_user_id: AUTH_USER_ID,
+          tenant_id: TENANT_ID,
+          clinic_id: TENANT_ID,
+          email: "sara@clinic.com",
+          role: "owner",
+          is_owner: true,
+        },
       });
       if ("success" in res) {
         expect(res.requestRef).toMatch(/^REQ-\d{4}-0007$/);
       }
-      expect(mockTx.clinics.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            status: "under_review",
-            name: "Al Noor Clinic",
-          }),
-        }),
-      );
-      expect(mockTx.profiles.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          update: expect.objectContaining({
-            status: "inactive",
-            role: "owner",
-            is_owner: true,
-          }),
-        }),
-      );
       expect(mockTx.tenant_subscriptions.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
+            tenant_id: AUTH_USER_ID,
             status: "pending_approval",
             payment_status: "pending",
           }),
         }),
+      );
+      expect(mockTx.profiles.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { auth_user_id: AUTH_USER_ID } }),
+      );
+      expect(mockTx.tenant_subscriptions.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { tenant_id: AUTH_USER_ID } }),
       );
       expect(mockTx.notifications.createMany).toHaveBeenCalledTimes(1);
     });
@@ -194,21 +281,22 @@ describe("tenant request & app_owner approval actions", () => {
   });
 
   describe("checkTenantRequestStatusAction", () => {
-    it("returns details only when both request_ref and owner email match", async () => {
+    it("returns details only when both request_ref and owner email match and fetches subscription by owner auth_user_id", async () => {
       mockPrisma.clinics.findFirst.mockResolvedValueOnce({
         request_ref: "REQ-2026-0007",
         name: "Al Noor Clinic",
         status: "under_review",
+        auth_user_id: AUTH_USER_ID,
         created_at: new Date("2026-06-01T00:00:00Z"),
         reviewed_at: null,
         rejection_reason: null,
-        staff_profiles: [{ email: "sara@clinic.com" }],
-        tenant_subscription: {
-          payment_status: "pending",
-          start_date: new Date("2026-06-01T00:00:00Z"),
-          end_date: null,
-          plan: { name: "Pro" },
-        },
+        staff_profiles: [{ email: "sara@clinic.com", auth_user_id: AUTH_USER_ID }],
+      });
+      mockPrisma.tenant_subscriptions.findUnique.mockResolvedValueOnce({
+        payment_status: "pending",
+        start_date: new Date("2026-06-01T00:00:00Z"),
+        end_date: null,
+        plan: { name: "Pro" },
       });
 
       const ok = await checkTenantRequestStatusAction({
@@ -224,10 +312,15 @@ describe("tenant request & app_owner approval actions", () => {
           planName: "Pro",
         },
       });
+      expect(mockPrisma.tenant_subscriptions.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tenant_id: AUTH_USER_ID },
+        }),
+      );
 
       mockPrisma.clinics.findFirst.mockResolvedValueOnce({
         request_ref: "REQ-2026-0007",
-        staff_profiles: [{ email: "sara@clinic.com" }],
+        staff_profiles: [{ email: "sara@clinic.com", auth_user_id: AUTH_USER_ID }],
       });
       const mismatch = await checkTenantRequestStatusAction({
         requestRef: "REQ-2026-0007",
@@ -240,7 +333,84 @@ describe("tenant request & app_owner approval actions", () => {
     });
   });
 
-  describe("approveTenantRequest & rejectTenantRequest", () => {
+  describe("createTenant", () => {
+    it("creates tenant subscription keyed by authUserId and returns scoped subscription + profile", async () => {
+      mockRequireAppOwner.mockResolvedValueOnce({
+        id: "app-owner-1",
+        role: "app_owner",
+        email: "platform@clinic.com",
+      });
+      mockPrisma.profiles.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.subscription_plans.findFirst.mockResolvedValueOnce({
+        id: PLAN_ID,
+        name: "Pro",
+        billing_period: "monthly",
+        price: 99,
+        currency: "USD",
+      });
+      mockCreateUserAccount.mockResolvedValueOnce({
+        user: { id: AUTH_USER_ID },
+        tempPassword: "TempPass!23",
+      });
+      mockTx.clinics.create.mockResolvedValueOnce({
+        id: TENANT_ID,
+        name: "Al Noor Clinic",
+      });
+      mockTx.profiles.upsert.mockResolvedValueOnce({ id: OWNER_ID });
+      mockTx.branches.create.mockResolvedValueOnce({ id: "branch-1" });
+      mockTx.profiles.findUnique.mockResolvedValueOnce(
+        makeProfileRow({ status: "active", is_profile_completed: true }),
+      );
+      mockTx.tenant_subscriptions.findUnique.mockResolvedValueOnce(
+        makeSubscriptionRow({ status: "active", payment_status: "paid" }),
+      );
+
+      const res = await createTenant({
+        owner: {
+          full_name: "Dr. Sara Ali",
+          email: "sara@clinic.com",
+          phone: "+201001234567",
+        },
+        clinic: {
+          name: "Al Noor Clinic",
+          registration_number: "",
+          email: "",
+          phone: "",
+        },
+        plan_id: PLAN_ID,
+        branch: { name: "Main Branch", address: "", phone: "" },
+        specialtyIds: [],
+      });
+
+      expect(res).toMatchObject({
+        success: true,
+        tenantId: TENANT_ID,
+        tempPassword: "TempPass!23",
+        ownerEmail: "sara@clinic.com",
+        subscription: {
+          tenant_id: AUTH_USER_ID,
+          status: "active",
+          payment_status: "paid",
+        },
+        profile: {
+          auth_user_id: AUTH_USER_ID,
+          tenant_id: TENANT_ID,
+          status: "active",
+          is_profile_completed: true,
+        },
+      });
+      expect(mockTx.tenant_subscriptions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tenant_id: AUTH_USER_ID,
+            plan_id: PLAN_ID,
+          }),
+        }),
+      );
+    });
+  });
+
+  describe("approveTenantRequest, rejectTenantRequest & assignTenantPlan", () => {
     it("blocks non-app_owner callers from approving", async () => {
       mockRequireAppOwner.mockResolvedValueOnce({
         id: "owner-1",
@@ -266,7 +436,7 @@ describe("tenant request & app_owner approval actions", () => {
       });
     });
 
-    it("activates clinic, owner profile, default Main Branch, subscription, and payment record on approval", async () => {
+    it("activates clinic, owner profile, Main Branch, subscription keyed by auth_user_id, and returns scoped snapshot", async () => {
       mockRequireAppOwner.mockResolvedValueOnce({
         id: "app-owner-1",
         role: "app_owner",
@@ -276,9 +446,11 @@ describe("tenant request & app_owner approval actions", () => {
         id: TENANT_ID,
         status: "under_review",
         request_ref: "REQ-2026-0007",
-        auth_user_id: "auth-1",
+        auth_user_id: AUTH_USER_ID,
         onboarding_completed_at: null,
-        staff_profiles: [{ id: OWNER_ID, email: "sara@clinic.com" }],
+        staff_profiles: [
+          { id: OWNER_ID, email: "sara@clinic.com", auth_user_id: AUTH_USER_ID },
+        ],
       });
       mockPrisma.subscription_plans.findFirst.mockResolvedValueOnce({
         id: PLAN_ID,
@@ -287,7 +459,17 @@ describe("tenant request & app_owner approval actions", () => {
       });
       mockTx.clinic_branches.count.mockResolvedValueOnce(0);
       mockTx.branches.create.mockResolvedValueOnce({ id: "branch-1" });
-      mockTx.tenant_subscriptions.upsert.mockResolvedValueOnce({ id: "sub-1" });
+      mockTx.tenant_subscriptions.upsert.mockResolvedValueOnce({ id: SUB_ID });
+      mockTx.profiles.findUnique.mockResolvedValueOnce(
+        makeProfileRow({ status: "active", is_profile_completed: true }),
+      );
+      mockTx.tenant_subscriptions.findUnique.mockResolvedValueOnce(
+        makeSubscriptionRow({
+          status: "active",
+          payment_status: "paid",
+          payment_reference: "TX-123",
+        }),
+      );
 
       const res = await approveTenantRequest({
         tenantId: TENANT_ID,
@@ -304,26 +486,25 @@ describe("tenant request & app_owner approval actions", () => {
         paymentReference: "TX-123",
       });
 
-      expect(res).toEqual({ success: true });
-      expect(mockTx.clinics.update).toHaveBeenCalledWith(
+      expect(res).toMatchObject({
+        success: true,
+        subscription: {
+          tenant_id: AUTH_USER_ID,
+          status: "active",
+          payment_status: "paid",
+        },
+        profile: {
+          id: OWNER_ID,
+          auth_user_id: AUTH_USER_ID,
+          status: "active",
+        },
+      });
+      expect(mockTx.tenant_subscriptions.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ status: "active" }),
+          where: { tenant_id: AUTH_USER_ID },
+          create: expect.objectContaining({ tenant_id: AUTH_USER_ID }),
         }),
       );
-      expect(mockTx.profiles.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            status: "active",
-            is_profile_completed: true,
-          }),
-        }),
-      );
-      expect(mockTx.branches.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ name: "Main Branch" }),
-        }),
-      );
-      expect(mockTx.clinic_branches.create).toHaveBeenCalledTimes(1);
       expect(mockTx.payment_records.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -335,7 +516,7 @@ describe("tenant request & app_owner approval actions", () => {
       );
     });
 
-    it("rejects an under_review request with reason", async () => {
+    it("rejects an under_review request, cancels subscription by auth_user_id, and returns scoped snapshot", async () => {
       mockRequireAppOwner.mockResolvedValueOnce({
         id: "app-owner-1",
         role: "app_owner",
@@ -345,27 +526,107 @@ describe("tenant request & app_owner approval actions", () => {
         id: TENANT_ID,
         status: "under_review",
         request_ref: "REQ-2026-0007",
+        auth_user_id: AUTH_USER_ID,
+        staff_profiles: [{ auth_user_id: AUTH_USER_ID }],
       });
+      mockTx.profiles.findUnique.mockResolvedValueOnce(makeProfileRow());
+      mockTx.tenant_subscriptions.findUnique.mockResolvedValueOnce(
+        makeSubscriptionRow({ status: "cancelled" }),
+      );
 
       const res = await rejectTenantRequest({
         tenantId: TENANT_ID,
         reason: "Missing license number",
       });
 
-      expect(res).toEqual({ success: true });
-      expect(mockTx.clinics.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            status: "rejected",
-            rejection_reason: "Missing license number",
-          }),
-        }),
-      );
+      expect(res).toMatchObject({
+        success: true,
+        subscription: {
+          tenant_id: AUTH_USER_ID,
+          status: "cancelled",
+        },
+        profile: {
+          auth_user_id: AUTH_USER_ID,
+        },
+      });
       expect(mockTx.tenant_subscriptions.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: { tenant_id: AUTH_USER_ID },
           data: expect.objectContaining({ status: "cancelled" }),
         }),
       );
+    });
+
+    it("assignTenantPlan updates subscription by owner auth_user_id and returns scoped snapshot", async () => {
+      mockRequireAppOwner.mockResolvedValueOnce({
+        id: "app-owner-1",
+        role: "app_owner",
+        email: "platform@clinic.com",
+      });
+      // 1st profiles.findUnique -> resolveTenantOwnerAuthId
+      mockPrisma.profiles.findUnique.mockResolvedValueOnce({
+        id: OWNER_ID,
+        auth_user_id: AUTH_USER_ID,
+        role: "owner",
+        is_owner: true,
+      });
+      // 1st tenant_subscriptions.findUnique -> existing check
+      mockPrisma.tenant_subscriptions.findUnique.mockResolvedValueOnce({
+        id: SUB_ID,
+        tenant_id: AUTH_USER_ID,
+        payment_status: "pending",
+        payment_reference: null,
+        activated_at: null,
+        start_date: new Date("2026-06-01T00:00:00Z"),
+        end_date: null,
+        grace_period_days: 7,
+      });
+      mockPrisma.tenant_subscriptions.update.mockResolvedValueOnce({
+        id: SUB_ID,
+        tenant_id: AUTH_USER_ID,
+      });
+      mockPrisma.subscription_plans.findFirst.mockResolvedValueOnce({
+        name: "Pro",
+        price: 99,
+      });
+      // 2nd profiles.findUnique & tenant_subscriptions.findUnique -> fetchTenantAccountSnapshot
+      mockPrisma.profiles.findUnique.mockResolvedValueOnce(
+        makeProfileRow({ status: "active", is_profile_completed: true }),
+      );
+      mockPrisma.tenant_subscriptions.findUnique.mockResolvedValueOnce(
+        makeSubscriptionRow({ status: "active", payment_status: "paid" }),
+      );
+
+      const res = await assignTenantPlan({
+        tenant_id: AUTH_USER_ID,
+        plan_id: PLAN_ID,
+        billing_cycle: "monthly",
+        price: 99,
+        currency: "USD",
+        status: "active",
+        payment_status: "paid",
+      });
+
+      expect(res).toMatchObject({
+        success: true,
+        subscription: {
+          tenant_id: AUTH_USER_ID,
+          status: "active",
+          payment_status: "paid",
+        },
+        profile: {
+          auth_user_id: AUTH_USER_ID,
+        },
+      });
+      expect(mockPrisma.tenant_subscriptions.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tenant_id: AUTH_USER_ID },
+        }),
+      );
+      expect(mockPrisma.clinics.updateMany).toHaveBeenCalledWith({
+        where: { auth_user_id: AUTH_USER_ID },
+        data: { subscription_plan: "pro" },
+      });
     });
   });
 });

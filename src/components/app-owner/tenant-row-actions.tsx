@@ -59,6 +59,7 @@ type PaymentStatusOption = (typeof PAYMENT_STATUSES)[number];
 
 interface TenantOwner {
   id: string;
+  auth_user_id?: string | null;
   full_name: string | null;
   email: string | null;
   status: string;
@@ -77,7 +78,12 @@ interface TenantSubscriptionSnapshot {
 }
 
 interface TenantRowActionsProps {
-  tenant: { id: string; name: string; status: string };
+  tenant: {
+    id: string;
+    name: string;
+    status: string;
+    auth_user_id?: string | null;
+  };
   owner: TenantOwner | null;
   subscription?: TenantSubscriptionSnapshot | null;
 }
@@ -164,6 +170,8 @@ export function TenantRowActions({
     });
   };
 
+  const ownerAuthUserId = owner?.auth_user_id ?? tenant.auth_user_id ?? null;
+
   const handleAssignPlan = () => {
     if (!planId) {
       toast.error(t("toastSelectPlan"));
@@ -171,7 +179,7 @@ export function TenantRowActions({
     }
     run(() =>
       assignTenantPlan({
-        tenant_id: tenant.id,
+        tenant_id: ownerAuthUserId || tenant.id,
         plan_id: planId,
         billing_cycle: billingCycle,
         price: Number(price || 0),
