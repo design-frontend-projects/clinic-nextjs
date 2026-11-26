@@ -87,11 +87,30 @@ export function getSupabaseEnv(): PublicSupabaseEnv {
 }
 
 /**
- * Resolve the server-side Supabase key (prefers `SUPABASE_SERVICE_ROLE_KEY`,
- * falling back to the anon key).
+ * Resolve the server-side Supabase admin key (`SUPABASE_SERVICE_ROLE_KEY` or
+ * `SUPABASE_SECRET_KEY`). Throws a clear diagnostic error if missing or if a
+ * public/anon key is supplied instead of a service-role/secret key.
  */
 export function getSupabaseServiceKey(): string {
-  return (
-    readRuntimeEnv("SUPABASE_SERVICE_ROLE_KEY") || getSupabaseEnv().anonKey
-  );
+  const serviceKey =
+    readRuntimeEnv("SUPABASE_SERVICE_ROLE_KEY") ||
+    readRuntimeEnv("SUPABASE_SECRET_KEY");
+
+  if (!serviceKey) {
+    throw new Error(
+      "Missing required Supabase admin key: set SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) in your runtime environment.",
+    );
+  }
+
+  const { anonKey } = getPublicSupabaseEnv();
+  if (
+    serviceKey.startsWith("sb_publishable_") ||
+    (anonKey && serviceKey === anonKey)
+  ) {
+    throw new Error(
+      "Invalid SUPABASE_SERVICE_ROLE_KEY: a public/anon key was provided instead of a service_role or sb_secret_ key.",
+    );
+  }
+
+  return serviceKey;
 }

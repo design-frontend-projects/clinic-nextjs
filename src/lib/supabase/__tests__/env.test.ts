@@ -15,6 +15,7 @@ describe("supabase env resolution", () => {
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_ANON_KEY;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.SUPABASE_SECRET_KEY;
     // Ensure clean window state
     Object.defineProperty(globalThis, "window", {
       value: undefined,
@@ -85,13 +86,29 @@ describe("supabase env resolution", () => {
     expect(getPublicSupabaseEnv()).toEqual({ url: "", anonKey: "" });
   });
 
-  it("prefers SUPABASE_SERVICE_ROLE_KEY in getSupabaseServiceKey() and falls back to anonKey", () => {
+  it("prefers SUPABASE_SERVICE_ROLE_KEY, supports SUPABASE_SECRET_KEY, and throws if missing", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-123";
 
-    expect(getSupabaseServiceKey()).toBe("anon-key-123");
+    expect(() => getSupabaseServiceKey()).toThrow(
+      /SUPABASE_SERVICE_ROLE_KEY/,
+    );
+
+    process.env.SUPABASE_SECRET_KEY = "sb_secret_fallback";
+    expect(getSupabaseServiceKey()).toBe("sb_secret_fallback");
 
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-secret";
     expect(getSupabaseServiceKey()).toBe("service-role-secret");
+  });
+
+  it("rejects publishable or anon keys passed as SUPABASE_SERVICE_ROLE_KEY", () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key-123";
+
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "sb_publishable_wrong";
+    expect(() => getSupabaseServiceKey()).toThrow(/Invalid SUPABASE_SERVICE_ROLE_KEY/);
+
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "anon-key-123";
+    expect(() => getSupabaseServiceKey()).toThrow(/Invalid SUPABASE_SERVICE_ROLE_KEY/);
   });
 });

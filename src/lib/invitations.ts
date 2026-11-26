@@ -58,6 +58,22 @@ function createAnonClient() {
   );
 }
 
+function formatAdminCreateUserError(
+  error: { message?: string; status?: number } | null,
+): Error {
+  const message = error?.message || "Failed to create user account";
+  if (
+    message.toLowerCase().includes("user not allowed") ||
+    error?.status === 401 ||
+    error?.status === 403
+  ) {
+    return new Error(
+      `Supabase Auth admin rejected user creation (${message}). Verify that SUPABASE_SERVICE_ROLE_KEY is set to your project's service_role or sb_secret_ key (not the anon/publishable key).`,
+    );
+  }
+  return new Error(message);
+}
+
 /**
  * Create a confirmed Supabase auth user with a generated temporary password.
  * Returns the created user plus the plaintext temp password so the caller can
@@ -83,7 +99,7 @@ export async function createUserAccount({
   });
 
   if (error || !data.user) {
-    throw new Error(error?.message || "Failed to create user account");
+    throw formatAdminCreateUserError(error);
   }
 
   return { user: data.user, tempPassword };
@@ -114,7 +130,7 @@ export async function createUserAccountWithPassword({
   });
 
   if (error || !data.user) {
-    throw new Error(error?.message || "Failed to create user account");
+    throw formatAdminCreateUserError(error);
   }
 
   return { user: data.user };
