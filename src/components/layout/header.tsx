@@ -88,7 +88,9 @@ export function Header() {
             {t("header.welcomeBack")}
           </h2>
           <p className="text-xs text-muted-foreground">
-            {t("header.manageClinic")}
+            {tenant?.role === "app_owner"
+              ? t("header.managePlatform")
+              : t("header.manageClinic")}
           </p>
         </div>
       </div>

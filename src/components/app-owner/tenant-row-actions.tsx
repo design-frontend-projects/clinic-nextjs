@@ -35,7 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const BILLING_CYCLES = [
   "monthly",
@@ -108,6 +109,7 @@ export function TenantRowActions({
   subscription,
 }: TenantRowActionsProps) {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations("appOwner.tenantActions");
   const tPeriods = useTranslations("appOwner.planEditor.periods");
   const [open, setOpen] = useState(false);
@@ -200,27 +202,36 @@ export function TenantRowActions({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" aria-label={tenant.name}>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>{tenant.name}</SheetTitle>
-          <SheetDescription>
-            {t("sheetDescription")}
-          </SheetDescription>
+      <SheetContent
+        side={locale === "ar" ? "left" : "right"}
+        className="w-full overflow-y-auto p-0 sm:max-w-md"
+      >
+        <SheetHeader className="border-b border-hairline px-6 py-5 pe-12">
+          <div className="flex flex-wrap items-center gap-2">
+            <SheetTitle>{tenant.name}</SheetTitle>
+            <StatusBadge status={tenant.status} />
+          </div>
+          <SheetDescription>{t("sheetDescription")}</SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">{t("tenantStatusTitle")}</h3>
-            <p className="text-sm text-muted-foreground capitalize">
+        <div className="space-y-6 p-6">
+          <section className="space-y-3 rounded-[var(--radius-button)] border border-hairline bg-canvas-soft/60 p-4 dark:bg-surface-elevated/50">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">{t("tenantStatusTitle")}</h3>
+              <StatusBadge status={tenant.status} />
+            </div>
+            <p className="text-xs text-muted-foreground capitalize">
               {t("currentStatus", { status: tenant.status })}
             </p>
             {isSuspended ? (
               <Button
                 variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
                 disabled={isPending}
                 onClick={() => run(() => activateTenant(tenant.id))}
               >
@@ -229,6 +240,8 @@ export function TenantRowActions({
             ) : (
               <Button
                 variant="destructive"
+                size="sm"
+                className="w-full sm:w-auto"
                 disabled={isPending}
                 onClick={() => run(() => suspendTenant(tenant.id))}
               >
@@ -237,17 +250,22 @@ export function TenantRowActions({
             )}
           </section>
 
-          <Separator />
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">{t("ownerTitle")}</h3>
+          <section className="space-y-3 rounded-[var(--radius-button)] border border-hairline bg-canvas-soft/60 p-4 dark:bg-surface-elevated/50">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">{t("ownerTitle")}</h3>
+              {owner && <StatusBadge status={owner.status} />}
+            </div>
             {owner ? (
               <>
-                <p className="text-sm text-muted-foreground">
-                  {owner.full_name || "—"} ({owner.email || t("noEmail")}) —{" "}
-                  <span className="capitalize">{owner.status}</span>
-                </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-0.5 text-sm">
+                  <p className="font-medium text-foreground">
+                    {owner.full_name || "—"}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {owner.email || t("noEmail")}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
                   {isOwnerBlocked ? (
                     <Button
                       variant="outline"

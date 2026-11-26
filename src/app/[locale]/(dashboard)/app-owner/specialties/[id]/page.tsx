@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAppOwner } from "@/lib/app-owner-auth";
 import { getSpecialty } from "@/app/actions/app-owner/specialties";
+import { AppOwnerPageHeader } from "@/components/app-owner/app-owner-page-header";
 import { SpecialtyEditor } from "@/components/app-owner/specialty-editor";
 import type { SpecialtyFormData } from "@/types/specialty.types";
 
@@ -13,9 +14,12 @@ export default async function EditSpecialtyPage({
 }) {
   await requireAppOwner();
   const { id } = await params;
-  const t = await getTranslations("appOwner.specialties");
+  const [t, tCommon, specialty] = await Promise.all([
+    getTranslations("appOwner.specialties"),
+    getTranslations("appOwner.common"),
+    getSpecialty(id),
+  ]);
 
-  const specialty = await getSpecialty(id);
   if (!specialty) notFound();
 
   const initial: Partial<SpecialtyFormData> & { id: string } = {
@@ -28,11 +32,13 @@ export default async function EditSpecialtyPage({
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">{t("editSpecialtyTitle")}</h2>
-        <p className="text-muted-foreground">{specialty.name}</p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <AppOwnerPageHeader
+        backHref="/app-owner/specialties"
+        backLabel={tCommon("backToList")}
+        title={t("editSpecialtyTitle")}
+        description={specialty.name}
+      />
       <SpecialtyEditor specialty={initial} />
     </div>
   );

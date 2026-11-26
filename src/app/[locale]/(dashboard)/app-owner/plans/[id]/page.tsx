@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAppOwner } from "@/lib/app-owner-auth";
 import { getSubscriptionPlan } from "@/app/actions/app-owner/plans";
+import { AppOwnerPageHeader } from "@/components/app-owner/app-owner-page-header";
 import { PlanEditor } from "@/components/app-owner/plan-editor";
 import type { SubscriptionPlanFormData } from "@/types/subscription.types";
 
@@ -13,9 +14,12 @@ export default async function EditPlanPage({
 }) {
   await requireAppOwner();
   const { id } = await params;
-  const t = await getTranslations("appOwner.plans");
+  const [t, tCommon, plan] = await Promise.all([
+    getTranslations("appOwner.plans"),
+    getTranslations("appOwner.common"),
+    getSubscriptionPlan(id),
+  ]);
 
-  const plan = await getSubscriptionPlan(id);
   if (!plan) notFound();
 
   const initial: Partial<SubscriptionPlanFormData> & { id: string } = {
@@ -45,10 +49,12 @@ export default async function EditPlanPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">{t("editPlanTitle")}</h2>
-        <p className="text-muted-foreground">{plan.name}</p>
-      </div>
+      <AppOwnerPageHeader
+        backHref="/app-owner/plans"
+        backLabel={tCommon("backToList")}
+        title={t("editPlanTitle")}
+        description={plan.name}
+      />
       <PlanEditor plan={initial} />
     </div>
   );

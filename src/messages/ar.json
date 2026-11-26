@@ -224,7 +224,12 @@
       "noClinics": "لا توجد عيادات متاحة. قم بإنشاء عيادة أولاً.",
       "toastUpdateFailed": "فشل تحديث الدواء.",
       "toastActivated": "تم تفعيل الدواء.",
-      "toastDeactivated": "تم إلغاء تفعيل الدواء."
+      "toastDeactivated": "تم إلغاء تفعيل الدواء.",
+      "searchPlaceholder": "ابحث بالاسم العلمي أو التجاري أو التركيز أو الشكل...",
+      "noMatchingMedications": "لا توجد أدوية تطابق التصفية.",
+      "clinicalSection": "المواصفات السريرية",
+      "pricingCodingSection": "التسعير والترميز",
+      "activeToggleDesc": "إتاحة هذا الدواء للوصفات الطبية في العيادة المحددة."
     },
     "plans": {
       "newPlanTitle": "خطة اشتراك جديدة",
@@ -251,7 +256,20 @@
       "removeConfirm": "حذف الخطة",
       "removeCancel": "إلغاء",
       "toastRemoved": "تم حذف خطة الاشتراك.",
-      "toastRemoveFailed": "فشل حذف خطة الاشتراك."
+      "toastRemoveFailed": "فشل حذف خطة الاشتراك.",
+      "searchPlaceholder": "ابحث في خطط الاشتراك...",
+      "trialDaysBadge": "تجربة {days} يوم",
+      "unlimited": "غير محدود",
+      "moreFeatures": "+{count} أخرى",
+      "previewTitle": "معاينة حية للخطة",
+      "previewSubtitle": "كيف ستظهر هذه الباقة في الكتالوج.",
+      "noFeaturesPreview": "أضف ميزات لمعاينتها هنا.",
+      "limitsSummary": "الحدود",
+      "usersLimit": "المستخدمون",
+      "doctorsLimit": "الأطباء",
+      "branchesLimit": "الفروع",
+      "noMatchingPlans": "لا توجد خطط تطابق التصفية.",
+      "subscribersCount": "{count} مشترك"
     },
     "specialties": {
       "newSpecialtyTitle": "تخصص جديد",
@@ -268,7 +286,14 @@
       "actions": "الإجراءات",
       "active": "نشط",
       "inactive": "غير نشط",
-      "empty": "لم يتم العثور على تخصصات. قم بإنشاء واحد للبدء."
+      "empty": "لم يتم العثور على تخصصات. قم بإنشاء واحد للبدء.",
+      "searchPlaceholder": "ابحث في التخصصات (عربي أو إنجليزي)...",
+      "noMatchingSpecialties": "لا توجد تخصصات تطابق التصفية.",
+      "toastActivated": "تم تفعيل التخصص.",
+      "toastDeactivated": "تم تعطيل التخصص.",
+      "toastToggleFailed": "تعذر تحديث حالة التخصص.",
+      "activeToggleDesc": "السماح للعيادات والأطباء باختيار هذا التخصص.",
+      "doctorsCount": "{count} طبيب"
     },
     "tenants": {
       "title": "العيادات المشتركة",
@@ -296,7 +321,13 @@
         "patients": "المرضى",
         "created": "تاريخ الإنشاء",
         "actions": "الإجراءات"
-      }
+      },
+      "searchPlaceholder": "ابحث باسم العيادة أو بريد المالك أو الرقم المرجعي...",
+      "usageColumn": "الاستخدام",
+      "noMatchingTenants": "لا توجد عيادات تطابق بحثك أو التصفية.",
+      "staffLabel": "الموظفون",
+      "patientsLabel": "المرضى",
+      "ownerLabel": "المالك"
     },
     "dashboard": {
       "overviewTitle": "نظرة عامة على المنصة",
@@ -309,7 +340,24 @@
       "dashboard": "لوحة القيادة",
       "tenants": "المستأجرون",
       "plans": "خطط الاشتراك",
-      "settings": "الإعدادات العامة"
+      "settings": "الإعدادات العامة",
+      "pendingQueueTitle": "طلبات المستأجرين المعلقة",
+      "pendingQueueDesc": "مراجعة وتفعيل العيادات المنتظرة لموافقة المنصة.",
+      "allCaughtUp": "لا توجد طلبات معلقة",
+      "allCaughtUpDesc": "لا توجد طلبات تسجيل عيادات بانتظار المراجعة حالياً.",
+      "tenantMixTitle": "توزيع حالات العيادات",
+      "tenantMixDesc": "توزيع العيادات عبر حالات دورة الحياة.",
+      "planAdoptionTitle": "الاشتراكات حسب الخطة",
+      "planAdoptionDesc": "الاشتراكات النشطة والمعلقة لكل باقة.",
+      "noChartData": "لا توجد بيانات عيادات أو خطط متاحة بعد.",
+      "quickCreateTenant": "إنشاء مستأجر",
+      "quickNewPlan": "خطة جديدة",
+      "quickAddSpecialty": "إضافة تخصص",
+      "quickSendAnnouncement": "إرسال إشعار",
+      "activeTenants": "نشط / تجريبي",
+      "suspendedRejected": "مغلق",
+      "subscribers": "المشتركون",
+      "submittedOn": "تاريخ التقديم {date}"
     },
     "sidebar": {
       "dashboard": "لوحة القيادة",
@@ -511,6 +559,17 @@
       "rejectButton": "رفض الطلب",
       "approvedToast": "تمت الموافقة على الطلب وتفعيل العيادة.",
       "rejectedToast": "تم رفض طلب العيادة."
+    },
+    "common": {
+      "backToList": "رجوع",
+      "searchPlaceholder": "بحث...",
+      "allStatuses": "جميع الحالات",
+      "cardsView": "بطاقات",
+      "tableView": "جدول",
+      "viewAll": "عرض الكل",
+      "quickActions": "إجراءات سريعة",
+      "clearSearch": "مسح البحث",
+      "showingCount": "{count} معروض"
     }
   },
   "patients": {
@@ -580,7 +639,8 @@
     "french": "الفرنسية",
     "openMenu": "فتح القائمة",
     "toggleLanguage": "تبديل اللغة",
-    "profile": "ملفي الشخصي"
+    "profile": "ملفي الشخصي",
+    "managePlatform": "إدارة عمليات المنصة والمستأجرين"
   },
   "sidebar": {
     "dashboard": "لوحة القيادة",

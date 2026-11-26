@@ -1,6 +1,7 @@
 import { requireAppOwner } from "@/lib/app-owner-auth";
 import { getSubscriptionPlans } from "@/app/actions/app-owner/plans";
 import { getActiveSpecialties } from "@/app/actions/specialties";
+import { AppOwnerPageHeader } from "@/components/app-owner/app-owner-page-header";
 import { TenantCreateForm } from "@/components/app-owner/tenant-create-form";
 import type { PlanOption } from "@/types/tenant-creation.types";
 
@@ -8,9 +9,9 @@ import { getTranslations } from "next-intl/server";
 
 export default async function NewTenantPage() {
   await requireAppOwner();
-  const t = await getTranslations("appOwner.tenants");
-
-  const [plans, specialties] = await Promise.all([
+  const [t, tCommon, plans, specialties] = await Promise.all([
+    getTranslations("appOwner.tenants"),
+    getTranslations("appOwner.common"),
     getSubscriptionPlans(),
     getActiveSpecialties(),
   ]);
@@ -27,13 +28,13 @@ export default async function NewTenantPage() {
     }));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">{t("newTenantTitle")}</h2>
-        <p className="text-muted-foreground">
-          {t("newTenantSubtitle")}
-        </p>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <AppOwnerPageHeader
+        backHref="/app-owner/tenants"
+        backLabel={tCommon("backToList")}
+        title={t("newTenantTitle")}
+        description={t("newTenantSubtitle")}
+      />
       <TenantCreateForm plans={planOptions} specialties={specialties} />
     </div>
   );

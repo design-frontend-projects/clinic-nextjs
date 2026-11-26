@@ -217,8 +217,8 @@ export function TenantApprovalDialog({
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
+        <DialogHeader className="text-start">
+          <div className="flex flex-wrap items-center gap-2 pe-7">
             <DialogTitle>{tenant.name}</DialogTitle>
             <StatusBadge status={tenant.status} />
           </div>
@@ -229,26 +229,26 @@ export function TenantApprovalDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-md border border-border bg-muted/30 p-3 text-xs grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div>
+        <div className="grid grid-cols-1 gap-2.5 rounded-[var(--radius-button)] border border-hairline bg-canvas-soft p-3.5 text-xs sm:grid-cols-2 dark:bg-surface-elevated">
+          <div className="min-w-0">
             <span className="text-muted-foreground">{t("ownerLabel")}: </span>
             <span className="font-medium text-foreground">
               {owner?.full_name || "—"}
             </span>
           </div>
-          <div>
+          <div className="min-w-0 truncate">
             <span className="text-muted-foreground">{t("emailLabel")}: </span>
             <span className="font-medium text-foreground">
               {owner?.email || tenant.email || "—"}
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-muted-foreground">{t("phoneLabel")}: </span>
-            <span className="font-medium text-foreground">
+            <span className="font-medium text-foreground" dir="ltr">
               {owner?.phone || tenant.phone || "—"}
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-muted-foreground">
               {t("requestedPlanLabel")}:{" "}
             </span>

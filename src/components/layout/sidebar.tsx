@@ -20,6 +20,8 @@ import {
   Activity,
   User,
   Building,
+  Building2,
+  CreditCard,
   Shield,
   KeyRound,
   ScrollText,
@@ -60,6 +62,10 @@ const ICONS: Record<string, LucideIcon> = {
   notifications: Bell,
   insurance: ShieldCheck,
   messages: MessageCircle,
+  tenants: Building2,
+  plans: CreditCard,
+  specialties: Stethoscope,
+  medications: Pill,
 };
 
 type SidebarNavProps = {
@@ -81,8 +87,13 @@ function SidebarNav({
   const { toggle, isOpen } = useSidebarStore();
   const t = useTranslations();
 
-  // Owners use the admin dashboard; there is no /owner route group.
-  const baseUrl = role === "owner" ? "/admin" : `/${role}`;
+  // Owners use the admin dashboard; app_owner uses /app-owner (hyphenated).
+  const baseUrl =
+    role === "owner"
+      ? "/admin"
+      : role === "app_owner"
+        ? "/app-owner"
+        : `/${role}`;
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">

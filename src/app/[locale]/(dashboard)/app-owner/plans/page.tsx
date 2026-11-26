@@ -1,89 +1,31 @@
 import { getSubscriptionPlans } from "@/app/actions/app-owner/plans";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Link } from "@/i18n/routing";
-import { getTranslations } from 'next-intl/server';
-import { PlanRowActions } from "@/components/app-owner/plan-row-actions";
+import {
+  PlansView,
+  type SerializedPlan,
+} from "@/components/app-owner/plans-view";
 
 export default async function PlansPage() {
-  const t = await getTranslations('appOwner.plans');
   const plans = await getSubscriptionPlans();
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
-          <p className="text-muted-foreground">
-            {t('subtitle')}
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/app-owner/plans/new">
-            <Plus className="h-4 w-4 mr-2" />
-            {t('newButton')}
-          </Link>
-        </Button>
-      </div>
+  const serializedPlans: SerializedPlan[] = plans.map((plan) => ({
+    id: plan.id,
+    name: plan.name,
+    description: plan.description,
+    price: Number(plan.price),
+    currency: plan.currency,
+    billing_period: plan.billing_period,
+    trial_days: plan.trial_days,
+    status: plan.status,
+    max_users: plan.max_users,
+    max_doctors: plan.max_doctors,
+    max_branches: plan.max_branches,
+    activeSubsCount: plan._count?.tenant_subscriptions ?? 0,
+    features: plan.features.map((f) => ({
+      id: f.id,
+      feature_name: f.feature_name,
+      is_enabled: f.is_enabled,
+    })),
+  }));
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('planName')}</TableHead>
-              <TableHead>{t('price')}</TableHead>
-              <TableHead>{t('billingPeriod')}</TableHead>
-              <TableHead>{t('status')}</TableHead>
-              <TableHead>{t('activeSubs')}</TableHead>
-              <TableHead className="text-end">{t('actions')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {plans.map((plan) => (
-              <TableRow key={plan.id}>
-                <TableCell className="font-medium">{plan.name}</TableCell>
-                <TableCell>
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: plan.currency }).format(Number(plan.price))}
-                </TableCell>
-                <TableCell className="capitalize">{plan.billing_period.replace('_', ' ')}</TableCell>
-                <TableCell>
-                  <Badge variant={plan.status === "active" ? "default" : "secondary"}>
-                    {plan.status === "active"
-                      ? t("active")
-                      : plan.status === "archived"
-                        ? t("archived")
-                        : t("inactive")}
-                  </Badge>
-                </TableCell>
-                <TableCell>{plan._count?.tenant_subscriptions || 0}</TableCell>
-                <TableCell className="text-end">
-                  <PlanRowActions
-                    planId={plan.id}
-                    planName={plan.name}
-                    activeSubsCount={plan._count?.tenant_subscriptions ?? 0}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-            {plans.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                  {t('noPlansFound')}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
+  return <PlansView plans={serializedPlans} />;
 }

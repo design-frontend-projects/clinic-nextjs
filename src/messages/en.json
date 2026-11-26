@@ -224,7 +224,12 @@
       "noClinics": "No clinics available. Create a clinic first.",
       "toastUpdateFailed": "Failed to update medication.",
       "toastActivated": "Medication activated.",
-      "toastDeactivated": "Medication deactivated."
+      "toastDeactivated": "Medication deactivated.",
+      "searchPlaceholder": "Search generic, brand, strength, or form...",
+      "noMatchingMedications": "No medications match your filter.",
+      "clinicalSection": "Clinical Specification",
+      "pricingCodingSection": "Pricing & Coding",
+      "activeToggleDesc": "Make this medication available for prescriptions at the selected clinic."
     },
     "plans": {
       "newPlanTitle": "New Subscription Plan",
@@ -251,7 +256,20 @@
       "removeConfirm": "Remove Plan",
       "removeCancel": "Cancel",
       "toastRemoved": "Subscription plan removed.",
-      "toastRemoveFailed": "Failed to remove subscription plan."
+      "toastRemoveFailed": "Failed to remove subscription plan.",
+      "searchPlaceholder": "Search subscription plans...",
+      "trialDaysBadge": "{days}d trial",
+      "unlimited": "Unlimited",
+      "moreFeatures": "+{count} more",
+      "previewTitle": "Live Plan Preview",
+      "previewSubtitle": "How this tier renders in the catalog.",
+      "noFeaturesPreview": "Add features to preview them here.",
+      "limitsSummary": "Quotas",
+      "usersLimit": "Users",
+      "doctorsLimit": "Doctors",
+      "branchesLimit": "Branches",
+      "noMatchingPlans": "No plans match your filter.",
+      "subscribersCount": "{count} subs"
     },
     "specialties": {
       "newSpecialtyTitle": "New Specialty",
@@ -268,7 +286,14 @@
       "actions": "Actions",
       "active": "Active",
       "inactive": "Inactive",
-      "empty": "No specialties found. Create one to get started."
+      "empty": "No specialties found. Create one to get started.",
+      "searchPlaceholder": "Search specialties (EN or AR)...",
+      "noMatchingSpecialties": "No specialties match your filter.",
+      "toastActivated": "Specialty activated.",
+      "toastDeactivated": "Specialty deactivated.",
+      "toastToggleFailed": "Failed to update specialty status.",
+      "activeToggleDesc": "Allow clinics and doctors to select this specialty.",
+      "doctorsCount": "{count} doctors"
     },
     "tenants": {
       "title": "Tenants",
@@ -296,7 +321,13 @@
         "patients": "Patients",
         "created": "Created",
         "actions": "Actions"
-      }
+      },
+      "searchPlaceholder": "Search clinic, owner email, or ref #...",
+      "usageColumn": "Usage",
+      "noMatchingTenants": "No tenants match your search or filter.",
+      "staffLabel": "Staff",
+      "patientsLabel": "Patients",
+      "ownerLabel": "Owner"
     },
     "dashboard": {
       "overviewTitle": "Platform Overview",
@@ -309,7 +340,24 @@
       "dashboard": "Dashboard",
       "tenants": "Tenants",
       "plans": "Subscription Plans",
-      "settings": "Global Settings"
+      "settings": "Global Settings",
+      "pendingQueueTitle": "Pending Tenant Requests",
+      "pendingQueueDesc": "Review and activate clinics awaiting platform approval.",
+      "allCaughtUp": "All caught up",
+      "allCaughtUpDesc": "No clinic onboarding requests are currently awaiting review.",
+      "tenantMixTitle": "Tenant Status Breakdown",
+      "tenantMixDesc": "Distribution of clinics across lifecycle states.",
+      "planAdoptionTitle": "Subscriptions by Plan",
+      "planAdoptionDesc": "Active & pending tenant subscriptions per tier.",
+      "noChartData": "No tenant or plan data available yet.",
+      "quickCreateTenant": "Create Tenant",
+      "quickNewPlan": "New Plan",
+      "quickAddSpecialty": "Add Specialty",
+      "quickSendAnnouncement": "Send Announcement",
+      "activeTenants": "Active / Trial",
+      "suspendedRejected": "Closed",
+      "subscribers": "Subscribers",
+      "submittedOn": "Submitted {date}"
     },
     "sidebar": {
       "dashboard": "Dashboard",
@@ -511,6 +559,17 @@
       "rejectButton": "Reject Request",
       "approvedToast": "Tenant request approved and activated.",
       "rejectedToast": "Tenant request rejected."
+    },
+    "common": {
+      "backToList": "Back",
+      "searchPlaceholder": "Search...",
+      "allStatuses": "All Statuses",
+      "cardsView": "Cards",
+      "tableView": "Table",
+      "viewAll": "View all",
+      "quickActions": "Quick Actions",
+      "clearSearch": "Clear search",
+      "showingCount": "{count} shown"
     }
   },
   "patients": {
@@ -580,7 +639,8 @@
     "french": "French",
     "openMenu": "Open menu",
     "toggleLanguage": "Toggle language",
-    "profile": "My Profile"
+    "profile": "My Profile",
+    "managePlatform": "Manage platform operations & tenants"
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -1467,7 +1527,11 @@
   "plans": {
     "basic": "Basic",
     "basicPrice": "$29/mo",
-    "basicFeatures": ["1 Branch", "Up to 3 Staff Users", "Basic Reporting"],
+    "basicFeatures": [
+      "1 Branch",
+      "Up to 3 Staff Users",
+      "Basic Reporting"
+    ],
     "pro": "Pro",
     "proPrice": "$99/mo",
     "proFeatures": [

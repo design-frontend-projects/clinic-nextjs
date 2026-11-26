@@ -3,10 +3,19 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "@/i18n/routing";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import {
+  Building2,
+  CreditCard,
+  Loader2,
+  MapPin,
+  Stethoscope,
+  User,
+} from "lucide-react";
 
+import { useRouter } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 import { createTenant } from "@/app/actions/app-owner/tenants";
 import {
   createTenantSchema,
@@ -18,10 +27,11 @@ import {
   TempPasswordDialog,
   type TempPasswordInfo,
 } from "@/components/admin/temp-password-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -30,7 +40,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useLocale, useTranslations } from "next-intl";
 
 interface TenantCreateFormProps {
   plans: PlanOption[];
@@ -92,14 +101,19 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
   return (
     <>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
+        <Card elevated cornerAccent>
           <CardHeader>
-            <CardTitle>{t("ownerAccountTitle")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-4 w-4 text-primary" />
+              <span>{t("ownerAccountTitle")}</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="owner_full_name">{t("ownerFullNameLabel")}</Label>
+                <Label htmlFor="owner_full_name">
+                  {t("ownerFullNameLabel")}
+                </Label>
                 <Input
                   id="owner_full_name"
                   {...form.register("owner.full_name")}
@@ -120,14 +134,21 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
             </div>
             <div className="space-y-2 md:max-w-[calc(50%-0.5rem)]">
               <Label htmlFor="owner_phone">{t("ownerPhoneLabel")}</Label>
-              <Input id="owner_phone" {...form.register("owner.phone")} />
+              <Input
+                id="owner_phone"
+                dir="ltr"
+                {...form.register("owner.phone")}
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card elevated>
           <CardHeader>
-            <CardTitle>{t("clinicDetailsTitle")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              <span>{t("clinicDetailsTitle")}</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -160,20 +181,31 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="clinic_phone">{t("clinicPhoneLabel")}</Label>
-                <Input id="clinic_phone" {...form.register("clinic.phone")} />
+                <Input
+                  id="clinic_phone"
+                  dir="ltr"
+                  {...form.register("clinic.phone")}
+                />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card elevated>
           <CardHeader>
-            <CardTitle>{t("subscriptionPlanTitle")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-primary" />
+              <span>{t("subscriptionPlanTitle")}</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <Label>{t("planLabel")}</Label>
-            <Select onValueChange={(v) => form.setValue("plan_id", v)}>
-              <SelectTrigger className="md:max-w-[calc(50%-0.5rem)]">
+            <Select
+              onValueChange={(v) =>
+                form.setValue("plan_id", v, { shouldValidate: true })
+              }
+            >
+              <SelectTrigger className="w-full md:max-w-[calc(50%-0.5rem)]">
                 <SelectValue placeholder={t("planPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
@@ -194,9 +226,12 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
           </CardContent>
         </Card>
 
-        <Card>
+        <Card elevated>
           <CardHeader>
-            <CardTitle>{t("mainBranchTitle")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span>{t("mainBranchTitle")}</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -207,7 +242,11 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="branch_phone">{t("branchPhoneLabel")}</Label>
-                <Input id="branch_phone" {...form.register("branch.phone")} />
+                <Input
+                  id="branch_phone"
+                  dir="ltr"
+                  {...form.register("branch.phone")}
+                />
               </div>
             </div>
             <div className="space-y-2">
@@ -217,9 +256,17 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("specialtiesTitle")}</CardTitle>
+        <Card elevated>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+            <CardTitle className="flex items-center gap-2">
+              <Stethoscope className="h-4 w-4 text-primary" />
+              <span>{t("specialtiesTitle")}</span>
+            </CardTitle>
+            {selectedSpecialtyIds.length > 0 && (
+              <Badge variant="secondary" className="tabular-nums">
+                {selectedSpecialtyIds.length}
+              </Badge>
+            )}
           </CardHeader>
           <CardContent>
             {specialties.length === 0 ? (
@@ -227,29 +274,39 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
                 {t("noActiveSpecialties")}
               </p>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {specialties.map((specialty) => (
-                  <label
-                    key={specialty.id}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <Checkbox
-                      checked={selectedSpecialtyIds.includes(specialty.id)}
-                      onCheckedChange={(c) =>
-                        toggleSpecialty(specialty.id, Boolean(c))
-                      }
-                    />
-                    {locale === "ar" && specialty.name_ar
-                      ? specialty.name_ar
-                      : specialty.name}
-                  </label>
-                ))}
+              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                {specialties.map((specialty) => {
+                  const isChecked = selectedSpecialtyIds.includes(specialty.id);
+                  return (
+                    <label
+                      key={specialty.id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-button)] border px-3 py-2.5 text-sm transition-colors",
+                        isChecked
+                          ? "border-primary bg-accent-blue-soft text-foreground dark:bg-accent-green-soft"
+                          : "border-hairline bg-canvas-soft/50 text-foreground hover:bg-accent dark:bg-surface-elevated/40",
+                      )}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(c) =>
+                          toggleSpecialty(specialty.id, Boolean(c))
+                        }
+                      />
+                      <span className="truncate font-medium">
+                        {locale === "ar" && specialty.name_ar
+                          ? specialty.name_ar
+                          : specialty.name}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             )}
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"

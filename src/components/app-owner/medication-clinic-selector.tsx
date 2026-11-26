@@ -1,5 +1,6 @@
 "use client";
 
+import { Building2 } from "lucide-react";
 import { useRouter, usePathname } from "@/i18n/routing";
 import {
   Select,
@@ -33,11 +34,16 @@ export function MedicationClinicSelector({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">{label}</span>
+    <div className="flex w-full items-center gap-2 sm:w-auto">
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-[220px]">
-          <SelectValue />
+        <SelectTrigger
+          className="w-full sm:w-[240px]"
+          aria-label={label}
+        >
+          <div className="flex items-center gap-2 truncate">
+            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <SelectValue placeholder={label} />
+          </div>
         </SelectTrigger>
         <SelectContent>
           {clinics.map((clinic) => (

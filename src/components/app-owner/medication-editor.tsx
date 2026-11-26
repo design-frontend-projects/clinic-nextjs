@@ -3,10 +3,11 @@
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Barcode, Loader2, Pill, Stethoscope } from "lucide-react";
 
+import { useRouter } from "@/i18n/routing";
 import { upsertMedication } from "@/app/actions/app-owner/medications";
 import {
   medicationSchema,
@@ -16,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslations } from "next-intl";
 
 interface MedicationEditorProps {
   clinics: ClinicOption[];
@@ -40,6 +40,7 @@ export function MedicationEditor({
 }: MedicationEditorProps) {
   const router = useRouter();
   const t = useTranslations("appOwner.medicationEditor");
+  const tMeds = useTranslations("appOwner.medications");
   const [isPending, startTransition] = useTransition();
   const isEditing = Boolean(medication?.id);
 
@@ -47,7 +48,8 @@ export function MedicationEditor({
     resolver: zodResolver(medicationSchema),
     defaultValues: {
       id: medication?.id,
-      clinic_id: medication?.clinic_id ?? defaultClinicId ?? clinics[0]?.id ?? "",
+      clinic_id:
+        medication?.clinic_id ?? defaultClinicId ?? clinics[0]?.id ?? "",
       generic_name: medication?.generic_name ?? "",
       brand_name: medication?.brand_name ?? "",
       strength: medication?.strength ?? "",
@@ -63,6 +65,7 @@ export function MedicationEditor({
   });
 
   const clinicId = form.watch("clinic_id");
+  const isActive = form.watch("is_active") ?? true;
 
   const onSubmit = (data: MedicationFormData) => {
     startTransition(async () => {
@@ -79,9 +82,13 @@ export function MedicationEditor({
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <Card>
+      {/* Clinic & Identity */}
+      <Card elevated cornerAccent>
         <CardHeader>
-          <CardTitle>{t("title")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Pill className="h-4 w-4 text-primary" />
+            <span>{t("title")}</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -93,7 +100,7 @@ export function MedicationEditor({
               }
               disabled={isEditing}
             >
-              <SelectTrigger id="clinic_id">
+              <SelectTrigger id="clinic_id" className="w-full md:max-w-md">
                 <SelectValue placeholder={t("clinicPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
@@ -134,22 +141,56 @@ export function MedicationEditor({
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="grid gap-4 md:grid-cols-3">
+      {/* Clinical Specification */}
+      <Card elevated>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Stethoscope className="h-4 w-4 text-primary" />
+            <span>{tMeds("clinicalSection")}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="strength">{t("strengthLabel")}</Label>
-              <Input id="strength" {...form.register("strength")} placeholder={t("strengthPlaceholder")} />
+              <Input
+                id="strength"
+                {...form.register("strength")}
+                placeholder={t("strengthPlaceholder")}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="form">{t("formLabel")}</Label>
-              <Input id="form" {...form.register("form")} placeholder={t("formPlaceholder")} />
+              <Input
+                id="form"
+                {...form.register("form")}
+                placeholder={t("formPlaceholder")}
+              />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
               <Label htmlFor="route">{t("routeLabel")}</Label>
-              <Input id="route" {...form.register("route")} placeholder={t("routePlaceholder")} />
+              <Input
+                id="route"
+                {...form.register("route")}
+                placeholder={t("routePlaceholder")}
+              />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
+      {/* Pricing & Coding */}
+      <Card elevated>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Barcode className="h-4 w-4 text-primary" />
+            <span>{tMeds("pricingCodingSection")}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="manufacturer">{t("manufacturerLabel")}</Label>
@@ -173,38 +214,52 @@ export function MedicationEditor({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="barcode">{t("barcodeLabel")}</Label>
-              <Input id="barcode" {...form.register("barcode")} />
+              <Input id="barcode" dir="ltr" {...form.register("barcode")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="code">{t("codeLabel")}</Label>
-              <Input id="code" {...form.register("code")} placeholder="RxNorm / ATC" />
+              <Input
+                id="code"
+                dir="ltr"
+                {...form.register("code")}
+                placeholder="RxNorm / ATC"
+              />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2 md:col-span-1">
               <Label htmlFor="code_system">{t("codeSystemLabel")}</Label>
               <Input
                 id="code_system"
+                dir="ltr"
                 {...form.register("code_system")}
                 placeholder="RxNorm"
               />
             </div>
           </div>
 
-          <div className="flex items-end">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                defaultChecked={form.getValues("is_active") ?? true}
-                onCheckedChange={(c) => form.setValue("is_active", Boolean(c))}
-              />
-              {t("activeLabel")}
-            </label>
+          <div className="flex items-center justify-between gap-4 rounded-[var(--radius-button)] border border-hairline bg-canvas-soft/60 px-3.5 py-2.5 dark:bg-surface-elevated/40">
+            <div className="space-y-0.5">
+              <Label htmlFor="med_active" className="cursor-pointer">
+                {t("activeLabel")}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {tMeds("activeToggleDesc")}
+              </p>
+            </div>
+            <Switch
+              id="med_active"
+              checked={isActive}
+              onCheckedChange={(checked) =>
+                form.setValue("is_active", checked, { shouldDirty: true })
+              }
+            />
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button
           type="button"
           variant="outline"

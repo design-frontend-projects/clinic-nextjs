@@ -16,6 +16,50 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  // App Owner (Platform Operator)
+  {
+    titleKey: "appOwner.sidebar.dashboard",
+    href: "/app-owner",
+    iconKey: "dashboard",
+    roles: ["app_owner"],
+  },
+  {
+    titleKey: "appOwner.sidebar.tenants",
+    href: "/app-owner/tenants",
+    iconKey: "tenants",
+    roles: ["app_owner"],
+  },
+  {
+    titleKey: "appOwner.sidebar.plans",
+    href: "/app-owner/plans",
+    iconKey: "plans",
+    roles: ["app_owner"],
+  },
+  {
+    titleKey: "appOwner.sidebar.specialties",
+    href: "/app-owner/specialties",
+    iconKey: "specialties",
+    roles: ["app_owner"],
+  },
+  {
+    titleKey: "appOwner.sidebar.medications",
+    href: "/app-owner/medications",
+    iconKey: "medications",
+    roles: ["app_owner"],
+  },
+  {
+    titleKey: "appOwner.sidebar.notifications",
+    href: "/app-owner/notifications",
+    iconKey: "notifications",
+    roles: ["app_owner"],
+  },
+  {
+    titleKey: "sidebar.messages",
+    href: "/app-owner/messages",
+    iconKey: "messages",
+    roles: ["app_owner"],
+  },
+
   // Admin / owner
   {
     titleKey: "sidebar.dashboard",
@@ -149,12 +193,6 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/admin/messages",
     iconKey: "messages",
     roles: ["admin", "owner"],
-  },
-  {
-    titleKey: "sidebar.messages",
-    href: "/app-owner/messages",
-    iconKey: "messages",
-    roles: ["app_owner"],
   },
 
   // Doctor

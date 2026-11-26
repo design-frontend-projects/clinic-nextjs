@@ -3,10 +3,11 @@
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Stethoscope } from "lucide-react";
 
+import { useRouter } from "@/i18n/routing";
 import { upsertSpecialty } from "@/app/actions/app-owner/specialties";
 import {
   specialtySchema,
@@ -15,10 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslations } from "next-intl";
 
 interface SpecialtyEditorProps {
   specialty?: Partial<SpecialtyFormData> & { id?: string };
@@ -27,6 +27,7 @@ interface SpecialtyEditorProps {
 export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
   const router = useRouter();
   const t = useTranslations("appOwner.specialtyEditor");
+  const tSpecialties = useTranslations("appOwner.specialties");
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<SpecialtyFormData>({
@@ -40,6 +41,8 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
       display_order: specialty?.display_order ?? 0,
     },
   });
+
+  const isActive = form.watch("is_active");
 
   const onSubmit = (data: SpecialtyFormData) => {
     startTransition(async () => {
@@ -56,9 +59,12 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <Card>
+      <Card elevated cornerAccent>
         <CardHeader>
-          <CardTitle>{t("title")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Stethoscope className="h-4 w-4 text-primary" />
+            <span>{t("title")}</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -104,22 +110,29 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
                 {...form.register("display_order")}
               />
             </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  defaultChecked={form.getValues("is_active")}
-                  onCheckedChange={(c) =>
-                    form.setValue("is_active", Boolean(c))
-                  }
-                />
-                {t("activeLabel")}
-              </label>
+
+            <div className="flex items-center justify-between gap-4 rounded-[var(--radius-button)] border border-hairline bg-canvas-soft/60 px-3.5 py-2.5 dark:bg-surface-elevated/40">
+              <div className="space-y-0.5">
+                <Label htmlFor="specialty_active" className="cursor-pointer">
+                  {t("activeLabel")}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {tSpecialties("activeToggleDesc")}
+                </p>
+              </div>
+              <Switch
+                id="specialty_active"
+                checked={isActive}
+                onCheckedChange={(checked) =>
+                  form.setValue("is_active", checked, { shouldDirty: true })
+                }
+              />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button
           type="button"
           variant="outline"

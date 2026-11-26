@@ -4,31 +4,30 @@ import {
   getManagedClinics,
   getMedication,
 } from "@/app/actions/app-owner/medications";
+import { AppOwnerPageHeader } from "@/components/app-owner/app-owner-page-header";
 import { MedicationEditor } from "@/components/app-owner/medication-editor";
 import type { MedicationFormData } from "@/types/medication.types";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { Link } from "@/i18n/routing";
+import { getTranslations } from "next-intl/server";
 
 interface EditMedicationPageProps {
   params: Promise<{ id: string }>;
 }
-
-import { getTranslations } from "next-intl/server";
 
 export default async function EditMedicationPage({
   params,
 }: EditMedicationPageProps) {
   await requireAppOwner();
   const { id } = await params;
-  const t = await getTranslations("appOwner.medications");
+  const [t, tCommon, medication, clinics] = await Promise.all([
+    getTranslations("appOwner.medications"),
+    getTranslations("appOwner.common"),
+    getMedication(id),
+    getManagedClinics(),
+  ]);
 
-  const medication = await getMedication(id);
   if (!medication) {
     notFound();
   }
-
-  const clinics = await getManagedClinics();
 
   const initial: Partial<MedicationFormData> & { id: string } = {
     id: medication.id,
@@ -47,15 +46,13 @@ export default async function EditMedicationPage({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/app-owner/medications?clinic=${medication.clinic_id}`}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h2 className="text-2xl font-bold tracking-tight">{t("editMedication")}</h2>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <AppOwnerPageHeader
+        backHref={`/app-owner/medications?clinic=${medication.clinic_id}`}
+        backLabel={tCommon("backToList")}
+        title={t("editMedication")}
+        description={medication.generic_name}
+      />
       <MedicationEditor clinics={clinics} medication={initial} />
     </div>
   );

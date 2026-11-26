@@ -40,7 +40,13 @@ export function MedicationRowActions({
 
   return (
     <div className="flex items-center justify-end gap-1">
-      <Button variant="ghost" size="icon" asChild>
+      <Button
+        variant="ghost"
+        size="icon"
+        asChild
+        aria-label={t("editMedication")}
+        title={t("editMedication")}
+      >
         <Link href={`/app-owner/medications/${id}`}>
           <Edit2 className="h-4 w-4" />
         </Link>
@@ -50,6 +56,7 @@ export function MedicationRowActions({
         size="icon"
         onClick={onToggle}
         disabled={isPending}
+        aria-label={isActive ? deactivateLabel : activateLabel}
         title={isActive ? deactivateLabel : activateLabel}
       >
         {isPending ? (
@@ -57,7 +64,7 @@ export function MedicationRowActions({
         ) : isActive ? (
           <PowerOff className="h-4 w-4 text-destructive" />
         ) : (
-          <Power className="h-4 w-4 text-green-600" />
+          <Power className="h-4 w-4 text-accent-green" />
         )}
       </Button>
     </div>
