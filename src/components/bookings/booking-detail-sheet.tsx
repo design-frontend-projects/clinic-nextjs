@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { addDays, format, isSameDay, startOfDay } from "date-fns";
+import { ar as arLocale } from "date-fns/locale";
 import {
   AlertCircle,
   Building2,
@@ -37,6 +38,7 @@ import { APPOINTMENT_KEYS } from "@/lib/appointments/use-appointments-realtime";
 import { appointmentStatusEnum } from "@/types/appointment.types";
 import type {
   BookingContextData,
+  BookingDoctorOption,
   BookingLockReason,
 } from "@/types/booking.types";
 import type { AppointmentStatus } from "@/types/staff.types";
@@ -55,8 +57,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Form,
   FormControl,
@@ -65,11 +67,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -118,6 +117,30 @@ function getInitials(name: string): string {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
+function DoctorScheduleSummary({ doctor }: { doctor?: BookingDoctorOption }) {
+  const t = useTranslations("pages.booking");
+  const tDaysShort = useTranslations("common.daysShort");
+  if (!doctor) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-input)] border border-hairline bg-canvas-soft px-3 py-2 text-xs text-muted-foreground">
+      <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />
+      <span className="font-medium text-foreground tabular-nums" dir="ltr">
+        {doctor.availableFrom} – {doctor.availableTo}
+      </span>
+      <Badge
+        variant="secondary"
+        className="h-5 px-1.5 text-[10px] tabular-nums"
+      >
+        {t("durationMinutes", { minutes: doctor.slotDurationMinutes })}
+      </Badge>
+      <span className="text-[11px]">
+        {doctor.availableDays.map((d) => tDaysShort(String(d))).join(" · ")}
+      </span>
+    </div>
+  );
+}
+
 export function BookingDetailSheet({
   bookingId,
   initialTab = "view",
@@ -128,6 +151,7 @@ export function BookingDetailSheet({
   const t = useTranslations("pages.booking");
   const tStatus = useTranslations("enums.status");
   const locale = useLocale();
+  const dateLocale = locale === "ar" ? arLocale : undefined;
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<"view" | "edit">(initialTab);
@@ -206,6 +230,7 @@ export function BookingDetailSheet({
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.admin });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.patientUpcoming });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.patientHistory });
+    queryClient.invalidateQueries({ queryKey: ["owner-appointments-widget"] });
   }
 
   const updateMutation = useMutation({
@@ -272,6 +297,40 @@ export function BookingDetailSheet({
     () => context.doctors.find((d) => d.id === watchedDoctorId),
     [context.doctors, watchedDoctorId],
   );
+
+  const todayStart = useMemo(() => startOfDay(new Date()), []);
+  const tomorrowStart = useMemo(() => addDays(todayStart, 1), [todayStart]);
+
+  const isDateDisabled = useMemo(() => {
+    return (d: Date) => {
+      if (context.roleScope === "patient" && d < todayStart) return true;
+      if (selectedDoctor && !selectedDoctor.availableDays.includes(d.getDay())) {
+        return true;
+      }
+      return false;
+    };
+  }, [context.roleScope, selectedDoctor, todayStart]);
+
+  const applyDayToField = (
+    selectedDay: Date | undefined,
+    currentValue: Date | undefined,
+    onChange: (next: Date) => void,
+  ) => {
+    if (!selectedDay) return;
+    const next = new Date(selectedDay);
+    if (currentValue) {
+      next.setHours(currentValue.getHours(), currentValue.getMinutes(), 0, 0);
+    } else {
+      const [hStr, mStr] = (selectedDoctor?.availableFrom ?? "09:00").split(":");
+      next.setHours(
+        Number.parseInt(hStr ?? "9", 10),
+        Number.parseInt(mStr ?? "0", 10),
+        0,
+        0,
+      );
+    }
+    onChange(next);
+  };
 
   return (
     <>
@@ -367,13 +426,16 @@ export function BookingDetailSheet({
                               {format(
                                 new Date(booking.appointmentDate),
                                 "EEEE, MMM d, yyyy",
+                                { locale: dateLocale },
                               )}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-sm font-semibold tabular-nums text-foreground">
                             <Clock className="h-4 w-4 text-primary" />
                             <span>
-                              {format(new Date(booking.appointmentDate), "h:mm a")}
+                              {format(new Date(booking.appointmentDate), "h:mm a", {
+                                locale: dateLocale,
+                              })}
                             </span>
                           </div>
                         </div>
@@ -383,6 +445,7 @@ export function BookingDetailSheet({
                               time: format(
                                 new Date(booking.checkedInAt),
                                 "MMM d, h:mm a",
+                                { locale: dateLocale },
                               ),
                             })}
                           </p>
@@ -563,6 +626,26 @@ export function BookingDetailSheet({
                         )}
                         className="space-y-4"
                       >
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="booking-edit-patient-name"
+                            className="flex items-center gap-1.5"
+                          >
+                            <span>{t("patientLabel")}</span>
+                            <Lock className="h-3 w-3 text-muted-foreground" />
+                          </Label>
+                          <Input
+                            id="booking-edit-patient-name"
+                            value={booking.patient.fullName}
+                            disabled
+                            readOnly
+                            className="cursor-not-allowed bg-muted/60 text-foreground disabled:opacity-80"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t("patientReadonlyHint")}
+                          </p>
+                        </div>
+
                         <FormField
                           control={form.control}
                           name="doctor_id"
@@ -645,6 +728,8 @@ export function BookingDetailSheet({
                           />
                         )}
 
+                        <DoctorScheduleSummary doctor={selectedDoctor} />
+
                         {booking.capabilities.canOverrideTerminal && (
                           <FormField
                             control={form.control}
@@ -686,88 +771,89 @@ export function BookingDetailSheet({
                         <FormField
                           control={form.control}
                           name="appointment_date"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col space-y-2">
-                              <FormLabel>{t("dateLabel")}</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
+                          render={({ field }) => {
+                            const isTodaySelected = Boolean(
+                              field.value && isSameDay(field.value, todayStart),
+                            );
+                            const isTomorrowSelected = Boolean(
+                              field.value && isSameDay(field.value, tomorrowStart),
+                            );
+                            return (
+                              <FormItem className="flex flex-col space-y-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <FormLabel>{t("dateLabel")}</FormLabel>
+                                  <div className="flex items-center gap-1.5">
                                     <Button
                                       type="button"
+                                      size="sm"
                                       variant="outline"
                                       className={cn(
-                                        "w-full justify-start text-start font-normal",
-                                        !field.value && "text-muted-foreground",
+                                        "h-7 px-2.5 text-xs transition-colors",
+                                        isTodaySelected &&
+                                          "border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
                                       )}
-                                    >
-                                      <CalendarIcon className="me-2 h-4 w-4 opacity-60" />
-                                      {field.value
-                                        ? format(field.value, "PPPp")
-                                        : t("pickDate")}
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    disabled={(d) => {
-                                      if (context.roleScope === "patient") {
-                                        const today = new Date();
-                                        today.setHours(0, 0, 0, 0);
-                                        if (d < today) return true;
-                                      }
-                                      if (
-                                        selectedDoctor &&
-                                        !selectedDoctor.availableDays.includes(
-                                          d.getDay(),
+                                      disabled={isDateDisabled(todayStart)}
+                                      onClick={() =>
+                                        applyDayToField(
+                                          todayStart,
+                                          field.value,
+                                          field.onChange,
                                         )
-                                      ) {
-                                        return true;
                                       }
-                                      return false;
-                                    }}
-                                    onSelect={(selectedDay) => {
-                                      if (!selectedDay) return;
-                                      const next = new Date(selectedDay);
-                                      if (field.value) {
-                                        next.setHours(
-                                          field.value.getHours(),
-                                          field.value.getMinutes(),
-                                          0,
-                                          0,
-                                        );
-                                      } else {
-                                        const [hStr, mStr] = (
-                                          selectedDoctor?.availableFrom ?? "09:00"
-                                        ).split(":");
-                                        next.setHours(
-                                          Number.parseInt(hStr ?? "9", 10),
-                                          Number.parseInt(mStr ?? "0", 10),
-                                          0,
-                                          0,
-                                        );
+                                    >
+                                      {t("quickToday")}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className={cn(
+                                        "h-7 px-2.5 text-xs transition-colors",
+                                        isTomorrowSelected &&
+                                          "border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+                                      )}
+                                      disabled={isDateDisabled(tomorrowStart)}
+                                      onClick={() =>
+                                        applyDayToField(
+                                          tomorrowStart,
+                                          field.value,
+                                          field.onChange,
+                                        )
                                       }
-                                      field.onChange(next);
-                                    }}
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                                    >
+                                      {t("quickTomorrow")}
+                                    </Button>
+                                  </div>
+                                </div>
 
-                              <TimeSlotPicker
-                                doctorId={watchedDoctorId}
-                                doctor={selectedDoctor}
-                                date={watchedDate}
-                                value={field.value}
-                                onChange={field.onChange}
-                                excludeBookingId={booking.id}
-                                disablePast={context.roleScope === "patient"}
-                                allowCustomTime={context.roleScope !== "patient"}
-                              />
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                                <DatePicker
+                                  value={field.value}
+                                  onChange={(selectedDay) =>
+                                    applyDayToField(
+                                      selectedDay,
+                                      field.value,
+                                      field.onChange,
+                                    )
+                                  }
+                                  placeholder={t("pickDate")}
+                                  dateFormat="PPPp"
+                                  disabledDates={isDateDisabled}
+                                />
+
+                                <TimeSlotPicker
+                                  doctorId={watchedDoctorId}
+                                  doctor={selectedDoctor}
+                                  date={watchedDate}
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  excludeBookingId={booking.id}
+                                  disablePast={context.roleScope === "patient"}
+                                  allowCustomTime={context.roleScope !== "patient"}
+                                />
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
 
                         <FormField

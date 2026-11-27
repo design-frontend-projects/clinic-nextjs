@@ -8,9 +8,11 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock,
+  Eye,
   Loader2,
   LogIn,
   MoreHorizontal,
+  Pencil,
   Phone,
   Plus,
   RotateCcw,
@@ -35,6 +37,7 @@ import {
   type ApptDateFilter,
 } from "@/components/appointments/appointment-date-filter";
 import { BookingCreateDialog } from "@/components/bookings/booking-create-dialog";
+import { BookingDetailSheet } from "@/components/bookings/booking-detail-sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -117,6 +120,11 @@ export default function StaffDashboard() {
   const canCancel = usePermission("appointment.cancel");
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [sheetState, setSheetState] = useState<{
+    id: string | null;
+    tab: "view" | "edit";
+    open: boolean;
+  }>({ id: null, tab: "view", open: false });
   const [apptFilter, setApptFilter] =
     useState<ApptDateFilter>(DEFAULT_APPT_FILTER);
   const [pendingCancel, setPendingCancel] =
@@ -175,7 +183,18 @@ export default function StaffDashboard() {
     status: AppointmentStatus,
   ) => {
     if (!canManageQueue || (status !== "scheduled" && status !== "checked_in")) {
-      return null;
+      return (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={!bookingContext}
+          onClick={() => setSheetState({ id, tab: "view", open: true })}
+        >
+          <Eye className="me-1.5 h-3.5 w-3.5" />
+          {t("viewDetails")}
+        </Button>
+      );
     }
     const isBusy = pendingIds.has(id);
 
@@ -212,6 +231,17 @@ export default function StaffDashboard() {
           </Button>
         )}
 
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={isBusy || !bookingContext}
+          onClick={() => setSheetState({ id, tab: "edit", open: true })}
+        >
+          <Pencil className="me-1.5 h-3.5 w-3.5" />
+          {t("editAppointment")}
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -225,6 +255,21 @@ export default function StaffDashboard() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              disabled={!bookingContext}
+              onClick={() => setSheetState({ id, tab: "edit", open: true })}
+            >
+              <Pencil className="me-2 h-4 w-4" />
+              {t("editAppointment")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={!bookingContext}
+              onClick={() => setSheetState({ id, tab: "view", open: true })}
+            >
+              <Eye className="me-2 h-4 w-4" />
+              {t("viewDetails")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {status === "checked_in" ? (
               <DropdownMenuItem onClick={() => undoCheckIn(id, status)}>
                 <RotateCcw className="me-2 h-4 w-4" />
@@ -508,11 +553,24 @@ export default function StaffDashboard() {
       </Card>
 
       {bookingContext && (
-        <BookingCreateDialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          context={bookingContext}
-        />
+        <>
+          <BookingCreateDialog
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            context={bookingContext}
+          />
+          <BookingDetailSheet
+            bookingId={sheetState.id}
+            initialTab={sheetState.tab}
+            open={sheetState.open}
+            onOpenChange={(next) => {
+              if (!next) {
+                setSheetState({ id: null, tab: "view", open: false });
+              }
+            }}
+            context={bookingContext}
+          />
+        </>
       )}
 
       <AlertDialog

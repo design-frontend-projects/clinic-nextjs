@@ -4,7 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAppointments, updateAppointmentStatus } from "@/app/actions/admin";
 import { getBookingContext } from "@/app/actions/booking";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
-import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
+import {
+  APPOINTMENT_KEYS,
+  useAppointmentsRealtime,
+} from "@/lib/appointments/use-appointments-realtime";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ColumnDef } from "@tanstack/react-table";
@@ -29,12 +33,15 @@ import {
   CheckCircle,
   XCircle,
   LogIn,
+  Pencil,
+  Eye,
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ar as arLocale } from "date-fns/locale";
 import { useLocale, useTranslations } from "next-intl";
 import { BookingCreateDialog } from "@/components/bookings/booking-create-dialog";
+import { BookingDetailSheet } from "@/components/bookings/booking-detail-sheet";
 
 type Appointment = {
   id: string;
@@ -55,13 +62,17 @@ export default function AppointmentsPage() {
   const dateLocale = locale === "ar" ? arLocale : undefined;
   const [statusFilter, setStatusFilter] = useState("all");
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
+  const [sheetState, setSheetState] = useState<{
+    id: string | null;
+    tab: "view" | "edit";
+    open: boolean;
+  }>({ id: null, tab: "view", open: false });
   const queryClient = useQueryClient();
 
   const { data: tenant } = useQuery({
     queryKey: ["tenant-info"],
     queryFn: () => fetchTenantInfoAction(),
   });
-  const role = tenant?.role;
 
   const { data: bookingContext } = useQuery({
     queryKey: ["booking-context"],
@@ -82,7 +93,18 @@ export default function AppointmentsPage() {
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       updateAppointmentStatus(id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.admin });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookings });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookingDetail });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookingSlots });
+      queryClient.invalidateQueries({
+        queryKey: APPOINTMENT_KEYS.staffAppointments,
+      });
+      queryClient.invalidateQueries({
+        queryKey: APPOINTMENT_KEYS.staffDashboard,
+      });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.staffQueue });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.doctor });
     },
   });
 
@@ -149,57 +171,91 @@ export default function AppointmentsPage() {
     {
       id: "actions",
       cell: ({ row }) => {
-        // A completed appointment is locked for non-admin tenant users (e.g. owner):
-        // they cannot check in / complete / cancel it. Admins keep full control.
-        const isCompleted = row.original.status === "completed";
-        if (isCompleted && role !== "admin") {
-          return <span className="text-muted-foreground">—</span>;
-        }
-
         return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={!bookingContext}
+              onClick={() =>
+                setSheetState({ id: row.original.id, tab: "edit", open: true })
+              }
+            >
+              <Pencil className="me-1.5 h-3.5 w-3.5" />
+              {t("edit")}
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() =>
-                statusMutation.mutate({
-                  id: row.original.id,
-                  status: "checked_in",
-                })
-              }
-            >
-              <LogIn className="me-2 h-4 w-4" />
-              {t("checkIn")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                statusMutation.mutate({
-                  id: row.original.id,
-                  status: "completed",
-                })
-              }
-            >
-              <CheckCircle className="me-2 h-4 w-4" />
-              {t("complete")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() =>
-                statusMutation.mutate({
-                  id: row.original.id,
-                  status: "cancelled",
-                })
-              }
-            >
-              <XCircle className="me-2 h-4 w-4" />
-              {t("cancel")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  disabled={!bookingContext}
+                  onClick={() =>
+                    setSheetState({
+                      id: row.original.id,
+                      tab: "view",
+                      open: true,
+                    })
+                  }
+                >
+                  <Eye className="me-2 h-4 w-4" />
+                  {t("viewDetails")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!bookingContext}
+                  onClick={() =>
+                    setSheetState({
+                      id: row.original.id,
+                      tab: "edit",
+                      open: true,
+                    })
+                  }
+                >
+                  <Pencil className="me-2 h-4 w-4" />
+                  {t("edit")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() =>
+                    statusMutation.mutate({
+                      id: row.original.id,
+                      status: "checked_in",
+                    })
+                  }
+                >
+                  <LogIn className="me-2 h-4 w-4" />
+                  {t("checkIn")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    statusMutation.mutate({
+                      id: row.original.id,
+                      status: "completed",
+                    })
+                  }
+                >
+                  <CheckCircle className="me-2 h-4 w-4" />
+                  {t("complete")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() =>
+                    statusMutation.mutate({
+                      id: row.original.id,
+                      status: "cancelled",
+                    })
+                  }
+                >
+                  <XCircle className="me-2 h-4 w-4" />
+                  {t("cancel")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       },
     },
@@ -228,11 +284,24 @@ export default function AppointmentsPage() {
       </div>
 
       {bookingContext && (
-        <BookingCreateDialog
-          open={isNewAppointmentOpen}
-          onOpenChange={setIsNewAppointmentOpen}
-          context={bookingContext}
-        />
+        <>
+          <BookingCreateDialog
+            open={isNewAppointmentOpen}
+            onOpenChange={setIsNewAppointmentOpen}
+            context={bookingContext}
+          />
+          <BookingDetailSheet
+            bookingId={sheetState.id}
+            initialTab={sheetState.tab}
+            open={sheetState.open}
+            onOpenChange={(next) => {
+              if (!next) {
+                setSheetState({ id: null, tab: "view", open: false });
+              }
+            }}
+            context={bookingContext}
+          />
+        </>
       )}
 
       {/* Filters */}

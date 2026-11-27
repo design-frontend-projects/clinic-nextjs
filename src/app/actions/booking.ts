@@ -134,23 +134,29 @@ async function resolveBookingPermissions(
 function buildRoleScopeWhere(
   tenant: Awaited<ReturnType<typeof requireTenantInfo>>,
   perms: ResolvedBookingPermissions,
+  options?: { enforceActiveBranch?: boolean },
 ): Prisma.appointmentsWhereInput {
+  const enforceBranch = options?.enforceActiveBranch ?? true;
   if (perms.roleScope === "patient") {
     return {
       clinic_id: tenant.clinicId,
       patient_id: perms.patientId ?? "",
     };
   }
+  const branchFilter =
+    tenant.branchId && (tenant.branchLocked || enforceBranch)
+      ? { branch_id: tenant.branchId }
+      : {};
   if (perms.roleScope === "doctor") {
     return {
       clinic_id: tenant.clinicId,
       doctor_id: tenant.profileId,
-      ...(tenant.branchId ? { branch_id: tenant.branchId } : {}),
+      ...branchFilter,
     };
   }
   return {
     clinic_id: tenant.clinicId,
-    ...(tenant.branchId ? { branch_id: tenant.branchId } : {}),
+    ...branchFilter,
   };
 }
 
@@ -518,7 +524,7 @@ export async function getBookingById(id: string): Promise<BookingDetail | null> 
   const row = await prisma.appointments.findFirst({
     where: {
       id,
-      ...buildRoleScopeWhere(tenant, perms),
+      ...buildRoleScopeWhere(tenant, perms, { enforceActiveBranch: false }),
     },
     include: BOOKING_DETAIL_INCLUDE,
   });
@@ -831,7 +837,7 @@ export async function updateBooking(
     const existing = await prisma.appointments.findFirst({
       where: {
         id: parsed.data.id,
-        ...buildRoleScopeWhere(tenant, perms),
+        ...buildRoleScopeWhere(tenant, perms, { enforceActiveBranch: false }),
       },
       include: BOOKING_DETAIL_INCLUDE,
     });
@@ -983,6 +989,8 @@ export async function updateBooking(
       updateData.status = data.status;
       if (data.status === "checked_in" && existing.status !== "checked_in") {
         updateData.checked_in_at = new Date();
+      } else if (data.status === "scheduled" && existing.status === "checked_in") {
+        updateData.checked_in_at = null;
       }
     }
 

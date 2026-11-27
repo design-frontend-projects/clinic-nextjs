@@ -8,9 +8,11 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock,
+  Eye,
   Loader2,
   LogIn,
   MoreHorizontal,
+  Pencil,
   Phone,
   Plus,
   RotateCcw,
@@ -29,6 +31,7 @@ import { getBookingContext } from "@/app/actions/booking";
 import { getStaffDashboardStats, getStaffQueue } from "@/app/actions/staff";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { BookingCreateDialog } from "@/components/bookings/booking-create-dialog";
+import { BookingDetailSheet } from "@/components/bookings/booking-detail-sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,6 +78,11 @@ export default function CheckinQueuePage() {
   const canCancel = usePermission("appointment.cancel");
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [sheetState, setSheetState] = useState<{
+    id: string | null;
+    tab: "view" | "edit";
+    open: boolean;
+  }>({ id: null, tab: "view", open: false });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusTab, setStatusTab] = useState<QueueTab>("all");
   const [doctorFilter, setDoctorFilter] = useState<string>("all");
@@ -457,7 +465,7 @@ export default function CheckinQueuePage() {
                   </div>
 
                   {/* Quick Actions */}
-                  {canManageQueue && (
+                  {canManageQueue ? (
                     <div className="flex shrink-0 items-center justify-end gap-2">
                       {item.status === "scheduled" ? (
                         <Button
@@ -488,6 +496,23 @@ export default function CheckinQueuePage() {
                         </Button>
                       )}
 
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isBusy || !bookingContext}
+                        onClick={() =>
+                          setSheetState({
+                            id: item.id,
+                            tab: "edit",
+                            open: true,
+                          })
+                        }
+                      >
+                        <Pencil className="me-1.5 h-3.5 w-3.5" />
+                        {t("editAppointment")}
+                      </Button>
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -501,6 +526,33 @@ export default function CheckinQueuePage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            disabled={!bookingContext}
+                            onClick={() =>
+                              setSheetState({
+                                id: item.id,
+                                tab: "edit",
+                                open: true,
+                              })
+                            }
+                          >
+                            <Pencil className="me-2 h-4 w-4" />
+                            {t("editAppointment")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={!bookingContext}
+                            onClick={() =>
+                              setSheetState({
+                                id: item.id,
+                                tab: "view",
+                                open: true,
+                              })
+                            }
+                          >
+                            <Eye className="me-2 h-4 w-4" />
+                            {t("viewDetails")}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           {item.status === "checked_in" ? (
                             <DropdownMenuItem
                               onClick={() => undoCheckIn(item.id, item.status)}
@@ -531,6 +583,25 @@ export default function CheckinQueuePage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+                  ) : (
+                    <div className="flex shrink-0 items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!bookingContext}
+                        onClick={() =>
+                          setSheetState({
+                            id: item.id,
+                            tab: "view",
+                            open: true,
+                          })
+                        }
+                      >
+                        <Eye className="me-1.5 h-3.5 w-3.5" />
+                        {t("viewDetails")}
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -540,11 +611,24 @@ export default function CheckinQueuePage() {
       )}
 
       {bookingContext && (
-        <BookingCreateDialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          context={bookingContext}
-        />
+        <>
+          <BookingCreateDialog
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            context={bookingContext}
+          />
+          <BookingDetailSheet
+            bookingId={sheetState.id}
+            initialTab={sheetState.tab}
+            open={sheetState.open}
+            onOpenChange={(next) => {
+              if (!next) {
+                setSheetState({ id: null, tab: "view", open: false });
+              }
+            }}
+            context={bookingContext}
+          />
+        </>
       )}
 
       <AlertDialog

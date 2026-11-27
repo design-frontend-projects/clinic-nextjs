@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { getBookingContext } from "@/app/actions/booking";
 import { getDoctorAppointments } from "@/app/actions/doctor";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
@@ -10,7 +11,14 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Users, FlaskConical, TestTube } from "lucide-react";
+import {
+  ChevronRight,
+  Users,
+  FlaskConical,
+  TestTube,
+  Pencil,
+  Eye,
+} from "lucide-react";
 import { Link } from "@/i18n/routing";
 import {
   Select,
@@ -21,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { AddLabRequestDialog } from "@/components/doctor/add-lab-request-dialog";
+import { BookingDetailSheet } from "@/components/bookings/booking-detail-sheet";
 import {
   AppointmentDateFilter,
   DEFAULT_APPT_FILTER,
@@ -57,10 +66,20 @@ export default function DoctorAppointmentsPage() {
     appointmentId: string;
     patientName: string;
   } | null>(null);
+  const [sheetState, setSheetState] = useState<{
+    id: string | null;
+    tab: "view" | "edit";
+    open: boolean;
+  }>({ id: null, tab: "view", open: false });
 
   const { data: tenant } = useQuery({
     queryKey: ["tenant-info"],
     queryFn: () => fetchTenantInfoAction(),
+  });
+
+  const { data: bookingContext } = useQuery({
+    queryKey: ["booking-context"],
+    queryFn: () => getBookingContext(),
   });
 
   useAppointmentsRealtime(tenant?.clinicId);
@@ -143,6 +162,12 @@ export default function DoctorAppointmentsPage() {
         id: "actions",
         cell: ({ row }) => {
           const isCompleted = row.original.status === "completed";
+          const isTerminal =
+            isCompleted ||
+            row.original.status === "cancelled" ||
+            row.original.status === "no_show";
+          const canEditRow =
+            bookingContext?.roleScope === "admin" || !isTerminal;
           const patientName = `${row.original.patients?.first_name ?? ""} ${
             row.original.patients?.last_name ?? ""
           }`.trim();
@@ -155,6 +180,50 @@ export default function DoctorAppointmentsPage() {
 
           return (
             <div className="flex items-center justify-end gap-1">
+              {canEditRow ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!bookingContext}
+                  className="rounded-lg transition-all"
+                  title={t("tipEdit")}
+                  onClick={() =>
+                    setSheetState({
+                      id: row.original.id,
+                      tab: "edit",
+                      open: true,
+                    })
+                  }
+                >
+                  <Pencil className="h-4 w-4 md:me-1.5" />
+                  <span className="hidden md:inline font-semibold">
+                    {t("actionEdit")}
+                  </span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!bookingContext}
+                  className="rounded-lg transition-all"
+                  title={t("tipView")}
+                  onClick={() =>
+                    setSheetState({
+                      id: row.original.id,
+                      tab: "view",
+                      open: true,
+                    })
+                  }
+                >
+                  <Eye className="h-4 w-4 md:me-1.5" />
+                  <span className="hidden md:inline font-semibold">
+                    {t("actionView")}
+                  </span>
+                </Button>
+              )}
+
               <Link href={`/doctor/lab-orders?appointmentId=${row.original.id}`}>
                 <Button
                   variant="ghost"
@@ -235,7 +304,7 @@ export default function DoctorAppointmentsPage() {
         },
       },
     ],
-    [t, tGender],
+    [bookingContext, t, tGender],
   );
 
   return (
@@ -284,6 +353,20 @@ export default function DoctorAppointmentsPage() {
           if (!next) setLabRequestFor(null);
         }}
       />
+
+      {bookingContext && (
+        <BookingDetailSheet
+          bookingId={sheetState.id}
+          initialTab={sheetState.tab}
+          open={sheetState.open}
+          onOpenChange={(next) => {
+            if (!next) {
+              setSheetState({ id: null, tab: "view", open: false });
+            }
+          }}
+          context={bookingContext}
+        />
+      )}
     </motion.div>
   );
 }

@@ -826,6 +826,8 @@
       "lockCheckedIn": "You are already checked in. Please contact the front desk to make changes.",
       "lockPast": "Past appointments cannot be edited or cancelled.",
       "lockNoPermission": "You have view-only access to bookings.",
+      "patientLabel": "Patient",
+      "patientReadonlyHint": "Patient cannot be changed on an existing appointment.",
       "doctorLabel": "Doctor",
       "selectDoctor": "Select a doctor",
       "branchLabel": "Branch",
@@ -963,7 +965,11 @@
         "tipCompleted": "Appointment completed",
         "tipAddLabRequest": "Add a lab request",
         "actionLabRequest": "Lab Request",
-        "actionConsultation": "Consultation"
+        "actionConsultation": "Consultation",
+        "actionEdit": "Edit",
+        "tipEdit": "Edit appointment details",
+        "actionView": "Details",
+        "tipView": "View appointment details"
       },
       "labs": {
         "title": "Lab Orders",
@@ -1256,6 +1262,8 @@
       "noShowToast": "Marked as no-show",
       "undoCheckInToast": "Reverted to scheduled",
       "cancelledToast": "Appointment cancelled",
+      "editAppointment": "Edit",
+      "viewDetails": "View details",
       "patients": {
         "title": "Patients Directory",
         "subtitle": "Manage patients, record vital signs, and book appointments",
@@ -1619,11 +1627,7 @@
   "plans": {
     "basic": "Basic",
     "basicPrice": "$29/mo",
-    "basicFeatures": [
-      "1 Branch",
-      "Up to 3 Staff Users",
-      "Basic Reporting"
-    ],
+    "basicFeatures": ["1 Branch", "Up to 3 Staff Users", "Basic Reporting"],
     "pro": "Pro",
     "proPrice": "$99/mo",
     "proFeatures": [
@@ -2057,6 +2061,8 @@
       "checkIn": "Check In",
       "complete": "Complete",
       "cancel": "Cancel",
+      "edit": "Edit",
+      "viewDetails": "View details",
       "table": {
         "patient": "Patient",
         "doctor": "Doctor",

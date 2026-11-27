@@ -826,6 +826,8 @@
       "lockCheckedIn": "تم تسجيل حضورك بالفعل. يرجى التواصل مع الاستقبال لإجراء أي تعديل.",
       "lockPast": "لا يمكن تعديل أو إلغاء المواعيد السابقة.",
       "lockNoPermission": "لديك صلاحية عرض فقط للحجوزات.",
+      "patientLabel": "المريض",
+      "patientReadonlyHint": "لا يمكن تغيير المريض في موعد تم إنشاؤه مسبقاً.",
       "doctorLabel": "الطبيب",
       "selectDoctor": "اختر الطبيب",
       "branchLabel": "الفرع",
@@ -963,7 +965,11 @@
         "tipCompleted": "اكتمل الموعد",
         "tipAddLabRequest": "إضافة طلب تحليل",
         "actionLabRequest": "طلب تحليل",
-        "actionConsultation": "استشارة"
+        "actionConsultation": "استشارة",
+        "actionEdit": "تعديل",
+        "tipEdit": "تعديل تفاصيل الموعد",
+        "actionView": "التفاصيل",
+        "tipView": "عرض تفاصيل الموعد"
       },
       "labs": {
         "title": "طلبات المختبر",
@@ -1256,6 +1262,8 @@
       "noShowToast": "تم التعيين كعدم حضور",
       "undoCheckInToast": "تمت الإعادة إلى مجدول",
       "cancelledToast": "تم إلغاء الموعد",
+      "editAppointment": "تعديل",
+      "viewDetails": "عرض التفاصيل",
       "patients": {
         "title": "دليل المرضى",
         "subtitle": "إدارة المرضى وتسجيل المؤشرات الحيوية وحجز المواعيد",
@@ -1619,11 +1627,7 @@
   "plans": {
     "basic": "أساسي",
     "basicPrice": "$29/شهر",
-    "basicFeatures": [
-      "1 فرع",
-      "حتى 3 موظفين",
-      "تقارير أساسية"
-    ],
+    "basicFeatures": ["1 فرع", "حتى 3 موظفين", "تقارير أساسية"],
     "pro": "برو",
     "proPrice": "$99/شهر",
     "proFeatures": [
@@ -2057,6 +2061,8 @@
       "checkIn": "تسجيل حضور",
       "complete": "إتمام",
       "cancel": "إلغاء",
+      "edit": "تعديل",
+      "viewDetails": "عرض التفاصيل",
       "table": {
         "patient": "المريض",
         "doctor": "الطبيب",

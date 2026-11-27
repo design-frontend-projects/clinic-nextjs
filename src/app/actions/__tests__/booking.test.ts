@@ -414,4 +414,114 @@ describe("booking server actions", () => {
       }),
     );
   });
+
+  it("allows non-branch-locked admin/owner to getBookingById and updateBooking even when active branchId cookie is set", async () => {
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({ role: "owner", branchId: BRANCH_ID, branchLocked: false }),
+    );
+    prismaMock.appointments.findFirst.mockResolvedValue(
+      makeAppointmentRow({ branch_id: "77777777-7777-4777-8777-777777777777" }),
+    );
+    prismaMock.appointments.update.mockResolvedValue(
+      makeAppointmentRow({ notes: "Updated by owner" }),
+    );
+
+    const detail = await getBookingById(BOOKING_ID);
+    expect(detail?.id).toBe(BOOKING_ID);
+    const getWhere = prismaMock.appointments.findFirst.mock.calls[0]?.[0]?.where;
+    expect(getWhere).toEqual({ id: BOOKING_ID, clinic_id: CLINIC_ID });
+    expect(getWhere).not.toHaveProperty("branch_id");
+
+    const updated = await updateBooking({
+      id: BOOKING_ID,
+      notes: "Updated by owner",
+    });
+    expect("success" in updated && updated.success).toBe(true);
+    const updateFindWhere =
+      prismaMock.appointments.findFirst.mock.calls[1]?.[0]?.where;
+    expect(updateFindWhere).toEqual({ id: BOOKING_ID, clinic_id: CLINIC_ID });
+    expect(updateFindWhere).not.toHaveProperty("branch_id");
+  });
+
+  it("enforces branch_id scoping in getBookingById and updateBooking when branchLocked is true", async () => {
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({ role: "staff", branchId: BRANCH_ID, branchLocked: true }),
+    );
+    prismaMock.appointments.findFirst.mockResolvedValue(makeAppointmentRow());
+    prismaMock.appointments.update.mockResolvedValue(
+      makeAppointmentRow({ notes: "Branch scoped" }),
+    );
+
+    await getBookingById(BOOKING_ID);
+    const getWhere = prismaMock.appointments.findFirst.mock.calls[0]?.[0]?.where;
+    expect(getWhere).toEqual({
+      id: BOOKING_ID,
+      clinic_id: CLINIC_ID,
+      branch_id: BRANCH_ID,
+    });
+
+    await updateBooking({ id: BOOKING_ID, notes: "Branch scoped" });
+    const updateFindWhere =
+      prismaMock.appointments.findFirst.mock.calls[1]?.[0]?.where;
+    expect(updateFindWhere).toEqual({
+      id: BOOKING_ID,
+      clinic_id: CLINIC_ID,
+      branch_id: BRANCH_ID,
+    });
+  });
+
+  it("strips unexpected patient_id and never updates patient_id in updateBooking", async () => {
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({ role: "admin", branchId: null, branchLocked: false }),
+    );
+    prismaMock.appointments.findFirst.mockResolvedValue(makeAppointmentRow());
+    prismaMock.appointments.update.mockResolvedValue(
+      makeAppointmentRow({ notes: "Notes only" }),
+    );
+
+    const payloadWithPatient = {
+      id: BOOKING_ID,
+      patient_id: "99999999-9999-4999-8999-999999999999",
+      notes: "Notes only",
+    };
+
+    const res = await updateBooking(
+      payloadWithPatient as Parameters<typeof updateBooking>[0],
+    );
+
+    expect("success" in res && res.success).toBe(true);
+    const updateCallData =
+      prismaMock.appointments.update.mock.calls[0]?.[0]?.data;
+    expect(updateCallData).toEqual({ notes: "Notes only" });
+    expect(updateCallData).not.toHaveProperty("patient_id");
+  });
+
+  it("clears checked_in_at to null when admin reverts checked_in back to scheduled", async () => {
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({ role: "admin", branchId: null, branchLocked: false }),
+    );
+    prismaMock.appointments.findFirst
+      .mockResolvedValueOnce(
+        makeAppointmentRow({ status: "checked_in", checked_in_at: new Date() }),
+      )
+      .mockResolvedValueOnce(null);
+    prismaMock.appointments.update.mockResolvedValue(
+      makeAppointmentRow({ status: "scheduled", checked_in_at: null }),
+    );
+
+    const res = await updateBooking({
+      id: BOOKING_ID,
+      status: "scheduled",
+    });
+
+    expect("success" in res && res.success).toBe(true);
+    expect(prismaMock.appointments.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "scheduled",
+          checked_in_at: null,
+        }),
+      }),
+    );
+  });
 });
