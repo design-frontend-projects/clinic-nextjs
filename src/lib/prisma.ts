@@ -2,9 +2,10 @@ import { PrismaClient } from "@prisma/client";
 import { statSync } from "fs";
 import { createRequire } from "module";
 import path from "path";
-import { Pool } from "pg";
+import { Pool, type PoolConfig } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { softDeleteExtension } from "./prisma-soft-delete";
+import { transientRetryExtension } from "./prisma-retry";
 
 // Setup adapter inside PrismaClient to fulfill Prisma 7 requirements
 const rawDatabaseUrl = process.env.DATABASE_URL?.trim();
@@ -42,22 +43,51 @@ warnIfDatabaseUrlSuspicious(rawDatabaseUrl);
 
 const isProduction = process.env.NODE_ENV === "production";
 
+export const DEFAULT_PG_POOL_MAX = 10;
+export const DEFAULT_PG_IDLE_TIMEOUT_MS = 60_000;
+export const DEFAULT_PG_CONNECTION_TIMEOUT_MS = 15_000;
+export const DEFAULT_PG_KEEPALIVE_INITIAL_DELAY_MS = 10_000;
+
+function parsePositiveInt(raw: string | undefined, fallback: number): number {
+  const trimmed = raw?.trim();
+  if (!trimmed || !/^\d+$/.test(trimmed)) return fallback;
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Build pg.Pool configuration from environment variables with resilient defaults
+ * for Supabase PgBouncer/Supavisor connections.
+ */
+export function buildPoolConfig(
+  env: Record<string, string | undefined> = process.env,
+): PoolConfig {
+  return {
+    connectionString: env.DATABASE_URL?.trim() ?? "",
+    max: parsePositiveInt(env.PG_POOL_MAX, DEFAULT_PG_POOL_MAX),
+    idleTimeoutMillis: parsePositiveInt(
+      env.PG_IDLE_TIMEOUT_MS,
+      DEFAULT_PG_IDLE_TIMEOUT_MS,
+    ),
+    connectionTimeoutMillis: parsePositiveInt(
+      env.PG_CONNECTION_TIMEOUT_MS,
+      DEFAULT_PG_CONNECTION_TIMEOUT_MS,
+    ),
+    keepAlive: true,
+    keepAliveInitialDelayMillis: DEFAULT_PG_KEEPALIVE_INITIAL_DELAY_MS,
+  };
+}
+
 const globalForPrisma = globalThis as unknown as {
   prismaPool: Pool | undefined;
+  prismaPoolConfigKey: string | undefined;
   prismaBase: PrismaClient | undefined;
   prismaExtended: PrismaClient | undefined;
   prismaSchemaMtime: number | null | undefined;
 };
 
-function createPool(): Pool {
-  const connectionString = rawDatabaseUrl ?? "";
-  const parsedPoolMax = Number.parseInt(process.env.PG_POOL_MAX ?? "", 10);
-  const newPool = new Pool({
-    connectionString,
-    max: Number.isFinite(parsedPoolMax) && parsedPoolMax > 0 ? parsedPoolMax : 10,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
-  });
+function createPool(config: PoolConfig): Pool {
+  const newPool = new Pool(config);
 
   // Prevent unhandled EventEmitter errors from crashing the Node.js process when
   // Supabase PgBouncer terminates an idle backend connection.
@@ -68,14 +98,44 @@ function createPool(): Pool {
   return newPool;
 }
 
-const pool =
-  !isProduction && globalForPrisma.prismaPool
-    ? globalForPrisma.prismaPool
-    : createPool();
+const poolConfig = buildPoolConfig();
+const poolConfigKey = JSON.stringify({
+  connectionString: poolConfig.connectionString,
+  max: poolConfig.max,
+  idleTimeoutMillis: poolConfig.idleTimeoutMillis,
+  connectionTimeoutMillis: poolConfig.connectionTimeoutMillis,
+  keepAlive: poolConfig.keepAlive,
+  keepAliveInitialDelayMillis: poolConfig.keepAliveInitialDelayMillis,
+});
 
-if (!isProduction) {
-  globalForPrisma.prismaPool = pool;
+function getOrCreatePool(): Pool {
+  if (isProduction) {
+    return createPool(poolConfig);
+  }
+
+  if (
+    globalForPrisma.prismaPool &&
+    globalForPrisma.prismaPoolConfigKey === poolConfigKey
+  ) {
+    return globalForPrisma.prismaPool;
+  }
+
+  if (globalForPrisma.prismaPool) {
+    void (globalForPrisma.prismaBase as { $disconnect?: () => Promise<void> } | undefined)
+      ?.$disconnect?.()
+      .catch(() => {});
+    void globalForPrisma.prismaPool.end().catch(() => {});
+    globalForPrisma.prismaBase = undefined;
+    globalForPrisma.prismaExtended = undefined;
+  }
+
+  const nextPool = createPool(poolConfig);
+  globalForPrisma.prismaPool = nextPool;
+  globalForPrisma.prismaPoolConfigKey = poolConfigKey;
+  return nextPool;
 }
+
+const pool = getOrCreatePool();
 
 const adapter = new PrismaPg(pool);
 
@@ -197,9 +257,11 @@ function extendWithSoftDelete(base: PrismaClient): PrismaClient {
   // The `$extends` return type is structurally different from PrismaClient (it
   // drops $connect/$on/$use, none of which this app uses), which would ripple type
   // errors through code that passes `prisma`/`tx` as PrismaClient/TransactionClient.
-  // The soft-delete extension adds no new types, so we cast back to PrismaClient to
-  // keep the public surface identical; the query hook still runs at runtime.
-  return base.$extends(softDeleteExtension) as unknown as PrismaClient;
+  // Neither extension alters query result/input types, so we cast back to
+  // PrismaClient to keep the public surface identical; both hooks still run at runtime.
+  return base
+    .$extends(transientRetryExtension)
+    .$extends(softDeleteExtension) as unknown as PrismaClient;
 }
 
 let lastSchemaCheckAt = 0;
@@ -246,6 +308,10 @@ function ensureCurrentDevClients(missingProp?: string): {
   const forceReload = mtimeChanged || !hasCurrentSchema(cachedBase);
   const nextBase = createPrismaClient(forceReload);
   const nextExtended = extendWithSoftDelete(nextBase);
+
+  if (cachedBase && cachedBase !== nextBase) {
+    void (cachedBase as { $disconnect?: () => Promise<void> }).$disconnect?.().catch(() => {});
+  }
 
   globalForPrisma.prismaBase = nextBase;
   globalForPrisma.prismaExtended = nextExtended;

@@ -82,6 +82,57 @@ describe("prisma client schema cache validation", () => {
     expect(hasCurrentSchema(currentClient)).toBe(true);
   });
 
+  it("builds pg.Pool config with resilient defaults and valid env overrides", async () => {
+    const {
+      buildPoolConfig,
+      DEFAULT_PG_POOL_MAX,
+      DEFAULT_PG_IDLE_TIMEOUT_MS,
+      DEFAULT_PG_CONNECTION_TIMEOUT_MS,
+      DEFAULT_PG_KEEPALIVE_INITIAL_DELAY_MS,
+    } = await import("@/lib/prisma");
+
+    expect(buildPoolConfig({ DATABASE_URL: "postgresql://u:p@host:6543/db" })).toEqual({
+      connectionString: "postgresql://u:p@host:6543/db",
+      max: DEFAULT_PG_POOL_MAX,
+      idleTimeoutMillis: DEFAULT_PG_IDLE_TIMEOUT_MS,
+      connectionTimeoutMillis: DEFAULT_PG_CONNECTION_TIMEOUT_MS,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: DEFAULT_PG_KEEPALIVE_INITIAL_DELAY_MS,
+    });
+
+    expect(
+      buildPoolConfig({
+        DATABASE_URL: "  postgresql://u:p@host:6543/db  ",
+        PG_POOL_MAX: "20",
+        PG_CONNECTION_TIMEOUT_MS: "25000",
+        PG_IDLE_TIMEOUT_MS: "90000",
+      }),
+    ).toEqual({
+      connectionString: "postgresql://u:p@host:6543/db",
+      max: 20,
+      idleTimeoutMillis: 90_000,
+      connectionTimeoutMillis: 25_000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
+    });
+
+    expect(
+      buildPoolConfig({
+        DATABASE_URL: "postgresql://u:p@host:6543/db",
+        PG_POOL_MAX: "0",
+        PG_CONNECTION_TIMEOUT_MS: "-10",
+        PG_IDLE_TIMEOUT_MS: "not-a-number",
+      }),
+    ).toEqual({
+      connectionString: "postgresql://u:p@host:6543/db",
+      max: 10,
+      idleTimeoutMillis: 60_000,
+      connectionTimeoutMillis: 15_000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
+    });
+  });
+
   it("replaces a stale globalThis.prismaBase lacking clinic_branches with a fresh client", async () => {
     const staleBase = {
       billing_catalog_items: {},
