@@ -31,6 +31,7 @@ const {
     tenant_subscription_history: { create: vi.fn() },
     audit_logs: { create: vi.fn() },
     notifications: { createMany: vi.fn() },
+    doctor_specialties: { createMany: vi.fn() },
   };
   return {
     mockRequireAppOwner: vi.fn(),
@@ -43,6 +44,7 @@ const {
     mockPrisma: {
       profiles: { findFirst: vi.fn(), findUnique: vi.fn() },
       subscription_plans: { findFirst: vi.fn() },
+      specialties: { findFirst: vi.fn() },
       clinics: {
         findFirst: vi.fn(),
         findUnique: vi.fn(),
@@ -102,6 +104,7 @@ const TENANT_ID = "22222222-2222-4222-8222-222222222222";
 const OWNER_ID = "33333333-3333-4333-8333-333333333333";
 const AUTH_USER_ID = "44444444-4444-4444-8444-444444444444";
 const SUB_ID = "55555555-5555-4555-8555-555555555555";
+const SPECIALTY_ID = "66666666-6666-4666-8666-666666666666";
 
 function makeProfileRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -171,6 +174,7 @@ describe("tenant request & app_owner approval actions", () => {
       registrationNumber: "REG-99",
       clinicEmail: "",
       clinicPhone: "",
+      specialtyId: SPECIALTY_ID,
       planId: PLAN_ID,
     };
 
@@ -180,11 +184,30 @@ describe("tenant request & app_owner approval actions", () => {
         id: PLAN_ID,
         name: "Pro",
       });
+      mockPrisma.specialties.findFirst.mockResolvedValueOnce({
+        id: SPECIALTY_ID,
+        name: "Dentistry",
+      });
 
       const res = await requestTenantAccountAction(validRequest);
       expect(res).toEqual({
         error:
           "An account or request with this email already exists. Use Track Request Status or Sign In.",
+      });
+      expect(mockCreateUserWithPassword).not.toHaveBeenCalled();
+    });
+
+    it("rejects when selected clinic specialty is unavailable", async () => {
+      mockPrisma.profiles.findFirst.mockResolvedValueOnce(null);
+      mockPrisma.subscription_plans.findFirst.mockResolvedValueOnce({
+        id: PLAN_ID,
+        name: "Pro",
+      });
+      mockPrisma.specialties.findFirst.mockResolvedValueOnce(null);
+
+      const res = await requestTenantAccountAction(validRequest);
+      expect(res).toEqual({
+        error: "Selected clinic specialty is not available.",
       });
       expect(mockCreateUserWithPassword).not.toHaveBeenCalled();
     });
@@ -197,6 +220,10 @@ describe("tenant request & app_owner approval actions", () => {
         billing_period: "monthly",
         price: 99,
         currency: "USD",
+      });
+      mockPrisma.specialties.findFirst.mockResolvedValueOnce({
+        id: SPECIALTY_ID,
+        name: "Dentistry",
       });
       mockCreateUserWithPassword.mockResolvedValueOnce({
         user: { id: AUTH_USER_ID },
@@ -266,6 +293,10 @@ describe("tenant request & app_owner approval actions", () => {
         billing_period: "monthly",
         price: 99,
         currency: "USD",
+      });
+      mockPrisma.specialties.findFirst.mockResolvedValueOnce({
+        id: SPECIALTY_ID,
+        name: "Dentistry",
       });
       mockCreateUserWithPassword.mockResolvedValueOnce({
         user: { id: "auth-orphan" },

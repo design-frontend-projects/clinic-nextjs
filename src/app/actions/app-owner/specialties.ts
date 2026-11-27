@@ -13,7 +13,7 @@ export async function getSpecialties() {
 
   return prisma.specialties.findMany({
     include: {
-      _count: { select: { doctor_specialties: true } },
+      _count: { select: { doctor_specialties: true, clinics: true } },
     },
     orderBy: [{ display_order: "asc" }, { name: "asc" }],
   });

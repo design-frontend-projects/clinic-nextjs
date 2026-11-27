@@ -108,6 +108,9 @@ export async function getClinics(): Promise<ClinicWithBranches[]> {
       ? { auth_user_id: ownerAuthId }
       : { id: tenant.clinicId },
     include: {
+      specialty: {
+        select: { id: true, name: true, name_ar: true, diagram_key: true },
+      },
       clinic_branches: {
         include: {
           branches: true,
@@ -125,6 +128,15 @@ export async function getClinics(): Promise<ClinicWithBranches[]> {
     email: c.email,
     phone: c.phone,
     subscription_plan: c.subscription_plan,
+    specialty_id: c.specialty_id ?? null,
+    specialty: c.specialty
+      ? {
+          id: c.specialty.id,
+          name: c.specialty.name,
+          name_ar: c.specialty.name_ar,
+          diagram_key: c.specialty.diagram_key,
+        }
+      : null,
     status: c.status,
     is_primary: c.is_primary,
     have_pharmacy: c.have_pharmacy,
@@ -254,6 +266,7 @@ export async function createClinic(data: z.infer<typeof clinicSchema>) {
           registration_number: validatedData.registration_number || null,
           email: validatedData.email || null,
           phone: validatedData.phone || null,
+          specialty_id: validatedData.specialty_id || null,
           subscription_plan: inheritedPlan,
           status: inheritedStatus,
           have_pharmacy: validatedData.have_pharmacy ?? false,
@@ -382,6 +395,9 @@ export async function updateClinic(
         where: { id },
         data: {
           ...clinicFields,
+          ...(clinicFields.specialty_id !== undefined
+            ? { specialty_id: clinicFields.specialty_id || null }
+            : {}),
           updated_at: new Date(),
         },
       });

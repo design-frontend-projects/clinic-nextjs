@@ -12,6 +12,7 @@ export const clinicSchema = z.object({
   email: z.string().email("Invalid email address").optional().or(z.literal("")).nullable(),
   phone: z.string().optional().nullable(),
   subscription_plan: z.string().optional().nullable(),
+  specialty_id: z.string().uuid().optional().nullable(),
   status: clinicStatusEnum,
   have_pharmacy: z.boolean(),
   have_lab: z.boolean(),
@@ -230,6 +231,13 @@ export interface ClinicLinkedBranch {
   created_at: Date;
 }
 
+export interface ClinicSpecialtySummary {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  diagram_key: string;
+}
+
 export interface ClinicWithBranches {
   id: string;
   name: string;
@@ -237,6 +245,8 @@ export interface ClinicWithBranches {
   email: string | null;
   phone: string | null;
   subscription_plan: string | null;
+  specialty_id: string | null;
+  specialty: ClinicSpecialtySummary | null;
   status: ClinicStatus;
   is_primary: boolean | null;
   have_pharmacy: boolean | null;

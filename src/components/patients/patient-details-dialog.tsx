@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { differenceInYears, format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Activity,
   Calendar,
   Check,
   Clock,
@@ -33,6 +34,8 @@ import {
   resetPatientPassword,
   setPatientPassword,
 } from "@/app/actions/patient";
+import { getPatientBodyCharts } from "@/app/actions/body-chart";
+import { BodyChartStudio } from "@/components/body-chart/body-chart-studio";
 import type { TempPasswordInfo } from "@/components/admin/temp-password-dialog";
 import { InviteToPortalButton } from "@/components/patients/invite-to-portal-button";
 import {
@@ -73,7 +76,7 @@ export interface PatientDetailsDialogProps {
   onPasswordGenerated: (info: TempPasswordInfo) => void;
 }
 
-type DetailsTab = "overview" | "visits" | "account";
+type DetailsTab = "overview" | "visits" | "bodyChart" | "account";
 
 function getInitials(firstName?: string | null, lastName?: string | null): string {
   const first = firstName?.trim().charAt(0) ?? "";
@@ -152,6 +155,12 @@ export function PatientDetailsDialog({
     queryFn: () => canManagePatientPasswords(),
     staleTime: 5 * 60 * 1000,
     enabled: Boolean(patientId),
+  });
+
+  const bodyChartsQuery = useQuery({
+    queryKey: ["patient-body-charts", patientId],
+    queryFn: () => getPatientBodyCharts(patientId!),
+    enabled: Boolean(patientId) && activeTab === "bodyChart",
   });
 
   const displayPatient = overviewQuery.data?.patient ?? patient;
@@ -271,7 +280,12 @@ export function PatientDetailsDialog({
 
   return (
     <Dialog open={Boolean(patient)} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92dvh] w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent
+        className={cn(
+          "flex max-h-[92dvh] w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden p-0 transition-all",
+          activeTab === "bodyChart" ? "sm:max-w-5xl" : "sm:max-w-2xl",
+        )}
+      >
         {/* Creative Gradient Profile Header */}
         <DialogHeader className="border-b border-hairline bg-linear-to-br from-primary/15 via-primary/5 to-transparent px-5 py-5 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -351,7 +365,7 @@ export function PatientDetailsDialog({
           className="flex min-h-0 flex-1 flex-col gap-0"
         >
           <div className="border-b border-hairline bg-surface px-5 py-2.5 sm:px-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview" className="gap-1.5">
                 <User className="h-3.5 w-3.5" />
                 <span>{t("tabs.overview")}</span>
@@ -359,6 +373,10 @@ export function PatientDetailsDialog({
               <TabsTrigger value="visits" className="gap-1.5">
                 <Stethoscope className="h-3.5 w-3.5" />
                 <span>{t("tabs.visits")}</span>
+              </TabsTrigger>
+              <TabsTrigger value="bodyChart" className="gap-1.5">
+                <Activity className="h-3.5 w-3.5" />
+                <span>{t("tabs.bodyChart")}</span>
               </TabsTrigger>
               <TabsTrigger value="account" className="gap-1.5">
                 <KeyRound className="h-3.5 w-3.5" />
@@ -568,6 +586,21 @@ export function PatientDetailsDialog({
                         </div>
                       ))}
                     </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="bodyChart" className="mt-0 space-y-3">
+                  {bodyChartsQuery.isLoading ? (
+                    <div className="h-64 animate-pulse rounded-xl border border-hairline bg-muted/40" />
+                  ) : bodyChartsQuery.isError || !bodyChartsQuery.data ? (
+                    <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                      {t("loadError")}
+                    </div>
+                  ) : (
+                    <BodyChartStudio
+                      context={bodyChartsQuery.data}
+                      readOnly
+                    />
                   )}
                 </TabsContent>
 

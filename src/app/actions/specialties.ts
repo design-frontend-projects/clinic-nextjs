@@ -14,7 +14,7 @@ export async function getActiveSpecialties(): Promise<ActiveSpecialty[]> {
 
   return prisma.specialties.findMany({
     where: { is_active: true },
-    select: { id: true, name: true, name_ar: true },
+    select: { id: true, name: true, name_ar: true, diagram_key: true },
     orderBy: [{ display_order: "asc" }, { name: "asc" }],
   });
 }

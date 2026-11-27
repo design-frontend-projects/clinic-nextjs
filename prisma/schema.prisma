@@ -54,6 +54,7 @@ model profiles {
   user_permissions                                       user_permissions[]
   user_roles                                             user_roles[]
   tenant_subscription                                    tenant_subscriptions?
+  patient_body_charts                                    patient_body_charts[]
 
   @@index([auth_user_id])
   @@index([tenant_id])
@@ -91,6 +92,7 @@ model patients {
   pharmacy_sales         pharmacy_sales[]
   prescription_dispenses prescription_dispenses[]
   prescriptions          prescriptions[]
+  patient_body_charts    patient_body_charts[]
 
   @@index([clinic_id])
   @@index([clinic_id, updated_at, id])
@@ -116,6 +118,7 @@ model appointments {
   patients         patients             @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   encounters       encounters[]
   lab_orders       lab_orders[]
+  patient_body_charts patient_body_charts[]
 
   @@index([appointment_date])
   @@index([clinic_id])
@@ -206,6 +209,7 @@ model encounters {
   patients         patients           @relation(fields: [patient_id], references: [id])
   insurance_claims insurance_claims[]
   lab_orders       lab_orders[]
+  patient_body_charts patient_body_charts[]
 
   @@index([clinic_id, updated_at, id])
 }
@@ -541,6 +545,7 @@ model branches {
   stock_movements                                          stock_movements[]
   stock_transfers_stock_transfers_from_branch_idTobranches stock_transfers[]        @relation("stock_transfers_from_branch_idTobranches")
   stock_transfers_stock_transfers_to_branch_idTobranches   stock_transfers[]        @relation("stock_transfers_to_branch_idTobranches")
+  patient_body_charts                                      patient_body_charts[]
 
   @@index([clinic_id])
   @@index([owner_id])
@@ -606,6 +611,8 @@ model clinics {
   have_pharmacy           Boolean?                 @default(false)
   have_lab                Boolean?                 @default(false)
   have_radio_center       Boolean?                 @default(false)
+  specialty_id            String?                  @db.Uuid
+  specialty               specialties?             @relation(fields: [specialty_id], references: [id], onDelete: SetNull)
   appointment_reviews     appointment_reviews[]
   appointments            appointments[]
   audit_logs              audit_logs[]
@@ -643,9 +650,11 @@ model clinics {
   tenant_roles            tenant_roles[]
   user_permissions        user_permissions[]
   user_roles              user_roles[]
+  patient_body_charts     patient_body_charts[]
 
   @@index([status])
   @@index([auth_user_id])
+  @@index([specialty_id])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -1174,19 +1183,58 @@ model payment_records {
 /// Global catalog of medical specialties, curated by the app owner and shared by
 /// every clinic. Not tenant-scoped (mirrors subscription_plans).
 model specialties {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name               String               @unique
-  name_ar            String?
-  description        String?
-  is_active          Boolean              @default(true)
-  display_order      Int                  @default(0)
-  created_at         DateTime             @default(now())
-  updated_at         DateTime             @default(now()) @updatedAt
-  created_by         String?              @db.Uuid
-  updated_by         String?              @db.Uuid
-  doctor_specialties doctor_specialties[]
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String                @unique
+  name_ar             String?
+  description         String?
+  diagram_key         String                @default("general_body")
+  is_active           Boolean               @default(true)
+  display_order       Int                   @default(0)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @default(now()) @updatedAt
+  created_by          String?               @db.Uuid
+  updated_by          String?               @db.Uuid
+  doctor_specialties  doctor_specialties[]
+  clinics             clinics[]
+  patient_body_charts patient_body_charts[]
 
   @@index([is_active])
+}
+
+/// Longitudinal anatomical body-chart snapshot per patient & specialty.
+/// Stores canonical structured JSON (chart_data) plus a self-contained
+/// animated SVG snapshot (animated_svg) per visit version.
+model patient_body_charts {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clinic_id          String        @db.Uuid
+  branch_id          String?       @db.Uuid
+  patient_id         String        @db.Uuid
+  specialty_id       String?       @db.Uuid
+  diagram_key        String        @db.VarChar(64)
+  encounter_id       String?       @db.Uuid
+  appointment_id     String?       @db.Uuid
+  doctor_id          String?       @db.Uuid
+  version            Int           @default(1)
+  title              String?       @db.VarChar(255)
+  overall_notes      String?
+  chart_data         Json          @default("{}")
+  animated_svg       String
+  share_with_patient Boolean       @default(true)
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @default(now()) @updatedAt
+  deleted_at         DateTime?
+  clinics            clinics       @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  branches           branches?     @relation(fields: [branch_id], references: [id], onDelete: SetNull)
+  patients           patients      @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  specialties        specialties?  @relation(fields: [specialty_id], references: [id], onDelete: SetNull)
+  encounters         encounters?   @relation(fields: [encounter_id], references: [id], onDelete: SetNull)
+  appointments       appointments? @relation(fields: [appointment_id], references: [id], onDelete: SetNull)
+  profiles           profiles?     @relation(fields: [doctor_id], references: [id], onDelete: SetNull)
+
+  @@index([clinic_id, patient_id, diagram_key, version(sort: Desc)])
+  @@index([patient_id, created_at(sort: Desc)])
+  @@index([encounter_id])
+  @@index([clinic_id, updated_at, id])
 }
 
 /// Junction linking a doctor profile to one or more catalog specialties.

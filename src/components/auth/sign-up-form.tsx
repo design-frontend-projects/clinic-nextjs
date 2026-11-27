@@ -10,7 +10,10 @@ import { Check, CheckCircle2, Copy, Loader2 } from "lucide-react";
 
 import { Link } from "@/i18n/routing";
 import { requestTenantAccountAction } from "@/app/actions/auth";
-import { getPublicPlansAction } from "@/app/actions/public";
+import {
+  getPublicPlansAction,
+  getPublicSpecialtiesAction,
+} from "@/app/actions/public";
 import {
   tenantRequestSchema,
   type TenantRequestFormData,
@@ -24,6 +27,13 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/ui/status-badge";
 
@@ -51,6 +61,12 @@ export function SignUpForm({ planId }: { planId?: string }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: specialties = [], isLoading: specialtiesLoading } = useQuery({
+    queryKey: ["public-specialties"],
+    queryFn: () => getPublicSpecialtiesAction(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const {
     register,
     handleSubmit,
@@ -69,11 +85,13 @@ export function SignUpForm({ planId }: { planId?: string }) {
       registrationNumber: "",
       clinicEmail: "",
       clinicPhone: "",
+      specialtyId: "",
       planId: planId ?? "",
     },
   });
 
   const selectedPlanId = watch("planId");
+  const selectedSpecialtyId = watch("specialtyId");
 
   useEffect(() => {
     if (plansLoading || plans.length === 0) return;
@@ -343,6 +361,39 @@ export function SignUpForm({ planId }: { planId?: string }) {
               </p>
             )}
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="specialtyId">{t("specialtyLabel")}</Label>
+          {specialtiesLoading ? (
+            <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>{t("loadingSpecialties")}</span>
+            </div>
+          ) : (
+            <Select
+              value={selectedSpecialtyId}
+              onValueChange={(val) =>
+                setValue("specialtyId", val, { shouldValidate: true })
+              }
+            >
+              <SelectTrigger id="specialtyId" className="w-full">
+                <SelectValue placeholder={t("specialtyPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {specialties.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {locale === "ar" && s.name_ar ? s.name_ar : s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {errors.specialtyId && (
+            <p className="text-xs text-destructive">
+              {errors.specialtyId.message}
+            </p>
+          )}
         </div>
       </section>
 

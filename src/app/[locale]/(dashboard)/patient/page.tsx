@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/i18n/routing";
 import { format } from "date-fns";
-import { CalendarDays, User, Clock, CalendarPlus, ArrowUpRight } from "lucide-react";
+import { CalendarDays, User, Clock, CalendarPlus, ArrowUpRight, Activity } from "lucide-react";
 import {
   getMyPatientRecord,
   getMyUpcomingAppointments,
@@ -108,6 +108,12 @@ export default function PatientDashboardPage() {
               <Link href="/patient/appointments">
                 <Clock className="me-2 h-4 w-4" />
                 {t("linkAppointments")}
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="justify-start">
+              <Link href="/patient/reports">
+                <Activity className="me-2 h-4 w-4" />
+                {t("linkBodyReports")}
               </Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">

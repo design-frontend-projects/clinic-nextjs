@@ -57,7 +57,13 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
     resolver: zodResolver(createTenantSchema),
     defaultValues: {
       owner: { full_name: "", email: "", phone: "" },
-      clinic: { name: "", registration_number: "", email: "", phone: "" },
+      clinic: {
+        name: "",
+        registration_number: "",
+        email: "",
+        phone: "",
+        specialty_id: "",
+      },
       plan_id: "",
       branch: { name: "Main Branch", address: "", phone: "" },
       specialtyIds: [],
@@ -187,6 +193,32 @@ export function TenantCreateForm({ plans, specialties }: TenantCreateFormProps) 
                   {...form.register("clinic.phone")}
                 />
               </div>
+            </div>
+            <div className="space-y-2 md:max-w-[calc(50%-0.5rem)]">
+              <Label htmlFor="clinic_specialty_id">
+                {t("clinicSpecialtyLabel")}
+              </Label>
+              <Select
+                value={form.watch("clinic.specialty_id") || "__none__"}
+                onValueChange={(v) =>
+                  form.setValue(
+                    "clinic.specialty_id",
+                    v === "__none__" ? "" : v,
+                  )
+                }
+              >
+                <SelectTrigger id="clinic_specialty_id">
+                  <SelectValue placeholder={t("clinicSpecialtyPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{t("noSpecialty")}</SelectItem>
+                  {specialties.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {locale === "ar" && s.name_ar ? s.name_ar : s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

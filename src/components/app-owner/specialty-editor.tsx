@@ -3,12 +3,14 @@
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Loader2, Stethoscope } from "lucide-react";
 
 import { useRouter } from "@/i18n/routing";
 import { upsertSpecialty } from "@/app/actions/app-owner/specialties";
+import { DIAGRAM_OPTIONS } from "@/lib/body-chart/registry";
+import { DiagramMiniPreview } from "@/components/body-chart/diagram-mini-preview";
 import {
   specialtySchema,
   type SpecialtyFormData,
@@ -16,6 +18,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +35,7 @@ interface SpecialtyEditorProps {
 
 export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations("appOwner.specialtyEditor");
   const tSpecialties = useTranslations("appOwner.specialties");
   const [isPending, startTransition] = useTransition();
@@ -37,12 +47,14 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
       name: specialty?.name ?? "",
       name_ar: specialty?.name_ar ?? "",
       description: specialty?.description ?? "",
+      diagram_key: specialty?.diagram_key ?? "general_body",
       is_active: specialty?.is_active ?? true,
       display_order: specialty?.display_order ?? 0,
     },
   });
 
   const isActive = form.watch("is_active");
+  const diagramKey = form.watch("diagram_key") ?? "general_body";
 
   const onSubmit = (data: SpecialtyFormData) => {
     startTransition(async () => {
@@ -99,6 +111,42 @@ export function SpecialtyEditor({ specialty }: SpecialtyEditorProps) {
               {...form.register("description")}
               placeholder={t("descriptionPlaceholder")}
             />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 items-start">
+            <div className="space-y-2">
+              <Label htmlFor="diagram_key">{t("diagramTemplateLabel")}</Label>
+              <Select
+                value={diagramKey}
+                onValueChange={(val) =>
+                  form.setValue(
+                    "diagram_key",
+                    val as SpecialtyFormData["diagram_key"],
+                    { shouldDirty: true },
+                  )
+                }
+              >
+                <SelectTrigger id="diagram_key">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIAGRAM_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.key} value={opt.key}>
+                      {locale === "ar" ? opt.nameAr : opt.nameEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {t("diagramTemplateDesc")}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                {t("diagramPreviewTitle")}
+              </Label>
+              <DiagramMiniPreview diagramKey={diagramKey} />
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

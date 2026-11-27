@@ -109,7 +109,10 @@
       "copiedRef": "Reference number copied",
       "trackRequestButton": "Track Request Status",
       "backToSignIn": "Back to Sign In",
-      "trackExistingRequest": "Track existing request"
+      "trackExistingRequest": "Track existing request",
+      "specialtyLabel": "Clinic Specialty *",
+      "specialtyPlaceholder": "Select primary clinic specialty",
+      "loadingSpecialties": "Loading specialties..."
     },
     "requestStatus": {
       "title": "Track Account Request",
@@ -293,7 +296,8 @@
       "toastDeactivated": "Specialty deactivated.",
       "toastToggleFailed": "Failed to update specialty status.",
       "activeToggleDesc": "Allow clinics and doctors to select this specialty.",
-      "doctorsCount": "{count} doctors"
+      "doctorsCount": "{count} doctors",
+      "diagram": "Body Diagram"
     },
     "tenants": {
       "title": "Tenants",
@@ -455,7 +459,10 @@
       "saveSpecialty": "Save Specialty",
       "createSpecialty": "Create Specialty",
       "toastUpdated": "Specialty updated.",
-      "toastCreated": "Specialty created."
+      "toastCreated": "Specialty created.",
+      "diagramTemplateLabel": "Interactive Body Chart Template",
+      "diagramTemplateDesc": "Determines which high-resolution SVG anatomical diagram is shown to doctors for clinics or practitioners in this specialty.",
+      "diagramPreviewTitle": "Live SVG Template Preview"
     },
     "tenantCreate": {
       "toastCreatedEmailSent": "Tenant created. A set-password email was sent to the owner.",
@@ -482,7 +489,10 @@
       "specialtiesTitle": "Specialties (optional)",
       "noActiveSpecialties": "No active specialties in the catalog.",
       "cancel": "Cancel",
-      "createTenant": "Create Tenant"
+      "createTenant": "Create Tenant",
+      "clinicSpecialtyLabel": "Primary Clinic Specialty",
+      "clinicSpecialtyPlaceholder": "Select clinic specialty",
+      "noSpecialty": "General / Unspecified"
     },
     "tenantActions": {
       "toastDone": "Done.",
@@ -621,7 +631,8 @@
       "tabs": {
         "overview": "Overview",
         "visits": "Visits",
-        "account": "Account"
+        "account": "Account",
+        "bodyChart": "Body Chart"
       },
       "personalTitle": "Personal Details",
       "contactTitle": "Contact Information",
@@ -742,7 +753,8 @@
     "myReviews": "My Reviews",
     "notifications": "Notifications",
     "messages": "WhatsApp Messages",
-    "toggleSidebar": "Toggle sidebar"
+    "toggleSidebar": "Toggle sidebar",
+    "bodyReports": "My Body Reports"
   },
   "pages": {
     "booking": {
@@ -1024,7 +1036,10 @@
         "confirmLabBtn": "Confirm & Add Notes",
         "editLabNotesBtn": "Edit Notes",
         "viewLabNotesBtn": "View Notes",
-        "confirmedByAt": "Confirmed by {name} on {date}"
+        "confirmedByAt": "Confirmed by {name} on {date}",
+        "metricCharts": "Body Charts",
+        "attachBodyChart": "Attach & save current Body Chart edits with this encounter",
+        "linkedChartBadge": "Body Chart v{version}"
       },
       "encounter": {
         "errDiagnosisRequired": "Diagnosis is required",
@@ -1097,7 +1112,8 @@
         "quickLinks": "Quick Links",
         "linkBookings": "Manage Bookings",
         "linkAppointments": "Appointments & Visit History",
-        "linkProfile": "My Profile"
+        "linkProfile": "My Profile",
+        "linkBodyReports": "My Body & Organ Reports"
       },
       "appointments": {
         "title": "My Appointments",
@@ -1145,6 +1161,13 @@
         "errPasswordMin": "Password must be at least 6 characters",
         "errConfirmPassword": "Please confirm your password",
         "errPasswordMismatch": "Passwords do not match"
+      },
+      "reports": {
+        "title": "My Anatomical Reports",
+        "subtitle": "Interactive clinical diagrams and per-part notes shared by your doctor.",
+        "loadError": "Unable to load your medical diagrams right now.",
+        "emptyTitle": "No shared body reports yet",
+        "emptyDesc": "When your doctor records and shares an anatomical diagram report during a visit, it will appear here."
       }
     },
     "staff": {
@@ -1662,7 +1685,10 @@
     "starter": "Starter",
     "professional": "Professional",
     "enterprise": "Enterprise",
-    "selectPlan": "Select a plan"
+    "selectPlan": "Select a plan",
+    "specialty": "Primary Specialty",
+    "selectSpecialty": "Select clinic specialty",
+    "noSpecialty": "General / Unspecified"
   },
   "dashboard": {
     "noClinic": {
@@ -1846,7 +1872,10 @@
         "phone": "Phone",
         "pharmacy": "Pharmacy",
         "lab": "Laboratory",
-        "radiology": "Radiology"
+        "radiology": "Radiology",
+        "specialty": "Primary Specialty",
+        "specialtyPlaceholder": "Select clinic specialty",
+        "noSpecialty": "General / Unspecified"
       }
     },
     "billing": {
@@ -2925,5 +2954,70 @@
       "Rectal": "Rectal",
       "Sublingual": "Sublingual"
     }
+  },
+  "bodyChart": {
+    "markedCountBadge": "{count} marked",
+    "unsavedDraft": "Unsaved draft",
+    "undo": "Undo",
+    "redo": "Redo",
+    "downloadSvg": "Download Animated SVG",
+    "viewReport": "Clinical Report & PDF",
+    "visitTimeline": "Visit History",
+    "liveDraft": "Live Draft",
+    "viewingSnapshotBanner": "Viewing saved snapshot v{version} ({date}) — read-only preview",
+    "sharedBadge": "Shared with Patient",
+    "privateBadge": "Doctor Only",
+    "restoreToDraft": "Load into Draft",
+    "overallNotesLabel": "Overall Anatomical Summary",
+    "overallNotesPlaceholder": "Add summary impressions across the marked anatomical regions...",
+    "shareWithPatientLabel": "Share report with Patient Portal",
+    "saveSnapshotBtn": "Save Chart Snapshot",
+    "saveSuccess": "Saved anatomical chart snapshot v{version}",
+    "saveFailed": "Failed to save body chart snapshot",
+    "restoredToDraft": "Snapshot loaded into working draft",
+    "sharedWithPatientOn": "Snapshot is now visible in Patient Portal",
+    "sharedWithPatientOff": "Snapshot hidden from Patient Portal",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "resetView": "Reset view",
+    "animationOn": "Animated",
+    "animationOff": "Static",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "tabPartReport": "Part Report",
+    "tabPartsIndex": "Parts Index",
+    "selectPartHint": "Click any numbered structure on the diagram or choose one from the Parts Index.",
+    "startFromFirst": "Select Part #1",
+    "prevPart": "Previous part",
+    "nextPart": "Next part",
+    "conditionLabel": "Clinical Status / Condition",
+    "severityLabel": "Severity",
+    "severity": {
+      "low": "Low",
+      "moderate": "Moderate",
+      "severe": "Severe",
+      "critical": "Critical"
+    },
+    "surfacesLabel": "Tooth Surfaces (O / M / D / B / L)",
+    "findingsLabel": "Clinical Findings Report",
+    "findingsPlaceholder": "Document clinical observations, measurements, or symptoms for this part...",
+    "treatmentPlanLabel": "Treatment Plan / Action",
+    "treatmentPlanPlaceholder": "Document planned procedure, follow-up, or intervention...",
+    "clearPart": "Clear Part",
+    "partHistoryTitle": "Previous Visits for This Part",
+    "searchPartsPlaceholder": "Search by number or anatomical name...",
+    "markedOnly": "Marked",
+    "noMatchingParts": "No anatomical parts match your search.",
+    "reportModalTitle": "Anatomical Clinical Report",
+    "printReport": "Print / Save PDF",
+    "patientLabel": "Patient",
+    "doctorLabel": "Doctor",
+    "detailedFindingsTitle": "Detailed Findings by Part",
+    "noMarkedParts": "No anatomical parts were marked in this snapshot.",
+    "colPart": "Anatomical Part",
+    "colCondition": "Condition",
+    "colSeverity": "Severity",
+    "colFindings": "Findings",
+    "colTreatment": "Treatment Plan"
   }
 }

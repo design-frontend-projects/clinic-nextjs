@@ -60,6 +60,7 @@ describe("prisma client schema cache validation", () => {
     const currentClient = {
       billing_catalog_items: {},
       clinic_branches: {},
+      patient_body_charts: {},
       _runtimeDataModel: {
         models: {
           insurance_providers: {
@@ -67,6 +68,9 @@ describe("prisma client schema cache validation", () => {
           },
           branches: {
             fields: [{ name: "owner_id" }],
+          },
+          clinics: {
+            fields: [{ name: "specialty_id" }],
           },
         },
       },

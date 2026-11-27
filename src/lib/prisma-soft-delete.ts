@@ -29,6 +29,7 @@ export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set(
     "prescription_dispense_items",
     "prescriptions",
     "prescription_items",
+    "patient_body_charts",
   ].map((m) => m.toLowerCase()),
 );
 

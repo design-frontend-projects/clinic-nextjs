@@ -24,6 +24,7 @@ export const createTenantSchema = z.object({
       .optional()
       .or(z.literal("")),
     phone: z.string().optional().or(z.literal("")),
+    specialty_id: z.string().uuid().optional().or(z.literal("")),
   }),
   plan_id: z.string().uuid("Select a subscription plan"),
   branch: z.object({

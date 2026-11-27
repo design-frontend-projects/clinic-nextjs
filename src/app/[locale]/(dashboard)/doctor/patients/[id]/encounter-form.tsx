@@ -34,9 +34,14 @@ interface EncounterFormProps {
    * appointment is auto-completed server-side (see `createEncounter`).
    */
   appointmentId?: string;
+  onEncounterCreated?: (encounterId: string) => Promise<void> | void;
 }
 
-export function EncounterForm({ patientId, appointmentId }: EncounterFormProps) {
+export function EncounterForm({
+  patientId,
+  appointmentId,
+  onEncounterCreated,
+}: EncounterFormProps) {
   const t = useTranslations("pages.doctor.encounter");
   const [isPending, startTransition] = useTransition();
 
@@ -58,7 +63,13 @@ export function EncounterForm({ patientId, appointmentId }: EncounterFormProps) 
   function onSubmit(data: EncounterFormValues) {
     startTransition(async () => {
       try {
-        await createEncounter(patientId, { ...data, appointment_id: appointmentId });
+        const encounter = await createEncounter(patientId, {
+          ...data,
+          appointment_id: appointmentId,
+        });
+        if (onEncounterCreated && encounter?.id) {
+          await onEncounterCreated(encounter.id);
+        }
         toast.success(
           appointmentId
             ? t("toastSavedAndCompleted")

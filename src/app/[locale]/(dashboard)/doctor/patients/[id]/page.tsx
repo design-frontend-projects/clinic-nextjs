@@ -1,4 +1,5 @@
 import { getPatientDetails } from "@/app/actions/doctor";
+import { getPatientBodyCharts } from "@/app/actions/body-chart";
 import { ConsultationClient } from "./consultation-client";
 import type { PatientPrescription } from "./patient-prescriptions";
 
@@ -11,14 +12,22 @@ export default async function PatientConsultationPage({
 }) {
   const resolvedParams = await params;
   const { appointmentId } = await searchParams;
-  const {
-    patient,
-    history,
-    prescriptions,
-    labOrders,
-    currentDoctorProfileId,
-    canConfirmAllPatientLabs,
-  } = await getPatientDetails(resolvedParams.id, appointmentId);
+  const [
+    {
+      patient,
+      history,
+      prescriptions,
+      labOrders,
+      currentDoctorProfileId,
+      currentDoctorName,
+      clinicName,
+      canConfirmAllPatientLabs,
+    },
+    bodyChartContext,
+  ] = await Promise.all([
+    getPatientDetails(resolvedParams.id, appointmentId),
+    getPatientBodyCharts(resolvedParams.id),
+  ]);
 
   return (
     <ConsultationClient
@@ -28,7 +37,10 @@ export default async function PatientConsultationPage({
       labOrders={labOrders}
       appointmentId={appointmentId}
       currentDoctorProfileId={currentDoctorProfileId}
+      currentDoctorName={currentDoctorName}
+      clinicName={clinicName}
       canConfirmAllPatientLabs={canConfirmAllPatientLabs}
+      initialBodyChartContext={bodyChartContext}
     />
   );
 }

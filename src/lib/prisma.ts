@@ -121,6 +121,14 @@ export function hasCurrentSchema(client: PrismaClient | undefined): client is Pr
   const runtime = client as RuntimeClient;
   if (!("billing_catalog_items" in runtime)) return false;
   if (!("clinic_branches" in runtime)) return false;
+  if (!("patient_body_charts" in runtime)) return false;
+  const clinicFields = runtime._runtimeDataModel?.models?.clinics?.fields;
+  if (
+    Array.isArray(clinicFields) &&
+    !clinicFields.some((f) => f.name === "specialty_id")
+  ) {
+    return false;
+  }
   const providerFields = runtime._runtimeDataModel?.models?.insurance_providers?.fields;
   if (
     Array.isArray(providerFields) &&

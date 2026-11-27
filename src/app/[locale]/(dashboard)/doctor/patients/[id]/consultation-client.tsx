@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import {
+  Activity,
   CheckCircle2,
   ClipboardList,
   Eye,
@@ -15,9 +16,16 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { PatientInsurancePanel } from "@/components/insurance/patient-insurance-panel";
+import {
+  BodyChartStudio,
+  type BodyChartStudioHandle,
+} from "@/components/body-chart/body-chart-studio";
+import type { PatientBodyChartContext } from "@/types/body-chart.types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EncounterForm } from "./encounter-form";
 import { PatientPrescriptions, type PatientPrescription } from "./patient-prescriptions";
@@ -76,7 +84,10 @@ interface ConsultationClientProps {
   labOrders: LabOrder[];
   appointmentId?: string;
   currentDoctorProfileId?: string | null;
+  currentDoctorName?: string | null;
+  clinicName?: string | null;
   canConfirmAllPatientLabs?: boolean;
+  initialBodyChartContext: PatientBodyChartContext;
 }
 
 function calculateAge(dob: Date | string | null | undefined): number | null {
@@ -113,13 +124,27 @@ export function ConsultationClient({
   labOrders,
   appointmentId,
   currentDoctorProfileId,
+  currentDoctorName,
+  clinicName,
   canConfirmAllPatientLabs = false,
+  initialBodyChartContext,
 }: ConsultationClientProps) {
   const t = useTranslations("pages.doctor.consultation");
   const tGender = useTranslations("enums.gender");
   const router = useRouter();
   const [selectedLab, setSelectedLab] = useState<ConfirmableLabOrder | null>(
     null,
+  );
+  const bodyChartRef = useRef<BodyChartStudioHandle | null>(null);
+  const [attachChartOnEncounter, setAttachChartOnEncounter] = useState(true);
+  const [selectedChartVersionId, setSelectedChartVersionId] = useState<
+    string | null
+  >(null);
+
+  const chartsByEncounterId = new Map(
+    initialBodyChartContext.snapshots
+      .filter((s) => Boolean(s.encounter_id))
+      .map((s) => [s.encounter_id as string, s]),
   );
 
   const patientFullName =
@@ -188,12 +213,32 @@ export function ConsultationClient({
               <p className="text-xs text-muted-foreground font-semibold">{t("metricPrescriptions")}</p>
               <p className="text-lg font-bold text-foreground mt-0.5">{prescriptions.length}</p>
             </div>
-            <div className="text-center px-4 py-1">
+            <div className="text-center px-4 py-1 border-r border-border/30">
               <p className="text-xs text-muted-foreground font-semibold">{t("metricLabs")}</p>
               <p className="text-lg font-bold text-foreground mt-0.5">{labOrders.length}</p>
             </div>
+            <div className="text-center px-4 py-1">
+              <p className="text-xs text-muted-foreground font-semibold">{t("metricCharts")}</p>
+              <p className="text-lg font-bold text-foreground mt-0.5">
+                {initialBodyChartContext.snapshots.length}
+              </p>
+            </div>
           </div>
         </div>
+      </motion.div>
+
+      {/* Specialty Anatomical Body Chart Studio */}
+      <motion.div variants={itemVariants}>
+        <BodyChartStudio
+          ref={bodyChartRef}
+          context={initialBodyChartContext}
+          appointmentId={appointmentId}
+          currentDoctorId={currentDoctorProfileId}
+          currentDoctorName={currentDoctorName}
+          clinicName={clinicName}
+          initialVersionId={selectedChartVersionId}
+          onSnapshotSaved={() => router.refresh()}
+        />
       </motion.div>
 
       {/* Grid: Form and Patient File History */}
@@ -210,10 +255,37 @@ export function ConsultationClient({
                 {t("newEncounterDesc")}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-hairline bg-muted/35 px-3 py-2">
+                <Label
+                  htmlFor="attach-body-chart"
+                  className="flex cursor-pointer items-center gap-2 text-xs font-medium"
+                >
+                  <Activity className="h-3.5 w-3.5 text-primary" />
+                  <span>{t("attachBodyChart")}</span>
+                </Label>
+                <Switch
+                  id="attach-body-chart"
+                  checked={attachChartOnEncounter}
+                  onCheckedChange={setAttachChartOnEncounter}
+                />
+              </div>
               <EncounterForm
                 patientId={patient.id}
                 appointmentId={appointmentId}
+                onEncounterCreated={async (encounterId) => {
+                  if (
+                    attachChartOnEncounter &&
+                    bodyChartRef.current?.hasUnsavedChanges()
+                  ) {
+                    await bodyChartRef.current.saveSnapshot({
+                      encounterId,
+                      appointmentId,
+                      silent: true,
+                    });
+                  }
+                  router.refresh();
+                }}
               />
             </CardContent>
           </Card>
@@ -261,6 +333,22 @@ export function ConsultationClient({
                         <p className="text-muted-foreground mt-1 text-xs leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all">
                           {enc.notes}
                         </p>
+                        {chartsByEncounterId.get(enc.id) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedChartVersionId(
+                                chartsByEncounterId.get(enc.id)!.id,
+                              )
+                            }
+                            className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
+                          >
+                            <Activity className="h-3 w-3" />
+                            {t("linkedChartBadge", {
+                              version: chartsByEncounterId.get(enc.id)!.version,
+                            })}
+                          </button>
+                        )}
                       </div>
                     ))
                   )}

@@ -247,6 +247,8 @@ export async function getPatientDetails(
     prescriptions,
     labOrders,
     currentDoctorProfileId: tenant.profileId,
+    currentDoctorName: tenant.fullName,
+    clinicName: tenant.clinicName,
     canConfirmAllPatientLabs: Boolean(currentAppt),
   };
 }

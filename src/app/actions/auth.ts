@@ -191,13 +191,17 @@ export async function requestTenantAccountAction(
     const input = parsed.data;
     const normalizedEmail = input.email.trim().toLowerCase();
 
-    const [existingProfile, plan] = await Promise.all([
+    const [existingProfile, plan, specialty] = await Promise.all([
       prisma.profiles.findFirst({
         where: { email: { equals: normalizedEmail, mode: "insensitive" } },
         select: { id: true },
       }),
       prisma.subscription_plans.findFirst({
         where: { id: input.planId, status: "active", deleted_at: null },
+      }),
+      prisma.specialties.findFirst({
+        where: { id: input.specialtyId, is_active: true },
+        select: { id: true, name: true },
       }),
     ]);
 
@@ -210,6 +214,10 @@ export async function requestTenantAccountAction(
 
     if (!plan) {
       return { error: "Selected subscription plan is not available." };
+    }
+
+    if (!specialty) {
+      return { error: "Selected clinic specialty is not available." };
     }
 
     let authUserId: string;
@@ -246,6 +254,7 @@ export async function requestTenantAccountAction(
             registration_number: input.registrationNumber || null,
             email: input.clinicEmail || null,
             phone: input.clinicPhone || null,
+            specialty_id: specialty.id,
             subscription_plan: planToLegacyTier(plan),
             status: ClinicStatus.under_review,
             request_ref: requestRef,
@@ -258,6 +267,7 @@ export async function requestTenantAccountAction(
           full_name: input.fullName,
           email: normalizedEmail,
           phone: input.phone,
+          specialty: specialty.name,
           role: "owner" as const,
           is_owner: true,
           status: UserStatus.inactive,
@@ -268,6 +278,11 @@ export async function requestTenantAccountAction(
           where: { auth_user_id: authUserId },
           update: ownerProfileData,
           create: { auth_user_id: authUserId, ...ownerProfileData },
+        });
+
+        await tx.doctor_specialties.createMany({
+          data: [{ profile_id: ownerProfile.id, specialty_id: specialty.id }],
+          skipDuplicates: true,
         });
 
         await tx.tenant_subscriptions.create({
@@ -299,6 +314,7 @@ export async function requestTenantAccountAction(
               clinic_name: clinic.name,
               owner_email: normalizedEmail,
               plan_id: plan.id,
+              specialty_id: specialty.id,
             },
           },
         });

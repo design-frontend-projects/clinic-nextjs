@@ -66,6 +66,7 @@ const ICONS: Record<string, LucideIcon> = {
   plans: CreditCard,
   specialties: Stethoscope,
   medications: Pill,
+  bodyReports: Activity,
 };
 
 type SidebarNavProps = {

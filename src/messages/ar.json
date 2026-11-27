@@ -109,7 +109,10 @@
       "copiedRef": "تم نسخ الرقم المرجعي",
       "trackRequestButton": "تتبع حالة الطلب",
       "backToSignIn": "العودة لتسجيل الدخول",
-      "trackExistingRequest": "تتبع طلب حالي"
+      "trackExistingRequest": "تتبع طلب حالي",
+      "specialtyLabel": "تخصص العيادة *",
+      "specialtyPlaceholder": "اختر التخصص الطبي الأساسي للعيادة",
+      "loadingSpecialties": "جاري تحميل التخصصات..."
     },
     "requestStatus": {
       "title": "تتبع حالة الطلب",
@@ -293,7 +296,8 @@
       "toastDeactivated": "تم تعطيل التخصص.",
       "toastToggleFailed": "تعذر تحديث حالة التخصص.",
       "activeToggleDesc": "السماح للعيادات والأطباء باختيار هذا التخصص.",
-      "doctorsCount": "{count} طبيب"
+      "doctorsCount": "{count} طبيب",
+      "diagram": "المخطط التشريحي"
     },
     "tenants": {
       "title": "العيادات المشتركة",
@@ -455,7 +459,10 @@
       "saveSpecialty": "حفظ التخصص",
       "createSpecialty": "إنشاء التخصص",
       "toastUpdated": "تم تحديث التخصص.",
-      "toastCreated": "تم إنشاء التخصص."
+      "toastCreated": "تم إنشاء التخصص.",
+      "diagramTemplateLabel": "قالب المخطط التشريحي التفاعلي",
+      "diagramTemplateDesc": "يحدد المخطط التشريحي عالي الدقة (SVG) الذي يظهر للأطباء في العيادات المرتبطة بهذا التخصص.",
+      "diagramPreviewTitle": "معاينة حية للقالب"
     },
     "tenantCreate": {
       "toastCreatedEmailSent": "تم إنشاء العيادة وإرسال بريد تعيين كلمة المرور إلى المالك.",
@@ -482,7 +489,10 @@
       "specialtiesTitle": "التخصصات (اختياري)",
       "noActiveSpecialties": "لا توجد تخصصات نشطة في الدليل.",
       "cancel": "إلغاء",
-      "createTenant": "إنشاء العيادة"
+      "createTenant": "إنشاء العيادة",
+      "clinicSpecialtyLabel": "التخصص الأساسي للعيادة",
+      "clinicSpecialtyPlaceholder": "اختر تخصص العيادة",
+      "noSpecialty": "عام / غير محدد"
     },
     "tenantActions": {
       "toastDone": "تم التنفيذ بنجاح.",
@@ -621,7 +631,8 @@
       "tabs": {
         "overview": "نظرة عامة",
         "visits": "الزيارات",
-        "account": "الحساب"
+        "account": "الحساب",
+        "bodyChart": "المخطط التشريحي"
       },
       "personalTitle": "البيانات الشخصية",
       "contactTitle": "بيانات التواصل",
@@ -742,7 +753,8 @@
     "myReviews": "تقييماتي",
     "notifications": "الإشعارات",
     "messages": "رسائل واتساب",
-    "toggleSidebar": "تبديل الشريط الجانبي"
+    "toggleSidebar": "تبديل الشريط الجانبي",
+    "bodyReports": "تقارير الفحص التشريحي"
   },
   "pages": {
     "booking": {
@@ -1024,7 +1036,10 @@
         "confirmLabBtn": "تأكيد وإضافة ملاحظات",
         "editLabNotesBtn": "تعديل الملاحظات",
         "viewLabNotesBtn": "عرض الملاحظات",
-        "confirmedByAt": "تم التأكيد بواسطة {name} في {date}"
+        "confirmedByAt": "تم التأكيد بواسطة {name} في {date}",
+        "metricCharts": "المخططات التشريحية",
+        "attachBodyChart": "حفظ وربط تعديلات المخطط التشريحي الحالية بهذه الزيارة",
+        "linkedChartBadge": "مخطط تشريحي v{version}"
       },
       "encounter": {
         "errDiagnosisRequired": "التشخيص مطلوب",
@@ -1097,7 +1112,8 @@
         "quickLinks": "روابط سريعة",
         "linkBookings": "إدارة الحجوزات",
         "linkAppointments": "المواعيد وسجل الزيارات",
-        "linkProfile": "ملفي الشخصي"
+        "linkProfile": "ملفي الشخصي",
+        "linkBodyReports": "تقارير الفحص التشريحي"
       },
       "appointments": {
         "title": "مواعيدي",
@@ -1145,6 +1161,13 @@
         "errPasswordMin": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل",
         "errConfirmPassword": "يرجى تأكيد كلمة المرور",
         "errPasswordMismatch": "كلمتا المرور غير متطابقتين"
+      },
+      "reports": {
+        "title": "تقارير الفحص التشريحي",
+        "subtitle": "المخططات الطبية التفاعلية وملاحظات الطبيب لكل جزء تمت مشاركتها معك.",
+        "loadError": "تعذر تحميل المخططات الطبية في الوقت الحالي.",
+        "emptyTitle": "لا توجد تقارير تشريحية مشاركة بعد",
+        "emptyDesc": "عندما يقوم طبيبك بحفظ ومشاركة تقرير مخطط تشريحي خلال الزيارة، سيظهر هنا."
       }
     },
     "staff": {
@@ -1662,7 +1685,10 @@
     "starter": "بدء",
     "professional": "محترف",
     "enterprise": "مؤسسة",
-    "selectPlan": "اختر خطة"
+    "selectPlan": "اختر خطة",
+    "specialty": "التخصص الأساسي",
+    "selectSpecialty": "اختر تخصص العيادة",
+    "noSpecialty": "عام / غير محدد"
   },
   "dashboard": {
     "noClinic": {
@@ -1846,7 +1872,10 @@
         "phone": "الهاتف",
         "pharmacy": "صيدلية",
         "lab": "المختبر",
-        "radiology": "أشعة"
+        "radiology": "أشعة",
+        "specialty": "التخصص الأساسي",
+        "specialtyPlaceholder": "اختر تخصص العيادة",
+        "noSpecialty": "عام / غير محدد"
       }
     },
     "billing": {
@@ -2925,5 +2954,70 @@
       "Rectal": "شرجي",
       "Sublingual": "تحت اللسان"
     }
+  },
+  "bodyChart": {
+    "markedCountBadge": "{count} جزء محدد",
+    "unsavedDraft": "مسودة غير محفوظة",
+    "undo": "تراجع",
+    "redo": "إعادة",
+    "downloadSvg": "تنزيل SVG متحرك",
+    "viewReport": "التقرير والطباعة PDF",
+    "visitTimeline": "سجل الزيارات",
+    "liveDraft": "المسودة الحالية",
+    "viewingSnapshotBanner": "عرض النسخة المحفوظة v{version} ({date}) — معاينة للقراءة فقط",
+    "sharedBadge": "مشارك مع المريض",
+    "privateBadge": "للطبيب فقط",
+    "restoreToDraft": "تحميل إلى المسودة",
+    "overallNotesLabel": "الملخص السريري العام",
+    "overallNotesPlaceholder": "أضف ملخصًا سريريًا عامًا للمناطق المحددة...",
+    "shareWithPatientLabel": "مشاركة التقرير في بوابة المريض",
+    "saveSnapshotBtn": "حفظ نسخة المخطط",
+    "saveSuccess": "تم حفظ المخطط التشريحي بنجاح (v{version})",
+    "saveFailed": "تعذر حفظ نسخة المخطط التشريحي",
+    "restoredToDraft": "تم تحميل النسخة إلى المسودة الحالية",
+    "sharedWithPatientOn": "أصبح التقرير مرئيًا في بوابة المريض",
+    "sharedWithPatientOff": "تم إخفاء التقرير من بوابة المريض",
+    "zoomIn": "تكبير",
+    "zoomOut": "تصغير",
+    "resetView": "إعادة ضبط العرض",
+    "animationOn": "متحرك",
+    "animationOff": "ثابت",
+    "fullscreen": "ملء الشاشة",
+    "exitFullscreen": "إغلاق ملء الشاشة",
+    "tabPartReport": "تقرير الجزء",
+    "tabPartsIndex": "فهرس الأجزاء",
+    "selectPartHint": "اضغط على أي جزء مرقم في المخطط أو اختره من فهرس الأجزاء.",
+    "startFromFirst": "ابدأ بالجزء رقم ١",
+    "prevPart": "الجزء السابق",
+    "nextPart": "الجزء التالي",
+    "conditionLabel": "الحالة السريرية",
+    "severityLabel": "درجة الخطورة",
+    "severity": {
+      "low": "بسيطة",
+      "moderate": "متوسطة",
+      "severe": "شديدة",
+      "critical": "حرجة"
+    },
+    "surfacesLabel": "أسطح السن (O / M / D / B / L)",
+    "findingsLabel": "تقرير الملاحظات والنتائج",
+    "findingsPlaceholder": "اكتب الفحص والملاحظات السريرية لهذا الجزء...",
+    "treatmentPlanLabel": "خطة العلاج / الإجراء",
+    "treatmentPlanPlaceholder": "اكتب خطة العلاج أو المتابعة المقترحة...",
+    "clearPart": "مسح تحديد الجزء",
+    "partHistoryTitle": "السجل التاريخي لهذا الجزء",
+    "searchPartsPlaceholder": "ابحث بالرقم أو الاسم التشريحي...",
+    "markedOnly": "المحددة فقط",
+    "noMatchingParts": "لا توجد أجزاء مطابقة للبحث.",
+    "reportModalTitle": "التقرير السريري للمخطط التشريحي",
+    "printReport": "طباعة / حفظ PDF",
+    "patientLabel": "المريض",
+    "doctorLabel": "الطبيب",
+    "detailedFindingsTitle": "تفاصيل التقرير لكل جزء",
+    "noMarkedParts": "لم يتم تحديد أي أجزاء في هذه النسخة.",
+    "colPart": "الجزء التشريحي",
+    "colCondition": "الحالة",
+    "colSeverity": "الخطورة",
+    "colFindings": "الملاحظات والنتائج",
+    "colTreatment": "خطة العلاج"
   }
 }

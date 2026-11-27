@@ -201,6 +201,7 @@ export async function createTenant(
           registration_number: input.clinic.registration_number || null,
           email: input.clinic.email || null,
           phone: input.clinic.phone || null,
+          specialty_id: input.clinic.specialty_id || null,
           subscription_plan: planToLegacyTier(activePlan),
           // Schema default is "trial"; admin-created tenants start active.
           status: ClinicStatus.active,

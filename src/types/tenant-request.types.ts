@@ -28,6 +28,7 @@ export const tenantRequestSchema = z
       .optional()
       .or(z.literal("")),
     clinicPhone: z.string().trim().optional().or(z.literal("")),
+    specialtyId: z.string().uuid("Please select a clinic specialty"),
     planId: z.string().uuid("Please select a subscription plan"),
   })
   .refine((val) => val.password === val.confirmPassword, {

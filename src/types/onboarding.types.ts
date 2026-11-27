@@ -37,6 +37,7 @@ export const clinicSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
   subscription_plan: z.string().optional(),
+  specialty_id: z.string().uuid().optional(),
   is_primary: z.boolean().optional(),
   branch_ids: z
     .array(z.string().uuid())

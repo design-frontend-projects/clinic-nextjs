@@ -153,6 +153,7 @@ export async function getOnboardingProgress() {
         email: clinic.email || "",
         phone: clinic.phone || "",
         subscription_plan: clinic.subscription_plan || "free",
+        specialty_id: clinic.specialty_id || undefined,
         is_primary: clinic.is_primary ?? true,
         branch_ids: linkedBranchIds,
         primary_branch_id: primaryBranchId,
@@ -405,6 +406,7 @@ export async function saveClinicStep(
             registration_number: parsed.data.registration_number || null,
             email: parsed.data.email || null,
             phone: parsed.data.phone || null,
+            specialty_id: parsed.data.specialty_id || null,
             subscription_plan: parsed.data.subscription_plan || "free",
           },
         });
@@ -417,6 +419,7 @@ export async function saveClinicStep(
             registration_number: parsed.data.registration_number || null,
             email: parsed.data.email || null,
             phone: parsed.data.phone || null,
+            specialty_id: parsed.data.specialty_id || null,
             subscription_plan: parsed.data.subscription_plan || "free",
             status: "active",
           },

@@ -315,6 +315,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["patient"],
   },
   {
+    titleKey: "sidebar.bodyReports",
+    href: "/patient/reports",
+    iconKey: "bodyReports",
+    roles: ["patient"],
+  },
+  {
     titleKey: "sidebar.myProfile",
     href: "/profile",
     iconKey: "profile",

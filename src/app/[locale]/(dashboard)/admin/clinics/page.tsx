@@ -9,6 +9,7 @@ import {
   updateClinic,
   upsertBranch,
 } from "@/app/actions/clinic";
+import { getActiveSpecialties } from "@/app/actions/specialties";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +26,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -39,13 +47,14 @@ import {
   type ClinicWithBranches,
 } from "@/types/clinic.types";
 import { toast } from "sonner";
-import { Building, Building2, Plus, Settings2 } from "lucide-react";
+import { Building, Building2, Plus, Settings2, Stethoscope } from "lucide-react";
 import { BranchManagement } from "@/components/admin/branch-management";
 import { ClinicBranchesPanel } from "@/components/admin/clinic-branches-panel";
 import { BranchMultiSelect } from "@/components/shared/branch-multi-select";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export default function ClinicAdminPage() {
+  const locale = useLocale();
   const t = useTranslations("admin.clinics");
   const tBranch = useTranslations("admin.branches");
   const tBranchShared = useTranslations("branch");
@@ -71,6 +80,12 @@ export default function ClinicAdminPage() {
   const { data: ownerBranches, isLoading: branchesLoading } = useQuery({
     queryKey: ["owner-branches"],
     queryFn: () => getOwnerBranches(),
+  });
+
+  const { data: specialties = [] } = useQuery({
+    queryKey: ["active-specialties"],
+    queryFn: () => getActiveSpecialties(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const activeOwnerBranches = (ownerBranches ?? []).filter(
@@ -99,6 +114,7 @@ export default function ClinicAdminPage() {
       email: "",
       phone: "",
       subscription_plan: "trial",
+      specialty_id: null,
       status: "trial",
       have_pharmacy: false,
       have_lab: false,
@@ -190,6 +206,7 @@ export default function ClinicAdminPage() {
       email: "",
       phone: "",
       subscription_plan: "trial",
+      specialty_id: null,
       status: "trial",
       have_pharmacy: false,
       have_lab: false,
@@ -212,6 +229,7 @@ export default function ClinicAdminPage() {
       email: clinic.email ?? "",
       phone: clinic.phone ?? "",
       subscription_plan: clinic.subscription_plan ?? "trial",
+      specialty_id: clinic.specialty_id ?? null,
       status:
         clinic.status === "active" || clinic.status === "suspended"
           ? clinic.status
@@ -308,6 +326,17 @@ export default function ClinicAdminPage() {
                       {t("plan")} {clinic.subscription_plan}
                     </CardDescription>
                     <div className="flex flex-wrap gap-1.5 pt-1">
+                      {clinic.specialty && (
+                        <Badge
+                          variant="outline"
+                          className="bg-primary/10 text-primary border-primary/20 gap-1"
+                        >
+                          <Stethoscope className="h-3 w-3" />
+                          {locale === "ar" && clinic.specialty.name_ar
+                            ? clinic.specialty.name_ar
+                            : clinic.specialty.name}
+                        </Badge>
+                      )}
                       {clinic.have_pharmacy && (
                         <Badge
                           variant="outline"
@@ -462,6 +491,32 @@ export default function ClinicAdminPage() {
                   {errors.branch_ids.message}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="clinic_specialty">{t("form.specialty")}</Label>
+              <Select
+                value={watch("specialty_id") ?? "__none__"}
+                onValueChange={(v) =>
+                  setValue("specialty_id", v === "__none__" ? null : v, {
+                    shouldDirty: true,
+                  })
+                }
+              >
+                <SelectTrigger id="clinic_specialty">
+                  <SelectValue placeholder={t("form.specialtyPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">
+                    {t("form.noSpecialty")}
+                  </SelectItem>
+                  {specialties.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {locale === "ar" && s.name_ar ? s.name_ar : s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

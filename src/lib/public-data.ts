@@ -24,6 +24,13 @@ export type PublicSpecialty = {
   doctorCount: number;
 };
 
+export type PublicSelectableSpecialty = {
+  id: string;
+  name: string;
+  name_ar: string | null;
+  diagram_key: string;
+};
+
 export type PublicTestimonial = {
   id: string;
   rating: number;
@@ -82,6 +89,23 @@ export const getPublicSpecialties = unstable_cache(
     }
   },
   ["public-specialties"],
+  { revalidate: 300, tags: ["public-specialties"] },
+);
+
+export const getAllPublicActiveSpecialties = unstable_cache(
+  async (): Promise<PublicSelectableSpecialty[]> => {
+    try {
+      return await prisma.specialties.findMany({
+        where: { is_active: true },
+        select: { id: true, name: true, name_ar: true, diagram_key: true },
+        orderBy: [{ display_order: "asc" }, { name: "asc" }],
+      });
+    } catch (error) {
+      console.error("[public-data] getAllPublicActiveSpecialties failed", error);
+      return [];
+    }
+  },
+  ["public-selectable-specialties"],
   { revalidate: 300, tags: ["public-specialties"] },
 );
 

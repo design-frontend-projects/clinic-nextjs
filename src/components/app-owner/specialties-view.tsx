@@ -33,9 +33,11 @@ export interface SerializedSpecialty {
   name: string;
   name_ar: string | null;
   description: string | null;
+  diagram_key?: string;
   display_order: number;
   is_active: boolean;
   doctorsCount: number;
+  clinicsCount?: number;
 }
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -132,6 +134,15 @@ export function SpecialtiesView({
           <span dir="rtl" className="inline-block font-medium text-foreground">
             {row.original.name_ar || "—"}
           </span>
+        ),
+      },
+      {
+        accessorKey: "diagram_key",
+        header: t("diagram"),
+        cell: ({ row }) => (
+          <Badge variant="secondary" className="font-mono text-[11px]">
+            {row.original.diagram_key ?? "general_body"}
+          </Badge>
         ),
       },
       {

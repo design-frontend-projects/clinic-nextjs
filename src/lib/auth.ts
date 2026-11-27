@@ -3,10 +3,37 @@ import { cookies } from "next/headers";
 import { cache as reactCache } from "react";
 import { isBranchLockedRole, isMultiBranchRole } from "@/types/clinic.types";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import type { ClinicStatus } from "@prisma/client";
 import {
   evaluateTenantAccess,
   type TenantAccessDenied,
+  type TenantAccessResult,
 } from "@/lib/tenant-access";
+
+export interface TenantInfo {
+  userId: string;
+  orgId: null;
+  profileId: string;
+  role: string;
+  fullName: string | null;
+  email: string | null;
+  profileStatus: string;
+  is_profile_completed: boolean;
+  is_owner: boolean;
+  clinicId: string | null;
+  clinicName: string | null;
+  clinicStatus: ClinicStatus | null;
+  clinicSpecialtyId?: string | null;
+  clinicSpecialtyName?: string | null;
+  clinicSpecialtyNameAr?: string | null;
+  clinicDiagramKey?: string | null;
+  subscriptionPlan: string;
+  branchId: string | null;
+  branchName: string | null;
+  branchLocked: boolean;
+  auth_user_id: string;
+  access: TenantAccessResult;
+}
 import {
   extractActiveRbacRoleNames,
   resolveEffectiveProfileRole,
@@ -72,7 +99,7 @@ export const getSupabaseSession = reactCache(async () => {
  * Wrapped in React `cache()` so the profile/clinic/branch lookups run once per
  * request no matter how many actions or layout branches call it during a render.
  */
-export const getTenantInfo = reactCache(async () => {
+export const getTenantInfo = reactCache(async (): Promise<TenantInfo | null> => {
   const session = await getSupabaseSession();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
@@ -200,6 +227,15 @@ export const getTenantInfo = reactCache(async () => {
     request_ref: true,
     activated_at: true,
     rejection_reason: true,
+    specialty_id: true,
+    specialty: {
+      select: {
+        id: true,
+        name: true,
+        name_ar: true,
+        diagram_key: true,
+      },
+    },
   } as const;
 
   const baseClinicSelect = {
@@ -239,6 +275,8 @@ export const getTenantInfo = reactCache(async () => {
       request_ref: null,
       activated_at: null,
       rejection_reason: null,
+      specialty_id: null,
+      specialty: null,
     };
   };
 
@@ -388,6 +426,16 @@ export const getTenantInfo = reactCache(async () => {
     clinicId: isPlatformAppOwner ? null : (clinic?.id ?? null),
     clinicName: isPlatformAppOwner ? null : (clinic?.name ?? null),
     clinicStatus: isPlatformAppOwner ? null : (clinic?.status ?? null),
+    clinicSpecialtyId: isPlatformAppOwner ? null : (clinic?.specialty_id ?? null),
+    clinicSpecialtyName: isPlatformAppOwner
+      ? null
+      : (clinic?.specialty?.name ?? null),
+    clinicSpecialtyNameAr: isPlatformAppOwner
+      ? null
+      : (clinic?.specialty?.name_ar ?? null),
+    clinicDiagramKey: isPlatformAppOwner
+      ? null
+      : (clinic?.specialty?.diagram_key ?? null),
     subscriptionPlan: isPlatformAppOwner
       ? "free"
       : (clinic?.subscription_plan ?? "free"),
@@ -432,8 +480,6 @@ export async function requireTenantInfo() {
     clinicId: tenant.clinicId,
   };
 }
-
-type TenantInfo = NonNullable<Awaited<ReturnType<typeof getTenantInfo>>>;
 
 /**
  * Resolve tenant context for a dashboard layout without throwing.

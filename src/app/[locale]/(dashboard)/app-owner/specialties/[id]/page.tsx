@@ -4,6 +4,8 @@ import { getSpecialty } from "@/app/actions/app-owner/specialties";
 import { AppOwnerPageHeader } from "@/components/app-owner/app-owner-page-header";
 import { SpecialtyEditor } from "@/components/app-owner/specialty-editor";
 import type { SpecialtyFormData } from "@/types/specialty.types";
+import type { DiagramKey } from "@/types/body-chart.types";
+import { isDiagramKey } from "@/lib/body-chart/registry";
 
 import { getTranslations } from "next-intl/server";
 
@@ -27,6 +29,9 @@ export default async function EditSpecialtyPage({
     name: specialty.name,
     name_ar: specialty.name_ar,
     description: specialty.description,
+    diagram_key: isDiagramKey(specialty.diagram_key)
+      ? (specialty.diagram_key as DiagramKey)
+      : "general_body",
     is_active: specialty.is_active,
     display_order: specialty.display_order,
   };

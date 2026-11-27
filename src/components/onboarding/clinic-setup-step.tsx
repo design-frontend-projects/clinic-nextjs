@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -13,6 +13,7 @@ import {
   Loader2,
   ArrowLeft,
   ArrowRight,
+  Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,9 @@ import {
   type ClinicFormData,
   type OnboardingBranchItem,
 } from "@/types/onboarding.types";
-import { useTranslations } from "next-intl";
+import { getActiveSpecialties } from "@/app/actions/specialties";
+import type { ActiveSpecialty } from "@/types/specialty.types";
+import { useLocale, useTranslations } from "next-intl";
 
 type ClinicSetupStepProps = {
   availableBranches: OnboardingBranchItem[];
@@ -47,9 +50,23 @@ export function ClinicSetupStep({
   onBack,
   loading,
 }: ClinicSetupStepProps) {
+  const locale = useLocale();
   const t = useTranslations("clinic");
   const tBranch = useTranslations("branch");
   const tOnboarding = useTranslations("auth.onboarding");
+  const [specialties, setSpecialties] = useState<ActiveSpecialty[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getActiveSpecialties()
+      .then((rows) => {
+        if (active) setSpecialties(rows);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const availableIds = new Set(availableBranches.map((b) => b.id));
   const initialSelected =
@@ -78,6 +95,7 @@ export function ClinicSetupStep({
       email: defaultValues?.email ?? "",
       phone: defaultValues?.phone ?? "",
       subscription_plan: defaultValues?.subscription_plan ?? "free",
+      specialty_id: defaultValues?.specialty_id,
       is_primary: defaultValues?.is_primary ?? true,
       branch_ids: defaultBranchIds,
       primary_branch_id: defaultPrimaryId,
@@ -162,6 +180,31 @@ export function ClinicSetupStep({
             {errors.branch_ids.message}
           </p>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <Stethoscope className="h-4 w-4 text-muted-foreground" />
+          {t("specialty")}
+        </Label>
+        <Select
+          value={watch("specialty_id") ?? "__none__"}
+          onValueChange={(val) =>
+            setValue("specialty_id", val === "__none__" ? undefined : val)
+          }
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={t("selectSpecialty")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">{t("noSpecialty")}</SelectItem>
+            {specialties.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {locale === "ar" && s.name_ar ? s.name_ar : s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
