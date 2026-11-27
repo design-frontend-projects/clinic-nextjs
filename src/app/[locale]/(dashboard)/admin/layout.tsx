@@ -9,7 +9,13 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const result = await resolveDashboardTenant();
+  let result: Awaited<ReturnType<typeof resolveDashboardTenant>>;
+  try {
+    result = await resolveDashboardTenant();
+  } catch (error) {
+    console.error("[admin/layout] resolveDashboardTenant failed:", error);
+    throw error;
+  }
 
   if (result.status === "unauthenticated") {
     return redirect({ href: "/sign-in", locale: await getLocale() });

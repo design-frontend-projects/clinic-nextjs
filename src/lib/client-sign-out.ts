@@ -3,6 +3,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { clearSignOutCookies } from "@/app/actions/auth";
+import { LEGACY_RUNTIME_CACHE_NAMES } from "@/lib/sw-bypass";
 import { useAuthStore } from "@/stores/authStore";
 
 /**
@@ -28,6 +29,16 @@ export async function performClientSignOut(
 
   useAuthStore.getState().setSession(null);
   queryClient.clear();
+
+  try {
+    if (typeof window !== "undefined" && "caches" in window) {
+      await Promise.all(
+        LEGACY_RUNTIME_CACHE_NAMES.map((name) => window.caches.delete(name)),
+      );
+    }
+  } catch {
+    // Non-fatal: cache cleanup is best-effort.
+  }
 
   try {
     await clearSignOutCookies();

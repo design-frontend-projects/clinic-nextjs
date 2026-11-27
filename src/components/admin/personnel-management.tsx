@@ -2,18 +2,11 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getPersonnel,
+  getPersonnelPageData,
   upsertPersonnel,
   updateOwnerDoctorAvailability,
   deletePersonnel,
 } from "@/app/actions/personnel";
-import { getActiveSpecialties } from "@/app/actions/specialties";
-import {
-  getBranches,
-  getOwnerClinics,
-  getOwnerClinicsWithBranches,
-} from "@/app/actions/clinic";
-import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { DoctorAssignmentEditor } from "@/components/admin/doctor-assignment-editor";
 import {
   TempPasswordDialog,
@@ -95,8 +88,8 @@ interface PersonnelManagementProps {
   title: string;
 }
 
-/** A personnel row as returned by `getPersonnel` (includes branch + assignments). */
-type PersonnelRow = Awaited<ReturnType<typeof getPersonnel>>[number];
+/** A personnel row as returned by `getPersonnelPageData` (includes branch + assignments). */
+type PersonnelRow = Awaited<ReturnType<typeof getPersonnelPageData>>["personnel"][number];
 
 /** "receptionist" -> "Receptionist" for dropdown labels. */
 const roleLabel = (r: string) => r.charAt(0).toUpperCase() + r.slice(1);
@@ -105,6 +98,7 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   const queryClient = useQueryClient();
   const locale = useLocale();
   const t = useTranslations("admin.personnel");
+  const tError = useTranslations("dashboard.error");
   const tStatus = useTranslations("enums.status");
   const tRoles = useTranslations("notifications.roles");
   const tDaysShort = useTranslations("common.daysShort");
@@ -127,62 +121,41 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   const [assignments, setAssignments] = useState<DoctorBranchAssignment[]>([]);
   const [primaryBranchId, setPrimaryBranchId] = useState<string | null>(null);
 
-  const { data: tenant } = useQuery({
-    queryKey: ["tenant-info"],
-    queryFn: () => fetchTenantInfoAction(),
+  const {
+    data: pageData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["personnel-page-data", role],
+    queryFn: () => getPersonnelPageData(role),
   });
 
-  const authUserId = tenant?.auth_user_id as string;
-
-  const { data: personnel, isLoading } = useQuery({
-    queryKey: ["personnel", role],
-    queryFn: () => getPersonnel(role),
-    enabled: !!authUserId,
-  });
-
-  const { data: specialties } = useQuery({
-    queryKey: ["active-specialties"],
-    queryFn: () => getActiveSpecialties(),
-    enabled: role === "doctor",
-  });
-
+  const tenant = pageData?.tenant;
+  const authUserId = tenant?.auth_user_id;
+  const personnel = pageData?.personnel;
+  const specialties = pageData?.specialties;
   const clinicId = tenant?.clinicId ?? null;
-
-  // All clinics owned by this clinic's owner, for the (informational) clinic
-  // dropdown. Default (`is_primary`) clinic is ordered first server-side.
-  const { data: ownerClinics } = useQuery({
-    queryKey: ["owner-clinics", clinicId],
-    queryFn: () => getOwnerClinics(),
-    enabled: !!clinicId,
-  });
-
-  // All of the owner's clinics with their active branches, for the doctor
-  // multi-clinic/branch assignment editor.
-  const { data: ownerClinicsWithBranches } = useQuery({
-    queryKey: ["owner-clinics-branches", clinicId],
-    queryFn: () => getOwnerClinicsWithBranches(),
-    // Fetch whenever a clinic exists: the invite Role dropdown can select
-    // "doctor" even on the staff page, which needs this data.
-    enabled: !!clinicId,
-  });
+  const ownerClinics = pageData?.ownerClinics;
+  const ownerClinicsWithBranches = pageData?.ownerClinicsWithBranches;
+  const branches = pageData?.branches;
 
   // The clinic shown/selected in the dropdown; defaults to the caller's default
   // clinic. Does not affect submission or the branch list.
   const displayClinicId = selectedClinicId ?? clinicId;
-
-  // Branches are always listed from the default clinic only, regardless of the
-  // clinic dropdown selection.
-  const { data: branches } = useQuery({
-    queryKey: ["clinic-branches", clinicId],
-    queryFn: () => getBranches(clinicId!),
-    enabled: !!clinicId,
-  });
 
   const activeBranches = (branches ?? []).filter((b) => b.status === "active");
 
   const upsertMutation = useMutation({
     mutationFn: (data: Profile) => upsertPersonnel(data),
     onSuccess: (result, variables) => {
+      if (result && "error" in result) {
+        toast.error(result.error || t("toastOperationFailed"));
+        return;
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["personnel-page-data", role],
+      });
       queryClient.invalidateQueries({
         queryKey: ["personnel", role],
       });
@@ -209,7 +182,15 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deletePersonnel(id),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result && "error" in result) {
+        toast.error(result.error || t("toastDeleteFailed"));
+        setPersonnelToDelete(null);
+        return;
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["personnel-page-data", role],
+      });
       queryClient.invalidateQueries({
         queryKey: ["personnel", role],
       });
@@ -253,7 +234,12 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
   const ownerScheduleMutation = useMutation({
     mutationFn: (data: DoctorAvailabilityInput) =>
       updateOwnerDoctorAvailability(data),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result && "error" in result) {
+        toast.error(result.error || t("toastOperationFailed"));
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["personnel-page-data", role] });
       queryClient.invalidateQueries({ queryKey: ["personnel", role] });
       queryClient.invalidateQueries({ queryKey: ["booking-context"] });
       setIsOwnerScheduleOpen(false);
@@ -422,8 +408,18 @@ export function PersonnelManagement({ role, title }: PersonnelManagementProps) {
     onUpdate(next);
   };
 
-  if (!authUserId) return <div>{t("initializing")}</div>;
   if (isLoading) return <div>{t("loading", { role: role === "doctor" ? t("doctorsPlural") : t("staffPlural") })}</div>;
+  if (isError || !pageData) {
+    return (
+      <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+        <p>{t("toastOperationFailed")}</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          {tError("retry")}
+        </Button>
+      </div>
+    );
+  }
+  if (!authUserId) return <div>{t("initializing")}</div>;
 
   return (
     <div className="space-y-4">

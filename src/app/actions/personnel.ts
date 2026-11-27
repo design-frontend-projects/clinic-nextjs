@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
 import { requirePermission } from "@/lib/permissions";
@@ -24,6 +26,36 @@ import {
 } from "@/lib/user-creation";
 import { rbacService } from "@/features/rbac/services/rbac.service";
 
+function formatPersonnelError(error: unknown, fallback: string): string {
+  if (error instanceof z.ZodError) {
+    return error.issues[0]?.message || fallback;
+  }
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      return "A record with these details already exists.";
+    }
+    if (error.code === "P2003") {
+      return "This profile cannot be deleted because it is linked to existing clinic records. Set its status to inactive or blocked instead.";
+    }
+    if (error.code === "P2025") {
+      return "Profile not found in this clinic.";
+    }
+  }
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+  return fallback;
+}
+
+const personnelInclude = {
+  branches: { select: { id: true, name: true } },
+  // Multi-clinic/branch assignments (doctors) so the edit form can preload
+  // the current clinic/branch set.
+  profile_branches: {
+    select: { clinic_id: true, branch_id: true, is_primary: true },
+  },
+} as const;
+
 export async function getPersonnel(page: "doctor" | "staff") {
   const tenant = await requireTenantInfo();
 
@@ -32,16 +64,103 @@ export async function getPersonnel(page: "doctor" | "staff") {
       tenant_id: tenant.clinicId,
       role: { in: [...rolesForPersonnelPage(page)] },
     },
-    include: {
-      branches: { select: { id: true, name: true } },
-      // Multi-clinic/branch assignments (doctors) so the edit form can preload
-      // the current clinic/branch set.
-      profile_branches: {
-        select: { clinic_id: true, branch_id: true, is_primary: true },
-      },
-    },
+    include: personnelInclude,
     orderBy: { created_at: "desc" },
   });
+}
+
+/**
+ * Consolidated loader for the `/admin/staff` and `/admin/doctors` pages.
+ * Fetches tenant info, personnel rows, owner clinics, clinics+branches,
+ * clinic branches, and (for doctors) specialties in a single Server Action
+ * round-trip instead of fanning out 5-6 parallel actions on mount.
+ */
+export async function getPersonnelPageData(page: "doctor" | "staff") {
+  const tenant = await requireTenantInfo();
+
+  const currentClinic = await prisma.clinics.findUnique({
+    where: { id: tenant.clinicId },
+    select: { auth_user_id: true },
+  });
+  const ownerAuthId =
+    currentClinic?.auth_user_id ?? (tenant.is_owner ? tenant.auth_user_id : null);
+  const ownerClinicWhere = ownerAuthId
+    ? { auth_user_id: ownerAuthId }
+    : { id: tenant.clinicId };
+
+  const [
+    personnel,
+    ownerClinics,
+    ownerClinicsWithBranchesRaw,
+    branchLinks,
+    specialties,
+  ] = await Promise.all([
+    prisma.profiles.findMany({
+      where: {
+        tenant_id: tenant.clinicId,
+        role: { in: [...rolesForPersonnelPage(page)] },
+      },
+      include: personnelInclude,
+      orderBy: { created_at: "desc" },
+    }),
+    prisma.clinics.findMany({
+      where: ownerClinicWhere,
+      select: { id: true, name: true, is_primary: true },
+      orderBy: [{ is_primary: "desc" }, { created_at: "asc" }],
+    }),
+    prisma.clinics.findMany({
+      where: ownerClinicWhere,
+      select: {
+        id: true,
+        name: true,
+        is_primary: true,
+        clinic_branches: {
+          where: { branches: { status: "active" as const } },
+          select: {
+            is_primary: true,
+            branches: { select: { id: true, name: true, address: true } },
+          },
+          orderBy: [{ is_primary: "desc" }, { created_at: "asc" }],
+        },
+      },
+      orderBy: [{ is_primary: "desc" }, { created_at: "asc" }],
+    }),
+    prisma.clinic_branches.findMany({
+      where: { clinic_id: tenant.clinicId },
+      include: { branches: true },
+      orderBy: [{ is_primary: "desc" }, { created_at: "asc" }],
+    }),
+    page === "doctor"
+      ? prisma.specialties.findMany({
+          where: { is_active: true },
+          select: { id: true, name: true, name_ar: true, diagram_key: true },
+          orderBy: [{ display_order: "asc" }, { name: "asc" }],
+        })
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    tenant,
+    personnel,
+    ownerClinics,
+    ownerClinicsWithBranches: ownerClinicsWithBranchesRaw.map((c) => ({
+      id: c.id,
+      name: c.name,
+      is_primary: c.is_primary,
+      branches: c.clinic_branches.map((cb) => cb.branches),
+    })),
+    branches: branchLinks.map((link) => ({
+      id: link.branches.id,
+      clinic_id: tenant.clinicId,
+      name: link.branches.name,
+      address: link.branches.address,
+      phone: link.branches.phone,
+      status: link.branches.status,
+      is_primary: link.is_primary,
+      created_at: link.branches.created_at,
+    })),
+    specialties,
+  };
 }
 
 /**
@@ -232,229 +351,238 @@ function revalidatePersonnelAndBookingPaths(): void {
 export async function upsertPersonnel(
   data: Profile,
 ): Promise<CreateAccountResult | { success: true }> {
-  const tenant = await requireTenantInfo();
-  await requirePermission("settings.users.manage");
-  const validatedData = profileSchema.parse(data);
+  try {
+    const tenant = await requireTenantInfo();
+    await requirePermission("settings.users.manage");
+    const validatedData = profileSchema.parse(data);
 
-  const isNewRecord = !validatedData.id;
-  const actor = {
-    id: tenant.profileId,
-    email: tenant.email || "system@clinicpro.com",
-  };
+    const isNewRecord = !validatedData.id;
+    const actor = {
+      id: tenant.profileId,
+      email: tenant.email || "system@clinicpro.com",
+    };
 
-  if (!isNewRecord) {
-    // Scope the target profile to the acting tenant — never trust the id from
-    // the client payload (prevents cross-tenant profile takeover).
-    const existing = await prisma.profiles.findFirst({
-      where: { id: validatedData.id, tenant_id: tenant.clinicId },
-      select: { id: true, branch_id: true, role: true },
-    });
-    if (!existing) {
-      throw new Error("Profile not found in this clinic");
-    }
-
-    // Doctor edit: replace the (clinic, branch) assignment set + schedule.
-    if (isMultiBranchRole(existing.role) && validatedData.assignments) {
-      const ownerClinicIds = await getOwnerClinicIds(tenant.clinicId);
-      const plan = await resolveDoctorAssignments(
-        validatedData.assignments,
-        validatedData.primary_branch_id,
-        ownerClinicIds,
-      );
-      const availability = resolveAvailabilityPayload(validatedData);
-
-      await prisma.$transaction(async (tx) => {
-        await tx.profiles.update({
-          where: { id: existing.id },
-          data: {
-            full_name: validatedData.full_name,
-            email: validatedData.email,
-            phone: validatedData.phone ?? null,
-            specialty: validatedData.specialty ?? null,
-            status: validatedData.status,
-            tenant_id: plan.homeClinicId,
-            clinic_id: plan.homeClinicId,
-            branch_id: plan.homeBranchId,
-            ...availability,
-          },
-        });
-        await tx.profile_branches.deleteMany({
-          where: { profile_id: existing.id },
-        });
-        await tx.profile_branches.createMany({
-          data: plan.rows.map((r) => ({ profile_id: existing.id, ...r })),
-        });
+    if (!isNewRecord) {
+      // Scope the target profile to the acting tenant — never trust the id from
+      // the client payload (prevents cross-tenant profile takeover).
+      const existing = await prisma.profiles.findFirst({
+        where: { id: validatedData.id, tenant_id: tenant.clinicId },
+        select: { id: true, branch_id: true, role: true },
       });
+      if (!existing) {
+        return { error: "Profile not found in this clinic" };
+      }
 
-      await syncDoctorRoles(
-        existing.id,
-        [...new Set(plan.rows.map((r) => r.clinic_id))],
-        actor,
-      );
+      // Doctor edit: replace the (clinic, branch) assignment set + schedule.
+      if (isMultiBranchRole(existing.role) && validatedData.assignments) {
+        const ownerClinicIds = await getOwnerClinicIds(tenant.clinicId);
+        const plan = await resolveDoctorAssignments(
+          validatedData.assignments,
+          validatedData.primary_branch_id,
+          ownerClinicIds,
+        );
+        const availability = resolveAvailabilityPayload(validatedData);
+
+        await prisma.$transaction(async (tx) => {
+          await tx.profiles.update({
+            where: { id: existing.id },
+            data: {
+              full_name: validatedData.full_name,
+              email: validatedData.email,
+              phone: validatedData.phone ?? null,
+              specialty: validatedData.specialty ?? null,
+              status: validatedData.status,
+              tenant_id: plan.homeClinicId,
+              clinic_id: plan.homeClinicId,
+              branch_id: plan.homeBranchId,
+              ...availability,
+            },
+          });
+          await tx.profile_branches.deleteMany({
+            where: { profile_id: existing.id },
+          });
+          await tx.profile_branches.createMany({
+            data: plan.rows.map((r) => ({ profile_id: existing.id, ...r })),
+          });
+        });
+
+        await syncDoctorRoles(
+          existing.id,
+          [...new Set(plan.rows.map((r) => r.clinic_id))],
+          actor,
+        );
+
+        revalidatePersonnelAndBookingPaths();
+        return { success: true };
+      }
+
+      // Non-doctor edit: single-branch update (unchanged behavior).
+      if (validatedData.branch_id) {
+        await assertBranchInClinic(
+          validatedData.branch_id,
+          tenant.clinicId,
+          validatedData.branch_id !== existing.branch_id,
+        );
+      }
+
+      await prisma.profiles.update({
+        where: { id: existing.id },
+        data: {
+          full_name: validatedData.full_name,
+          email: validatedData.email,
+          phone: validatedData.phone ?? null,
+          specialty: validatedData.specialty ?? null,
+          status: validatedData.status,
+          ...(validatedData.branch_id !== undefined && {
+            branch_id: validatedData.branch_id,
+          }),
+        },
+      });
 
       revalidatePersonnelAndBookingPaths();
       return { success: true };
     }
 
-    // Non-doctor edit: single-branch update (unchanged behavior).
-    if (validatedData.branch_id) {
-      await assertBranchInClinic(
-        validatedData.branch_id,
-        tenant.clinicId,
-        validatedData.branch_id !== existing.branch_id,
-      );
+    if (!validatedData.email) {
+      return { error: "Email is required to invite a new user" };
     }
 
-    await prisma.profiles.update({
-      where: { id: existing.id },
-      data: {
-        full_name: validatedData.full_name,
-        email: validatedData.email,
-        phone: validatedData.phone ?? null,
-        specialty: validatedData.specialty ?? null,
-        status: validatedData.status,
-        ...(validatedData.branch_id !== undefined && {
-          branch_id: validatedData.branch_id,
-        }),
-      },
-    });
-
-    revalidatePersonnelAndBookingPaths();
-    return { success: true };
-  }
-
-  if (!validatedData.email) {
-    throw new Error("Email is required to invite a new user");
-  }
-
-  // The invite form selects a ProfileRole enum value; only clinic staff roles
-  // may be granted through this flow.
-  const roleResult = invitableRoleEnum.safeParse(validatedData.role);
-  if (!roleResult.success) {
-    throw new Error("A valid role is required to invite a new user");
-  }
-  const profileRole = roleResult.data;
-
-  // Resolve where the new profile "lives" (home clinic + branch). Doctors derive
-  // it from their assignment set; other roles use the acting clinic + a single
-  // (optional/required) branch.
-  let doctorPlan: DoctorPlan | null = null;
-  if (isMultiBranchRole(profileRole)) {
-    const ownerClinicIds = await getOwnerClinicIds(tenant.clinicId);
-    doctorPlan = await resolveDoctorAssignments(
-      validatedData.assignments,
-      validatedData.primary_branch_id,
-      ownerClinicIds,
-    );
-  } else {
-    // Branch-locked roles (staff/pharmacist/receptionist) must have a home
-    // branch; for other roles (e.g. admin) branch is optional/informational.
-    if (isBranchLockedRole(profileRole) && !validatedData.branch_id) {
-      throw new Error("A branch is required to invite a new user");
+    // The invite form selects a ProfileRole enum value; only clinic staff roles
+    // may be granted through this flow.
+    const roleResult = invitableRoleEnum.safeParse(validatedData.role);
+    if (!roleResult.success) {
+      return { error: "A valid role is required to invite a new user" };
     }
-    if (validatedData.branch_id) {
-      await assertBranchInClinic(validatedData.branch_id, tenant.clinicId);
-    }
-  }
+    const profileRole = roleResult.data;
 
-  const homeClinicId = doctorPlan ? doctorPlan.homeClinicId : tenant.clinicId;
-  const homeBranchId = doctorPlan
-    ? doctorPlan.homeBranchId
-    : (validatedData.branch_id ?? null);
-  const doctorAvailability = isMultiBranchRole(profileRole)
-    ? resolveAvailabilityPayload(validatedData)
-    : {};
-
-  // Block duplicates within the home clinic (by email or phone).
-  const duplicate = await findClinicDuplicate({
-    clinicId: homeClinicId,
-    email: validatedData.email,
-    phone: validatedData.phone,
-  });
-  if (duplicate) {
-    throw new Error(duplicateMessage(duplicate));
-  }
-
-  // Create the confirmed auth user + temp password (Supabase admin).
-  const { user, tempPassword } = await createUserAccount({
-    email: validatedData.email,
-    metadata: {
-      full_name: validatedData.full_name,
-      role: profileRole,
-      tenant_id: homeClinicId,
-    },
-  });
-
-  try {
-    const profile = await prisma.profiles.upsert({
-      where: { auth_user_id: user.id },
-      update: {
-        tenant_id: homeClinicId,
-        clinic_id: homeClinicId,
-        full_name: validatedData.full_name,
-        email: validatedData.email,
-        phone: validatedData.phone ?? null,
-        role: profileRole,
-        specialty: validatedData.specialty ?? null,
-        status: validatedData.status || "active",
-        is_owner: false,
-        is_profile_completed: false,
-        branch_id: homeBranchId,
-        ...doctorAvailability,
-      },
-      create: {
-        auth_user_id: user.id,
-        tenant_id: homeClinicId,
-        clinic_id: homeClinicId,
-        full_name: validatedData.full_name,
-        email: validatedData.email,
-        phone: validatedData.phone ?? null,
-        role: profileRole,
-        specialty: validatedData.specialty ?? null,
-        status: validatedData.status || "active",
-        is_owner: false,
-        is_profile_completed: false,
-        branch_id: homeBranchId,
-        ...doctorAvailability,
-      },
-    });
-
-    if (doctorPlan) {
-      // Record the full (clinic, branch) assignment set and grant the doctor
-      // role in every assigned clinic.
-      await prisma.profile_branches.deleteMany({
-        where: { profile_id: profile.id },
-      });
-      await prisma.profile_branches.createMany({
-        data: doctorPlan.rows.map((r) => ({ profile_id: profile.id, ...r })),
-      });
-      await syncDoctorRoles(
-        profile.id,
-        [...new Set(doctorPlan.rows.map((r) => r.clinic_id))],
-        actor,
+    // Resolve where the new profile "lives" (home clinic + branch). Doctors derive
+    // it from their assignment set; other roles use the acting clinic + a single
+    // (optional/required) branch.
+    let doctorPlan: DoctorPlan | null = null;
+    if (isMultiBranchRole(profileRole)) {
+      const ownerClinicIds = await getOwnerClinicIds(tenant.clinicId);
+      doctorPlan = await resolveDoctorAssignments(
+        validatedData.assignments,
+        validatedData.primary_branch_id,
+        ownerClinicIds,
       );
     } else {
-      // Single-clinic RBAC assignment (staff/admin/etc.).
-      const tenantRoles = await rbacService.getRoles(tenant.clinicId);
-      const rbacRole = findRbacRoleForProfileRole(tenantRoles, profileRole);
-      if (rbacRole) {
-        await rbacService.assignUserRoles(
-          tenant.clinicId,
-          { profileId: profile.id, roleIds: [rbacRole.id] },
-          actor,
-        );
+      // Branch-locked roles (staff/pharmacist/receptionist) must have a home
+      // branch; for other roles (e.g. admin) branch is optional/informational.
+      if (isBranchLockedRole(profileRole) && !validatedData.branch_id) {
+        return { error: "A branch is required to invite a new user" };
+      }
+      if (validatedData.branch_id) {
+        await assertBranchInClinic(validatedData.branch_id, tenant.clinicId);
       }
     }
-  } catch (error) {
-    console.error("Personnel creation failed, rolling back auth user:", error);
-    await rollbackAuthUser(user.id);
-    throw new Error(
-      "Failed to create the profile. The invitation was rolled back.",
-    );
-  }
 
-  revalidatePersonnelAndBookingPaths();
-  return { success: true, tempPassword, fullName: validatedData.full_name };
+    const homeClinicId = doctorPlan ? doctorPlan.homeClinicId : tenant.clinicId;
+    const homeBranchId = doctorPlan
+      ? doctorPlan.homeBranchId
+      : (validatedData.branch_id ?? null);
+    const doctorAvailability = isMultiBranchRole(profileRole)
+      ? resolveAvailabilityPayload(validatedData)
+      : {};
+
+    // Block duplicates within the home clinic (by email or phone).
+    const duplicate = await findClinicDuplicate({
+      clinicId: homeClinicId,
+      email: validatedData.email,
+      phone: validatedData.phone,
+    });
+    if (duplicate) {
+      return { error: duplicateMessage(duplicate) };
+    }
+
+    // Create the confirmed auth user + temp password (Supabase admin).
+    const { user, tempPassword } = await createUserAccount({
+      email: validatedData.email,
+      metadata: {
+        full_name: validatedData.full_name,
+        role: profileRole,
+        tenant_id: homeClinicId,
+      },
+    });
+
+    try {
+      const profile = await prisma.profiles.upsert({
+        where: { auth_user_id: user.id },
+        update: {
+          tenant_id: homeClinicId,
+          clinic_id: homeClinicId,
+          full_name: validatedData.full_name,
+          email: validatedData.email,
+          phone: validatedData.phone ?? null,
+          role: profileRole,
+          specialty: validatedData.specialty ?? null,
+          status: validatedData.status || "active",
+          is_owner: false,
+          is_profile_completed: false,
+          branch_id: homeBranchId,
+          ...doctorAvailability,
+        },
+        create: {
+          auth_user_id: user.id,
+          tenant_id: homeClinicId,
+          clinic_id: homeClinicId,
+          full_name: validatedData.full_name,
+          email: validatedData.email,
+          phone: validatedData.phone ?? null,
+          role: profileRole,
+          specialty: validatedData.specialty ?? null,
+          status: validatedData.status || "active",
+          is_owner: false,
+          is_profile_completed: false,
+          branch_id: homeBranchId,
+          ...doctorAvailability,
+        },
+      });
+
+      if (doctorPlan) {
+        // Record the full (clinic, branch) assignment set and grant the doctor
+        // role in every assigned clinic.
+        await prisma.profile_branches.deleteMany({
+          where: { profile_id: profile.id },
+        });
+        await prisma.profile_branches.createMany({
+          data: doctorPlan.rows.map((r) => ({ profile_id: profile.id, ...r })),
+        });
+        await syncDoctorRoles(
+          profile.id,
+          [...new Set(doctorPlan.rows.map((r) => r.clinic_id))],
+          actor,
+        );
+      } else {
+        // Single-clinic RBAC assignment (staff/admin/etc.).
+        const tenantRoles = await rbacService.getRoles(tenant.clinicId);
+        const rbacRole = findRbacRoleForProfileRole(tenantRoles, profileRole);
+        if (rbacRole) {
+          await rbacService.assignUserRoles(
+            tenant.clinicId,
+            { profileId: profile.id, roleIds: [rbacRole.id] },
+            actor,
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Personnel creation failed, rolling back auth user:", error);
+      await rollbackAuthUser(user.id).catch((rollbackError) => {
+        console.error("Rollback auth user failed:", rollbackError);
+      });
+      return {
+        error: "Failed to create the profile. The invitation was rolled back.",
+      };
+    }
+
+    revalidatePersonnelAndBookingPaths();
+    return { success: true, tempPassword, fullName: validatedData.full_name };
+  } catch (error) {
+    console.error("[personnel] upsertPersonnel failed:", error);
+    return {
+      error: formatPersonnelError(error, "Failed to save personnel profile."),
+    };
+  }
 }
 
 /**
@@ -463,38 +591,72 @@ export async function upsertPersonnel(
  */
 export async function updateOwnerDoctorAvailability(
   input: DoctorAvailabilityInput,
-): Promise<{ success: true }> {
-  const tenant = await requireTenantInfo();
-  if (!tenant.is_owner && tenant.role !== "owner") {
-    throw new Error("Only the clinic owner can update the owner schedule");
+): Promise<{ success: true } | { error: string }> {
+  try {
+    const tenant = await requireTenantInfo();
+    if (!tenant.is_owner && tenant.role !== "owner") {
+      return { error: "Only the clinic owner can update the owner schedule" };
+    }
+
+    const parsed = doctorAvailabilitySchema.parse(input);
+    const availableDays = Array.from(new Set(parsed.available_days)).sort(
+      (a, b) => a - b,
+    );
+
+    await prisma.profiles.update({
+      where: { id: tenant.profileId },
+      data: {
+        available_from: parsed.available_from,
+        available_to: parsed.available_to,
+        slot_duration_minutes: parsed.slot_duration_minutes,
+        available_days: availableDays,
+      },
+    });
+
+    revalidatePersonnelAndBookingPaths();
+    return { success: true };
+  } catch (error) {
+    console.error("[personnel] updateOwnerDoctorAvailability failed:", error);
+    return {
+      error: formatPersonnelError(error, "Failed to update owner schedule."),
+    };
   }
-
-  const parsed = doctorAvailabilitySchema.parse(input);
-  const availableDays = Array.from(new Set(parsed.available_days)).sort(
-    (a, b) => a - b,
-  );
-
-  await prisma.profiles.update({
-    where: { id: tenant.profileId },
-    data: {
-      available_from: parsed.available_from,
-      available_to: parsed.available_to,
-      slot_duration_minutes: parsed.slot_duration_minutes,
-      available_days: availableDays,
-    },
-  });
-
-  revalidatePersonnelAndBookingPaths();
-  return { success: true };
 }
 
-export async function deletePersonnel(id: string) {
-  await requireTenantInfo();
-  await requirePermission("settings.users.manage");
+export async function deletePersonnel(
+  id: string,
+): Promise<{ success: true } | { error: string }> {
+  try {
+    const tenant = await requireTenantInfo();
+    await requirePermission("settings.users.manage");
 
-  await prisma.profiles.delete({
-    where: { id },
-  });
+    const existing = await prisma.profiles.findFirst({
+      where: { id, tenant_id: tenant.clinicId },
+      select: { id: true, role: true, is_owner: true },
+    });
 
-  revalidatePersonnelAndBookingPaths();
+    if (!existing) {
+      return { error: "Profile not found in this clinic." };
+    }
+
+    if (
+      existing.id === tenant.profileId ||
+      existing.is_owner ||
+      existing.role === "owner"
+    ) {
+      return { error: "Clinic owner profiles cannot be deleted." };
+    }
+
+    await prisma.profiles.delete({
+      where: { id: existing.id },
+    });
+
+    revalidatePersonnelAndBookingPaths();
+    return { success: true };
+  } catch (error) {
+    console.error("[personnel] deletePersonnel failed:", error);
+    return {
+      error: formatPersonnelError(error, "Failed to delete personnel profile."),
+    };
+  }
 }

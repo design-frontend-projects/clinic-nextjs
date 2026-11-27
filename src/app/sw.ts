@@ -6,6 +6,10 @@ import type {
   SerwistGlobalConfig,
 } from "serwist";
 import { NetworkOnly, Serwist } from "serwist";
+import {
+  LEGACY_RUNTIME_CACHE_NAMES,
+  shouldBypassServiceWorker,
+} from "../lib/sw-bypass";
 
 // This file is compiled by Serwist (not by the app's tsc — it is excluded in
 // tsconfig.json) and emitted to public/sw.js.
@@ -18,49 +22,32 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Auth routes and OAuth/email callbacks must never be intercepted or cached by
-// the service worker — letting the browser handle them natively avoids stale
-// session responses and prevents `no-response` FetchEvent rejections when
-// navigations or RSC refreshes are aborted during sign-in redirects.
-const AUTH_PATH_RE =
-  /^(?:\/(?:en|ar))?\/(?:sign-in|sign-up|forgot-password|reset-password|onboarding)(?:\/|$)|^\/auth(?:\/|$)/;
+const STATIC_CACHE_NAMES = new Set([
+  "google-fonts-webfonts",
+  "google-fonts-stylesheets",
+  "static-font-assets",
+  "static-image-assets",
+  "next-static-js-assets",
+  "next-image",
+  "static-audio-assets",
+  "static-video-assets",
+  "static-js-assets",
+  "static-style-assets",
+]);
 
-function shouldBypassServiceWorker(request: Request): boolean {
-  // Never intercept mutations / Next.js Server Actions (POST, PUT, PATCH, DELETE).
-  if (request.method !== "GET") {
-    return true;
-  }
-
-  let url: URL;
-  try {
-    url = new URL(request.url);
-  } catch {
-    return true;
-  }
-
-  // Never let the SW touch Supabase (auth tokens, Realtime, PostgREST) or
-  // offline sync API endpoints.
-  if (
-    url.hostname.endsWith(".supabase.co") ||
-    (url.origin === self.location.origin && url.pathname.startsWith("/api/sync/"))
-  ) {
-    return true;
-  }
-
-  if (url.origin === self.location.origin && AUTH_PATH_RE.test(url.pathname)) {
-    return true;
-  }
-
-  return false;
+function getEntryCacheName(entry: RuntimeCaching): string | undefined {
+  const handler = entry.handler as { cacheName?: unknown };
+  return typeof handler.cacheName === "string" ? handler.cacheName : undefined;
 }
 
-const supabaseNetworkOnly: RuntimeCaching = {
-  matcher: ({ url }) => url.hostname.endsWith(".supabase.co"),
-  handler: new NetworkOnly(),
-};
+const staticAssetRules: RuntimeCaching[] = defaultCache.filter((entry) => {
+  const cacheName = getEntryCacheName(entry);
+  return cacheName !== undefined && STATIC_CACHE_NAMES.has(cacheName);
+});
 
-const syncNetworkOnly: RuntimeCaching = {
-  matcher: ({ url }) => url.pathname.startsWith("/api/sync/"),
+const documentNavigationRule: RuntimeCaching = {
+  matcher: ({ request, sameOrigin }) =>
+    sameOrigin && request.mode === "navigate",
   handler: new NetworkOnly(),
 };
 
@@ -68,8 +55,8 @@ const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: true,
-  runtimeCaching: [syncNetworkOnly, supabaseNetworkOnly, ...defaultCache],
+  navigationPreload: false,
+  runtimeCaching: [...staticAssetRules, documentNavigationRule],
   fallbacks: {
     entries: [
       {
@@ -87,10 +74,19 @@ const serwist = new Serwist({
 });
 
 self.addEventListener("install", serwist.handleInstall);
-self.addEventListener("activate", serwist.handleActivate);
+self.addEventListener("activate", (event) => {
+  serwist.handleActivate(event);
+  event.waitUntil(
+    Promise.all(
+      LEGACY_RUNTIME_CACHE_NAMES.map((name) => self.caches.delete(name)),
+    ).catch(() => {
+      // Best-effort cleanup of legacy runtime caches.
+    }),
+  );
+});
 self.addEventListener("message", serwist.handleCache);
 self.addEventListener("fetch", (event) => {
-  if (shouldBypassServiceWorker(event.request)) {
+  if (shouldBypassServiceWorker(event.request, self.location.origin)) {
     return;
   }
   serwist.handleFetch(event);
