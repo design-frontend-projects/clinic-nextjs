@@ -58,6 +58,7 @@ interface ConfirmLabOrderDialogProps {
   onOpenChange: (open: boolean) => void;
   currentDoctorProfileId?: string | null;
   currentAppointmentId?: string;
+  readOnly?: boolean;
   onConfirmed?: () => void;
 }
 
@@ -82,6 +83,7 @@ export function ConfirmLabOrderDialog({
   onOpenChange,
   currentDoctorProfileId,
   currentAppointmentId,
+  readOnly = false,
   onConfirmed,
 }: ConfirmLabOrderDialogProps) {
   const t = useTranslations("pages.doctor.labs");
@@ -89,9 +91,10 @@ export function ConfirmLabOrderDialog({
 
   const isAlreadyConfirmed = labOrder?.status === "confirmed";
   const canEditNotes =
-    !isAlreadyConfirmed ||
-    (Boolean(currentDoctorProfileId) &&
-      labOrder?.confirmed_by === currentDoctorProfileId);
+    !readOnly &&
+    (!isAlreadyConfirmed ||
+      (Boolean(currentDoctorProfileId) &&
+        labOrder?.confirmed_by === currentDoctorProfileId));
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

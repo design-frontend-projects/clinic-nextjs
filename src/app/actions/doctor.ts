@@ -282,7 +282,7 @@ export async function getPatientDetails(
             clinic_id: tenant.clinicId,
             patient_id: patientId,
             doctor_id: tenant.profileId,
-            status: { notIn: ["cancelled", "no_show"] },
+            status: { notIn: ["completed", "cancelled", "no_show"] },
           },
           select: {
             id: true,
@@ -306,6 +306,7 @@ export async function getPatientDetails(
     currentDoctorName: tenant.fullName,
     clinicName: tenant.clinicName,
     canConfirmAllPatientLabs: Boolean(currentAppt),
+    isReadOnly: !currentAppt,
     currentAppointment: currentAppt
       ? {
           id: currentAppt.id,
@@ -319,6 +320,17 @@ export async function getPatientDetails(
       : null,
   };
 }
+
+const createEncounterSchema = z.object({
+  appointment_id: z
+    .string({
+      error: "An active appointment is required to record an encounter",
+    })
+    .uuid("An active appointment is required to record an encounter"),
+  notes: z.string().trim().min(5, "Visit notes are required"),
+  diagnosis: z.string().trim().optional(),
+  treatment_plan: z.string().trim().optional(),
+});
 
 export async function createEncounter(
   patientId: string,
@@ -335,28 +347,54 @@ export async function createEncounter(
     throw new Error("Unauthorized");
   }
 
+  const parsed = createEncounterSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid encounter data");
+  }
+  const input = parsed.data;
+
+  const appointment = await prisma.appointments.findFirst({
+    where: {
+      id: input.appointment_id,
+      clinic_id: tenant.clinicId,
+      patient_id: patientId,
+      doctor_id: tenant.profileId,
+    },
+    select: { id: true, status: true, branch_id: true },
+  });
+
+  if (!appointment) {
+    throw new Error("Active appointment not found");
+  }
+
+  if (["completed", "cancelled", "no_show"].includes(appointment.status)) {
+    throw new Error(
+      "Cannot record an encounter for a closed or completed appointment",
+    );
+  }
+
   const encounter = await prisma.encounters.create({
     data: {
       clinic_id: tenant.clinicId,
-      branch_id: tenant.branchId,
+      branch_id: appointment.branch_id ?? tenant.branchId,
       patient_id: patientId,
       doctor_id: tenant.profileId,
-      appointment_id: data.appointment_id || null,
+      appointment_id: appointment.id,
       encounter_date: new Date(),
-      notes: data.notes,
-      diagnosis: data.diagnosis || null,
+      notes: input.notes,
+      diagnosis: input.diagnosis || null,
     },
   });
 
-  if (data.appointment_id) {
-    await prisma.appointments.update({
-      where: { id: data.appointment_id },
-      data: { status: "completed" },
-    });
-  }
+  await prisma.appointments.update({
+    where: { id: appointment.id },
+    data: { status: "completed" },
+  });
 
   revalidatePath(`/admin/patients/${patientId}`);
   revalidatePath(`/doctor/patients/${patientId}`);
+  revalidatePath("/doctor/appointments");
+  revalidatePath("/doctor");
   return encounter;
 }
 

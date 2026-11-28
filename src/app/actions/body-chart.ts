@@ -244,6 +244,50 @@ export async function savePatientBodyChart(
       }
     }
 
+    const appointment = await prisma.appointments.findFirst({
+      where: {
+        id: data.appointmentId,
+        clinic_id: tenant.clinicId,
+        patient_id: data.patientId,
+        doctor_id: tenant.profileId,
+      },
+      select: { id: true, status: true, branch_id: true },
+    });
+    if (!appointment) {
+      return { error: "Active appointment not found" };
+    }
+    if (appointment.status === "cancelled" || appointment.status === "no_show") {
+      return { error: "Cannot save a body chart for a cancelled appointment" };
+    }
+    if (appointment.status === "completed") {
+      if (!data.encounterId) {
+        return { error: "Cannot edit body chart for a completed appointment" };
+      }
+      const linkedEncounter = await prisma.encounters.findFirst({
+        where: {
+          id: data.encounterId,
+          clinic_id: tenant.clinicId,
+          patient_id: data.patientId,
+          doctor_id: tenant.profileId,
+          appointment_id: appointment.id,
+        },
+        select: { id: true },
+      });
+      if (!linkedEncounter) {
+        return { error: "Cannot attach body chart: linked encounter not found" };
+      }
+      const alreadyAttached = await prisma.patient_body_charts.findFirst({
+        where: {
+          clinic_id: tenant.clinicId,
+          encounter_id: linkedEncounter.id,
+        },
+        select: { id: true },
+      });
+      if (alreadyAttached) {
+        return { error: "A body chart is already attached to this encounter" };
+      }
+    }
+
     const patientName =
       `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim() ||
       "Patient";
@@ -282,12 +326,12 @@ export async function savePatientBodyChart(
       const row = await tx.patient_body_charts.create({
         data: {
           clinic_id: tenant.clinicId,
-          branch_id: tenant.branchId ?? null,
+          branch_id: appointment.branch_id ?? tenant.branchId ?? null,
           patient_id: data.patientId,
           specialty_id: data.specialtyId ?? tenant.clinicSpecialtyId ?? null,
           diagram_key: data.diagramKey,
           encounter_id: data.encounterId ?? null,
-          appointment_id: data.appointmentId ?? null,
+          appointment_id: appointment.id,
           doctor_id: tenant.profileId,
           version: nextVersion,
           title: data.title || null,

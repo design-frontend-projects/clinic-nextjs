@@ -262,6 +262,14 @@ export const BodyChartStudio = forwardRef<
     appointmentId?: string;
     silent?: boolean;
   }): Promise<PatientBodyChartRecord | null> => {
+    const effectiveAppointmentId = options?.appointmentId ?? appointmentId;
+    if (!effectiveAppointmentId) {
+      if (!options?.silent) {
+        toast.error(t("saveFailed"));
+      }
+      return null;
+    }
+
     const serialized = getSerializedChartData();
     const matchedSpecialty =
       context.clinicSpecialty?.diagram_key === diagramKey
@@ -275,7 +283,7 @@ export const BodyChartStudio = forwardRef<
       diagramKey,
       specialtyId: matchedSpecialty?.id ?? null,
       encounterId: options?.encounterId ?? null,
-      appointmentId: options?.appointmentId ?? appointmentId ?? null,
+      appointmentId: effectiveAppointmentId,
       overallNotes: overallNotes.trim() || null,
       shareWithPatient,
       locale: locale === "ar" ? "ar" : "en",

@@ -25,6 +25,8 @@ const {
     mockTx: tx,
     mockPrisma: {
       patients: { findFirst: vi.fn() },
+      appointments: { findFirst: vi.fn() },
+      encounters: { findFirst: vi.fn() },
       clinics: { findUnique: vi.fn() },
       doctor_specialties: { findMany: vi.fn() },
       specialties: { findMany: vi.fn() },
@@ -59,6 +61,8 @@ const CLINIC_ID = "11111111-1111-4111-8111-111111111111";
 const PATIENT_ID = "22222222-2222-4222-8222-222222222222";
 const DOCTOR_ID = "33333333-3333-4333-8333-333333333333";
 const SPEC_ID = "44444444-4444-4444-8444-444444444444";
+const APPT_ID = "66666666-6666-4666-8666-666666666666";
+const ENCOUNTER_ID = "77777777-7777-4777-8777-777777777777";
 
 describe("body-chart server actions", () => {
   beforeEach(() => {
@@ -92,11 +96,24 @@ describe("body-chart server actions", () => {
     const chartData = createEmptyBodyChartData("dentistry");
     const res = await savePatientBodyChart({
       patientId: PATIENT_ID,
+      appointmentId: APPT_ID,
       diagramKey: "dentistry",
       shareWithPatient: true,
       locale: "en",
       chartData,
     });
+    expect("error" in res).toBe(true);
+  });
+
+  it("rejects saving a body chart without an appointmentId", async () => {
+    const chartData = createEmptyBodyChartData("dentistry");
+    const res = await savePatientBodyChart({
+      patientId: PATIENT_ID,
+      diagramKey: "dentistry",
+      shareWithPatient: true,
+      locale: "en",
+      chartData,
+    } as unknown as Parameters<typeof savePatientBodyChart>[0]);
     expect("error" in res).toBe(true);
   });
 
@@ -119,6 +136,7 @@ describe("body-chart server actions", () => {
 
     const res = await savePatientBodyChart({
       patientId: PATIENT_ID,
+      appointmentId: APPT_ID,
       diagramKey: "dentistry",
       shareWithPatient: true,
       locale: "en",
@@ -127,11 +145,108 @@ describe("body-chart server actions", () => {
     expect("error" in res).toBe(true);
   });
 
+  it("rejects standalone body chart saves for a completed appointment", async () => {
+    mockPrisma.patients.findFirst.mockResolvedValue({
+      id: PATIENT_ID,
+      first_name: "Ali",
+      last_name: "Hassan",
+    });
+    mockPrisma.appointments.findFirst.mockResolvedValue({
+      id: APPT_ID,
+      status: "completed",
+      branch_id: null,
+    });
+
+    const res = await savePatientBodyChart({
+      patientId: PATIENT_ID,
+      appointmentId: APPT_ID,
+      diagramKey: "dentistry",
+      shareWithPatient: true,
+      locale: "en",
+      chartData: createEmptyBodyChartData("dentistry"),
+    });
+    expect(res).toEqual({
+      error: "Cannot edit body chart for a completed appointment",
+    });
+  });
+
+  it("allows attaching a body chart to a newly saved encounter on a completed appointment once", async () => {
+    mockPrisma.patients.findFirst.mockResolvedValue({
+      id: PATIENT_ID,
+      first_name: "Ali",
+      last_name: "Hassan",
+    });
+    mockPrisma.appointments.findFirst.mockResolvedValue({
+      id: APPT_ID,
+      status: "completed",
+      branch_id: null,
+    });
+    mockPrisma.encounters.findFirst.mockResolvedValue({ id: ENCOUNTER_ID });
+    mockPrisma.patient_body_charts.findFirst.mockResolvedValue(null);
+    mockTx.patient_body_charts.findFirst.mockResolvedValue({ version: 1 });
+    mockTx.patient_body_charts.create.mockImplementation(
+      async ({ data }: { data: Record<string, unknown> }) => ({
+        id: "55555555-5555-4555-8555-555555555555",
+        ...data,
+        created_at: new Date("2026-11-27T12:00:00Z"),
+        updated_at: new Date("2026-11-27T12:00:00Z"),
+        profiles: { full_name: "Dr. Dentist" },
+        specialties: { name: "Dentistry", name_ar: "الأسنان" },
+      }),
+    );
+
+    const res = await savePatientBodyChart({
+      patientId: PATIENT_ID,
+      appointmentId: APPT_ID,
+      encounterId: ENCOUNTER_ID,
+      diagramKey: "dentistry",
+      shareWithPatient: true,
+      locale: "en",
+      chartData: createEmptyBodyChartData("dentistry"),
+    });
+    expect("success" in res && res.success).toBe(true);
+  });
+
+  it("rejects attaching another body chart when an encounter already has one", async () => {
+    mockPrisma.patients.findFirst.mockResolvedValue({
+      id: PATIENT_ID,
+      first_name: "Ali",
+      last_name: "Hassan",
+    });
+    mockPrisma.appointments.findFirst.mockResolvedValue({
+      id: APPT_ID,
+      status: "completed",
+      branch_id: null,
+    });
+    mockPrisma.encounters.findFirst.mockResolvedValue({ id: ENCOUNTER_ID });
+    mockPrisma.patient_body_charts.findFirst.mockResolvedValue({
+      id: "88888888-8888-4888-8888-888888888888",
+    });
+
+    const res = await savePatientBodyChart({
+      patientId: PATIENT_ID,
+      appointmentId: APPT_ID,
+      encounterId: ENCOUNTER_ID,
+      diagramKey: "dentistry",
+      shareWithPatient: true,
+      locale: "en",
+      chartData: createEmptyBodyChartData("dentistry"),
+    });
+    expect(res).toEqual({
+      error: "A body chart is already attached to this encounter",
+    });
+  });
+
   it("increments version sequentially and persists server-rendered animated SVG", async () => {
     mockPrisma.patients.findFirst.mockResolvedValue({
       id: PATIENT_ID,
       first_name: "Ali",
       last_name: "Hassan",
+    });
+    mockPrisma.appointments.findFirst.mockResolvedValue({
+      id: APPT_ID,
+      status: "scheduled",
+      branch_id: null,
     });
     mockTx.patient_body_charts.findFirst.mockResolvedValue({ version: 1 });
     mockTx.patient_body_charts.create.mockImplementation(
@@ -158,6 +273,7 @@ describe("body-chart server actions", () => {
 
     const res = await savePatientBodyChart({
       patientId: PATIENT_ID,
+      appointmentId: APPT_ID,
       diagramKey: "dentistry",
       specialtyId: SPEC_ID,
       shareWithPatient: true,

@@ -22,6 +22,7 @@ export default async function PatientConsultationPage({
       currentDoctorName,
       clinicName,
       canConfirmAllPatientLabs,
+      isReadOnly,
       currentAppointment,
     },
     bodyChartContext,
@@ -36,7 +37,8 @@ export default async function PatientConsultationPage({
       history={history}
       prescriptions={prescriptions as PatientPrescription[]}
       labOrders={labOrders}
-      appointmentId={appointmentId}
+      appointmentId={currentAppointment?.id}
+      readOnly={isReadOnly}
       currentDoctorProfileId={currentDoctorProfileId}
       currentDoctorName={currentDoctorName}
       clinicName={clinicName}

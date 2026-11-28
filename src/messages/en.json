@@ -1061,7 +1061,10 @@
         "bookedServiceTitle": "Booked Service",
         "bookedServiceDesc": "Selected by reception for this appointment",
         "createInvoiceFromService": "Create Invoice",
-        "servicePrice": "Price"
+        "servicePrice": "Price",
+        "readOnlyBadge": "View Only",
+        "readOnlyHint": "Viewing patient file history. Start a consultation from My Appointments to record a new encounter.",
+        "pastEncountersDesc": "Complete clinical encounter history for this patient."
       },
       "encounter": {
         "errDiagnosisRequired": "Diagnosis is required",

@@ -161,7 +161,7 @@ export const savePatientBodyChartSchema = z.object({
   diagramKey: diagramKeyEnum,
   specialtyId: z.string().uuid().optional().nullable(),
   encounterId: z.string().uuid().optional().nullable(),
-  appointmentId: z.string().uuid().optional().nullable(),
+  appointmentId: z.string().uuid("Active appointment is required"),
   title: z.string().trim().max(255).optional().nullable(),
   overallNotes: z.string().trim().max(6000).optional().nullable(),
   shareWithPatient: z.boolean().default(true),

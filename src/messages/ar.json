@@ -1061,7 +1061,10 @@
         "bookedServiceTitle": "الخدمة المحجوزة",
         "bookedServiceDesc": "تم اختيارها من الاستقبال لهذا الموعد",
         "createInvoiceFromService": "إنشاء فاتورة",
-        "servicePrice": "السعر"
+        "servicePrice": "السعر",
+        "readOnlyBadge": "للعرض فقط",
+        "readOnlyHint": "عرض سجل ملف المريض فقط. ابدأ استشارة من مواعيدي لتسجيل زيارة جديدة.",
+        "pastEncountersDesc": "السجل الكامل للزيارات السريرية لهذا المريض."
       },
       "encounter": {
         "errDiagnosisRequired": "التشخيص مطلوب",

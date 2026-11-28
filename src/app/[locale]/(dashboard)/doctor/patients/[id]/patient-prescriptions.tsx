@@ -51,6 +51,7 @@ export interface PatientPrescription {
 interface PatientPrescriptionsProps {
   patientId: string;
   prescriptions: PatientPrescription[];
+  readOnly?: boolean;
 }
 
 function describeItem(item: PatientPrescriptionItem): string {
@@ -62,6 +63,7 @@ function describeItem(item: PatientPrescriptionItem): string {
 export function PatientPrescriptions({
   patientId,
   prescriptions,
+  readOnly = false,
 }: PatientPrescriptionsProps) {
   const t = useTranslations("pages.doctor.prescriptions");
   const router = useRouter();
@@ -128,12 +130,14 @@ export function PatientPrescriptions({
 
   return (
     <div className="space-y-4">
-      <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
-        <Button size="sm" className="w-full rounded-xl font-semibold bg-accent-blue text-white hover:opacity-95" onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t("btnNew")}
-        </Button>
-      </motion.div>
+      {!readOnly && (
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+          <Button size="sm" className="w-full rounded-xl font-semibold bg-accent-blue text-white hover:opacity-95" onClick={openNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t("btnNew")}
+          </Button>
+        </motion.div>
+      )}
 
       {prescriptions.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-4">
@@ -166,24 +170,28 @@ export function PatientPrescriptions({
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 rounded-lg hover:bg-accent-blue-soft hover:text-accent-blue"
-                      onClick={() => openEdit(rx)}
-                      aria-label={t("ariaEdit")}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 rounded-lg text-muted-foreground hover:text-accent-red hover:bg-accent-red-soft"
-                      onClick={() => setDeleteId(rx.id)}
-                      aria-label={t("ariaDelete")}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {!readOnly && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-lg hover:bg-accent-blue-soft hover:text-accent-blue"
+                          onClick={() => openEdit(rx)}
+                          aria-label={t("ariaEdit")}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-lg text-muted-foreground hover:text-accent-red hover:bg-accent-red-soft"
+                          onClick={() => setDeleteId(rx.id)}
+                          aria-label={t("ariaDelete")}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
                 {rx.diagnosis && (
@@ -214,33 +222,35 @@ export function PatientPrescriptions({
         onSaved={() => router.refresh()}
       />
 
-      <AlertDialog
-        open={deleteId !== null}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-      >
-        <AlertDialogContent className="rounded-2xl border border-border/40">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-bold">{t("deleteTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteDesc")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl font-medium" disabled={isPending}>{t("btnCancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleDelete();
-              }}
-              disabled={isPending}
-              className="bg-destructive text-white hover:bg-destructive/95 rounded-xl font-medium"
-            >
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("btnDelete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {!readOnly && (
+        <AlertDialog
+          open={deleteId !== null}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+        >
+          <AlertDialogContent className="rounded-2xl border border-border/40">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-bold">{t("deleteTitle")}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t("deleteDesc")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl font-medium" disabled={isPending}>{t("btnCancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete();
+                }}
+                disabled={isPending}
+                className="bg-destructive text-white hover:bg-destructive/95 rounded-xl font-medium"
+              >
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t("btnDelete")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

@@ -19,6 +19,7 @@ interface PatientInsurancePanelProps {
   patientName: string;
   emptyLabel: string;
   manageLabel: string;
+  readOnly?: boolean;
 }
 
 /**
@@ -31,6 +32,7 @@ export function PatientInsurancePanel({
   patientName,
   emptyLabel,
   manageLabel,
+  readOnly = false,
 }: PatientInsurancePanelProps) {
   const t = useTranslations("insurance.patientDialog");
   const [manageOpen, setManageOpen] = useState(false);
@@ -86,23 +88,27 @@ export function PatientInsurancePanel({
         ))
       )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={() => setManageOpen(true)}
-      >
-        <Settings2 className="mr-2 h-3.5 w-3.5" />
-        {manageLabel}
-      </Button>
+      {!readOnly && (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => setManageOpen(true)}
+          >
+            <Settings2 className="mr-2 h-3.5 w-3.5" />
+            {manageLabel}
+          </Button>
 
-      {manageOpen && (
-        <PatientInsuranceDialog
-          patientId={patientId}
-          patientName={patientName}
-          open={manageOpen}
-          onOpenChange={setManageOpen}
-        />
+          {manageOpen && (
+            <PatientInsuranceDialog
+              patientId={patientId}
+              patientName={patientName}
+              open={manageOpen}
+              onOpenChange={setManageOpen}
+            />
+          )}
+        </>
       )}
     </div>
   );
