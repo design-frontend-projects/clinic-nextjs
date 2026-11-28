@@ -6,6 +6,7 @@ import {
   pushChangesForClinic,
   type PushRow,
 } from "@/lib/offline/sync-server/pull-push";
+import { formatSyncRouteError } from "@/lib/offline/sync-server/route-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,17 +28,12 @@ const pushRequestSchema = z.object({
     .max(200),
 });
 
-function errorStatus(message: string): number {
-  if (message.startsWith("Unauthorized")) return 401;
-  if (message.startsWith("Forbidden")) return 403;
-  return 500;
-}
-
 /**
  * Parallel RXDB push endpoint. Replaces serialized Next.js Server Actions so
  * offline mutations upload concurrently per collection.
  */
 export async function POST(request: NextRequest) {
+  let collection: string | undefined;
   try {
     let body: unknown;
     try {
@@ -54,7 +50,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const spec = COLLECTION_BY_NAME.get(parsed.data.collection);
+    collection = parsed.data.collection;
+    const spec = COLLECTION_BY_NAME.get(collection);
     if (!spec) {
       return NextResponse.json(
         { error: "Unknown sync collection" },
@@ -75,11 +72,10 @@ export async function POST(request: NextRequest) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Sync push failed";
+    const { status, message } = formatSyncRouteError("push", collection, error);
     return NextResponse.json(
       { error: message },
-      { status: errorStatus(message), headers: { "Cache-Control": "no-store" } },
+      { status, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

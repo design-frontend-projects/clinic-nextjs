@@ -109,3 +109,25 @@
 - **Fix Applied**: Added `"packageManager": "pnpm@10.26.1"` to `package.json`, updated the header comment in `Dockerfile`, and documented switching Coolify's Build Pack from Railpack to Dockerfile (port `4000`, `/api/health`, build-time `NEXT_PUBLIC_*` env vars).
 - **Prevention**: Always pin `"packageManager"` in `package.json` when using pnpm v10 features in `pnpm-workspace.yaml`, and verify Coolify's Build Pack matches the repository's `Dockerfile` / `next.config.ts` (`output: "standalone"`) setup.
 - **Status**: Fixed
+
+---
+
+## [2026-11-28 02:25] - Prisma P2022 `The column (not available) does not exist` in `/api/sync/pull`
+
+- **Type**: Runtime / Schema Drift
+- **Severity**: High
+- **File**: `src/lib/offline/sync-server/pull-push.ts`, `prisma/migrations/33_appointment_catalog_item.sql`, `prisma/migrations/31_sync_indexes.sql`
+- **Root Cause**:
+  1. `appointments.catalog_item_id` was added to `prisma/schema.prisma` (and Prisma Client regenerated), but `prisma/migrations/33_appointment_catalog_item.sql` had not yet been applied to PostgreSQL.
+  2. `pullChangesForClinic()` and `pushChangesForClinic()` called `delegate.findMany()` (and `delegate.upsert()`) without an explicit `select` projection, causing Prisma to select all model columns (including server-only fields) and `@prisma/adapter-pg` to surface P2022 with `(not available)`.
+- **Error Message**:
+  ```
+  Invalid `delegate.findMany()` invocation ...
+  The column `(not available)` does not exist in the current database.
+  ```
+- **Fix Applied**:
+  1. Applied `prisma/migrations/33_appointment_catalog_item.sql` and `prisma/migrations/31_sync_indexes.sql` to PostgreSQL via `DIRECT_URL`.
+  2. Added `buildSyncSelect(spec)` in `src/lib/offline/sync-server/pull-push.ts` so `findMany` selects only synced fields + `deleted_at` and `upsert` uses `select: { id: true }`.
+  3. Added `appointments.catalog_item_id` check to `hasCurrentSchema()` in `src/lib/prisma.ts`, and sanitized/contextualized sync route 500 errors via `formatSyncRouteError()` in `src/lib/offline/sync-server/route-error.ts`.
+- **Prevention**: Always apply corresponding SQL migrations to PostgreSQL immediately after updating `prisma/schema.prisma`, and keep generic sync queries explicitly projected onto `allFields(spec)`.
+- **Status**: Fixed

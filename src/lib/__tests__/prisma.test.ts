@@ -57,6 +57,28 @@ describe("prisma client schema cache validation", () => {
       },
     } as unknown as PrismaClient;
 
+    const missingAppointmentCatalogItemId = {
+      billing_catalog_items: {},
+      clinic_branches: {},
+      patient_body_charts: {},
+      _runtimeDataModel: {
+        models: {
+          insurance_providers: {
+            fields: [{ name: "consultation_deduction_type" }],
+          },
+          branches: {
+            fields: [{ name: "owner_id" }],
+          },
+          clinics: {
+            fields: [{ name: "specialty_id" }],
+          },
+          appointments: {
+            fields: [{ name: "patient_id" }],
+          },
+        },
+      },
+    } as unknown as PrismaClient;
+
     const currentClient = {
       billing_catalog_items: {},
       clinic_branches: {},
@@ -72,6 +94,9 @@ describe("prisma client schema cache validation", () => {
           clinics: {
             fields: [{ name: "specialty_id" }],
           },
+          appointments: {
+            fields: [{ name: "catalog_item_id" }],
+          },
         },
       },
     } as unknown as PrismaClient;
@@ -79,6 +104,7 @@ describe("prisma client schema cache validation", () => {
     expect(hasCurrentSchema(undefined)).toBe(false);
     expect(hasCurrentSchema(missingClinicBranches)).toBe(false);
     expect(hasCurrentSchema(missingBranchOwnerId)).toBe(false);
+    expect(hasCurrentSchema(missingAppointmentCatalogItemId)).toBe(false);
     expect(hasCurrentSchema(currentClient)).toBe(true);
   });
 

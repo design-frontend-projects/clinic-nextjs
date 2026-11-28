@@ -210,6 +210,13 @@ export function hasCurrentSchema(client: PrismaClient | undefined): client is Pr
   ) {
     return false;
   }
+  const appointmentFields = runtime._runtimeDataModel?.models?.appointments?.fields;
+  if (
+    Array.isArray(appointmentFields) &&
+    !appointmentFields.some((f) => f.name === "catalog_item_id")
+  ) {
+    return false;
+  }
   return true;
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireTenantInfo } from "@/lib/auth";
 import { COLLECTION_BY_NAME } from "@/lib/offline/collection-registry";
 import { pullChangesForClinic } from "@/lib/offline/sync-server/pull-push";
+import { formatSyncRouteError } from "@/lib/offline/sync-server/route-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,17 +22,12 @@ const pullRequestSchema = z.object({
   batchSize: z.number().int().min(1).max(500).default(300),
 });
 
-function errorStatus(message: string): number {
-  if (message.startsWith("Unauthorized")) return 401;
-  if (message.startsWith("Forbidden")) return 403;
-  return 500;
-}
-
 /**
  * Parallel RXDB pull endpoint. Replaces serialized Next.js Server Actions so
  * all synced collections can replicate concurrently.
  */
 export async function POST(request: NextRequest) {
+  let collection: string | undefined;
   try {
     let body: unknown;
     try {
@@ -48,7 +44,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const spec = COLLECTION_BY_NAME.get(parsed.data.collection);
+    collection = parsed.data.collection;
+    const spec = COLLECTION_BY_NAME.get(collection);
     if (!spec) {
       return NextResponse.json(
         { error: "Unknown sync collection" },
@@ -68,11 +65,10 @@ export async function POST(request: NextRequest) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Sync pull failed";
+    const { status, message } = formatSyncRouteError("pull", collection, error);
     return NextResponse.json(
       { error: message },
-      { status: errorStatus(message), headers: { "Cache-Control": "no-store" } },
+      { status, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

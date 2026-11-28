@@ -24,11 +24,13 @@ interface SyncUpsertArgs {
   where: Record<string, unknown>;
   create: Record<string, unknown>;
   update: Record<string, unknown>;
+  select?: Record<string, boolean>;
 }
 
 interface SyncDelegate {
   findMany(args: {
     where?: Record<string, unknown>;
+    select?: Record<string, boolean>;
     orderBy?: unknown;
     take?: number;
   }): Promise<ServerRow[]>;
@@ -50,6 +52,18 @@ function delegateFor(name: string): SyncDelegate {
 }
 
 /**
+ * Project Prisma queries strictly onto the collection's synced fields +
+ * `deleted_at` so server-only schema additions never break offline replication.
+ */
+export function buildSyncSelect(spec: CollectionSpec): Record<string, true> {
+  const select: Record<string, true> = { deleted_at: true };
+  for (const field of Object.keys(allFields(spec))) {
+    select[field] = true;
+  }
+  return select;
+}
+
+/**
  * PULL: rows in this clinic changed after `checkpoint`, tombstones included,
  * ordered by (updated_at, id) so the returned checkpoint is resumable.
  */
@@ -60,6 +74,7 @@ export async function pullChangesForClinic(
   batchSize: number,
 ): Promise<PullResult> {
   const delegate = delegateFor(spec.name);
+  const select = buildSyncSelect(spec);
 
   const where: Record<string, unknown> = { clinic_id: clinicId };
   if (checkpoint) {
@@ -72,6 +87,7 @@ export async function pullChangesForClinic(
 
   const rows = await delegate.findMany({
     where,
+    select,
     orderBy: [{ updated_at: "asc" }, { id: "asc" }],
     take: batchSize,
   });
@@ -101,6 +117,7 @@ export async function pushChangesForClinic(
   if (rows.length === 0) return [];
 
   const delegate = delegateFor(spec.name);
+  const select = buildSyncSelect(spec);
   const hasBranch = "branch_id" in allFields(spec);
   const conflicts: SyncDocType[] = [];
 
@@ -110,6 +127,7 @@ export async function pushChangesForClinic(
   );
   const existingRows = await delegate.findMany({
     where: { clinic_id: clinicId, id: { in: ids } },
+    select,
   });
   const existingById = new Map<string, ServerRow>();
   for (const row of existingRows) {
@@ -153,7 +171,12 @@ export async function pushChangesForClinic(
     const updateData: Record<string, unknown> = { ...data };
     delete updateData.clinic_id;
 
-    writes.push({ where: { id }, create: createData, update: updateData });
+    writes.push({
+      where: { id },
+      create: createData,
+      update: updateData,
+      select: { id: true },
+    });
 
     // Track the latest timestamp in-batch so duplicate IDs within one push
     // array don't conflict against an older snapshot.

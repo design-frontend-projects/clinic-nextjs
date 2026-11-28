@@ -9,17 +9,20 @@ const { findMany, upsert, transaction } = vi.hoisted(() => ({
 vi.mock("@/lib/prisma", () => ({
   prismaBase: {
     patients: { findMany, upsert },
+    appointments: { findMany, upsert },
     $transaction: transaction,
   },
 }));
 
 import { COLLECTION_BY_NAME } from "../collection-registry";
 import {
+  buildSyncSelect,
   pullChangesForClinic,
   pushChangesForClinic,
 } from "../sync-server/pull-push";
 
 const patients = COLLECTION_BY_NAME.get("patients")!;
+const appointments = COLLECTION_BY_NAME.get("appointments")!;
 
 beforeEach(() => {
   findMany.mockReset();
@@ -73,6 +76,17 @@ describe("pullChangesForClinic", () => {
     // empty result keeps the previous checkpoint
     expect(result.checkpoint).toBe(cp);
   });
+
+  it("projects findMany strictly onto synced fields + deleted_at and omits server-only columns", async () => {
+    findMany.mockResolvedValue([]);
+
+    await pullChangesForClinic(appointments, "c1", null, 50);
+
+    const callArgs = findMany.mock.calls[0][0];
+    expect(callArgs.select).toEqual(buildSyncSelect(appointments));
+    expect(callArgs.select).toHaveProperty("deleted_at", true);
+    expect(callArgs.select).not.toHaveProperty("catalog_item_id");
+  });
 });
 
 describe("pushChangesForClinic", () => {
@@ -95,9 +109,11 @@ describe("pushChangesForClinic", () => {
 
     expect(conflicts).toEqual([]);
     expect(findMany).toHaveBeenCalledOnce();
+    expect(findMany.mock.calls[0][0].select).toEqual(buildSyncSelect(patients));
     expect(transaction).toHaveBeenCalledOnce();
     const args = upsert.mock.calls[0][0];
     expect(args.where).toEqual({ id: "p9" });
+    expect(args.select).toEqual({ id: true });
     expect(args.create.clinic_id).toBe("REAL");
     expect(args.create.branch_id).toBe("branchX");
     expect(args.create.first_name).toBe("Ada");
