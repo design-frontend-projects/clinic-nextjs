@@ -5,6 +5,9 @@ import type { AppointmentStatus } from "@/types/staff.types";
 
 export type BookingRoleScope = "patient" | "staff" | "doctor" | "admin";
 
+export const bookingScopeRestrictionEnum = z.enum(["doctor"]);
+export type BookingScopeRestriction = z.infer<typeof bookingScopeRestrictionEnum>;
+
 export type BookingLockReason =
   | "completed"
   | "cancelled"
@@ -181,6 +184,7 @@ export const bookingUpdateSchema = z.object({
     .nullable()
     .optional(),
   status: appointmentStatusEnum.optional(),
+  scope: bookingScopeRestrictionEnum.optional(),
 });
 
 export const bookingFiltersSchema = z.object({

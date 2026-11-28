@@ -41,6 +41,7 @@ import type {
   BookingContextData,
   BookingDoctorOption,
   BookingLockReason,
+  BookingScopeRestriction,
 } from "@/types/booking.types";
 import type { AppointmentStatus } from "@/types/staff.types";
 
@@ -111,6 +112,7 @@ interface BookingDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   context: BookingContextData;
+  scope?: BookingScopeRestriction;
 }
 
 function getInitials(name: string): string {
@@ -150,6 +152,7 @@ export function BookingDetailSheet({
   open,
   onOpenChange,
   context,
+  scope,
 }: BookingDetailSheetProps) {
   const t = useTranslations("pages.booking");
   const tStatus = useTranslations("enums.status");
@@ -174,8 +177,8 @@ export function BookingDetailSheet({
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["booking-detail", bookingId],
-    queryFn: () => getBookingById(bookingId!),
+    queryKey: ["booking-detail", bookingId, scope ?? "default"],
+    queryFn: () => getBookingById(bookingId!, scope ? { scope } : undefined),
     enabled: Boolean(open && bookingId),
   });
 
@@ -206,7 +209,11 @@ export function BookingDetailSheet({
 
   // If booking is locked, keep view tab active
   useEffect(() => {
-    if (booking && !booking.capabilities.canEditDetails && activeTab === "edit") {
+    if (
+      booking &&
+      !booking.capabilities.canEditDetails &&
+      activeTab === "edit"
+    ) {
       setActiveTab("view");
     }
   }, [booking, activeTab]);
@@ -229,13 +236,21 @@ export function BookingDetailSheet({
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookings });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookingDetail });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.bookingSlots });
-    queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.staffAppointments });
-    queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.staffDashboard });
+    queryClient.invalidateQueries({
+      queryKey: APPOINTMENT_KEYS.staffAppointments,
+    });
+    queryClient.invalidateQueries({
+      queryKey: APPOINTMENT_KEYS.staffDashboard,
+    });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.staffQueue });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.doctor });
     queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.admin });
-    queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.patientUpcoming });
-    queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.patientHistory });
+    queryClient.invalidateQueries({
+      queryKey: APPOINTMENT_KEYS.patientUpcoming,
+    });
+    queryClient.invalidateQueries({
+      queryKey: APPOINTMENT_KEYS.patientHistory,
+    });
     queryClient.invalidateQueries({ queryKey: ["owner-appointments-widget"] });
   }
 
@@ -243,6 +258,9 @@ export function BookingDetailSheet({
     mutationFn: async (values: EditBookingFormValues) => {
       if (!booking) {
         return { error: t("bookingNotFound") };
+      }
+      if (!booking.capabilities.canEditDetails) {
+        return { error: lockMessage ?? t("lockCompleted") };
       }
       return updateBooking({
         id: booking.id,
@@ -263,6 +281,7 @@ export function BookingDetailSheet({
         status: booking.capabilities.canOverrideTerminal
           ? values.status
           : undefined,
+        scope,
       });
     },
     onSuccess: (result) => {
@@ -282,9 +301,9 @@ export function BookingDetailSheet({
     mutationFn: async (status: AppointmentStatus) => {
       if (!booking) return { error: t("bookingNotFound") };
       if (status === "cancelled") {
-        return cancelBooking(booking.id);
+        return cancelBooking(booking.id, scope ? { scope } : undefined);
       }
-      return updateBooking({ id: booking.id, status });
+      return updateBooking({ id: booking.id, status, scope });
     },
     onSuccess: (result, status) => {
       if ("error" in result) {
@@ -314,7 +333,10 @@ export function BookingDetailSheet({
   const isDateDisabled = useMemo(() => {
     return (d: Date) => {
       if (context.roleScope === "patient" && d < todayStart) return true;
-      if (selectedDoctor && !selectedDoctor.availableDays.includes(d.getDay())) {
+      if (
+        selectedDoctor &&
+        !selectedDoctor.availableDays.includes(d.getDay())
+      ) {
         return true;
       }
       return false;
@@ -331,7 +353,9 @@ export function BookingDetailSheet({
     if (currentValue) {
       next.setHours(currentValue.getHours(), currentValue.getMinutes(), 0, 0);
     } else {
-      const [hStr, mStr] = (selectedDoctor?.availableFrom ?? "09:00").split(":");
+      const [hStr, mStr] = (selectedDoctor?.availableFrom ?? "09:00").split(
+        ":",
+      );
       next.setHours(
         Number.parseInt(hStr ?? "9", 10),
         Number.parseInt(mStr ?? "0", 10),
@@ -443,9 +467,13 @@ export function BookingDetailSheet({
                           <div className="flex items-center gap-2 text-sm font-semibold tabular-nums text-foreground">
                             <Clock className="h-4 w-4 text-primary" />
                             <span>
-                              {format(new Date(booking.appointmentDate), "h:mm a", {
-                                locale: dateLocale,
-                              })}
+                              {format(
+                                new Date(booking.appointmentDate),
+                                "h:mm a",
+                                {
+                                  locale: dateLocale,
+                                },
+                              )}
                             </span>
                           </div>
                         </div>
@@ -536,7 +564,10 @@ export function BookingDetailSheet({
                               {t("bookedService")}
                             </span>
                             <div className="flex items-center gap-1.5">
-                              <Badge variant="secondary" className="text-[11px]">
+                              <Badge
+                                variant="secondary"
+                                className="text-[11px]"
+                              >
                                 {tCat(booking.catalogItem.category)}
                               </Badge>
                               {!booking.catalogItem.isActive && (
@@ -768,7 +799,9 @@ export function BookingDetailSheet({
                                 <Select
                                   value={field.value}
                                   onValueChange={field.onChange}
-                                  disabled={!booking.capabilities.canChangeBranch}
+                                  disabled={
+                                    !booking.capabilities.canChangeBranch
+                                  }
                                 >
                                   <FormControl>
                                     <SelectTrigger className="w-full">
@@ -782,7 +815,10 @@ export function BookingDetailSheet({
                                       {t("noBranchSelected")}
                                     </SelectItem>
                                     {context.branches.map((branch) => (
-                                      <SelectItem key={branch.id} value={branch.id}>
+                                      <SelectItem
+                                        key={branch.id}
+                                        value={branch.id}
+                                      >
                                         {branch.name}
                                       </SelectItem>
                                     ))}
@@ -823,7 +859,9 @@ export function BookingDetailSheet({
                             name="status"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{t("statusOverrideLabel")}</FormLabel>
+                                <FormLabel>
+                                  {t("statusOverrideLabel")}
+                                </FormLabel>
                                 <Select
                                   value={field.value}
                                   onValueChange={field.onChange}
@@ -863,7 +901,8 @@ export function BookingDetailSheet({
                               field.value && isSameDay(field.value, todayStart),
                             );
                             const isTomorrowSelected = Boolean(
-                              field.value && isSameDay(field.value, tomorrowStart),
+                              field.value &&
+                              isSameDay(field.value, tomorrowStart),
                             );
                             return (
                               <FormItem className="flex flex-col space-y-2">
@@ -935,7 +974,9 @@ export function BookingDetailSheet({
                                   onChange={field.onChange}
                                   excludeBookingId={booking.id}
                                   disablePast={context.roleScope === "patient"}
-                                  allowCustomTime={context.roleScope !== "patient"}
+                                  allowCustomTime={
+                                    context.roleScope !== "patient"
+                                  }
                                 />
                                 <FormMessage />
                               </FormItem>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyBookingScopeRestriction,
   buildDayTimeSlots,
   computeBookingCapabilities,
   hasDoctorSlotConflict,
@@ -18,6 +19,19 @@ describe("resolveBookingRoleScope", () => {
     expect(resolveBookingRoleScope("patient")).toBe("patient");
     expect(resolveBookingRoleScope("staff")).toBe("staff");
     expect(resolveBookingRoleScope("receptionist")).toBe("staff");
+  });
+});
+
+describe("applyBookingScopeRestriction", () => {
+  it("narrows admin to doctor when doctor restriction is specified", () => {
+    expect(applyBookingScopeRestriction("admin", "doctor")).toBe("doctor");
+    expect(applyBookingScopeRestriction("admin", undefined)).toBe("admin");
+  });
+
+  it("never escalates doctor, staff, or patient scopes", () => {
+    expect(applyBookingScopeRestriction("doctor", "doctor")).toBe("doctor");
+    expect(applyBookingScopeRestriction("staff", "doctor")).toBe("staff");
+    expect(applyBookingScopeRestriction("patient", "doctor")).toBe("patient");
   });
 });
 
@@ -130,6 +144,31 @@ describe("computeBookingCapabilities", () => {
     expect(caps.canChangeDoctor).toBe(false);
     expect(caps.canComplete).toBe(true);
     expect(caps.canCheckIn).toBe(false);
+  });
+
+  it("locks terminal appointments (completed, cancelled, no_show) for doctor scope", () => {
+    for (const status of ["completed", "cancelled", "no_show"] as const) {
+      const caps = computeBookingCapabilities({
+        roleScope: "doctor",
+        status,
+        appointmentDate: futureDate,
+        canCreatePermission: true,
+        canCancelPermission: true,
+        branchLocked: false,
+        now,
+      });
+
+      expect(caps.canEditDetails).toBe(false);
+      expect(caps.canReschedule).toBe(false);
+      expect(caps.canChangeDoctor).toBe(false);
+      expect(caps.canChangeBranch).toBe(false);
+      expect(caps.canCancel).toBe(false);
+      expect(caps.canCheckIn).toBe(false);
+      expect(caps.canComplete).toBe(false);
+      expect(caps.canMarkNoShow).toBe(false);
+      expect(caps.canOverrideTerminal).toBe(false);
+      expect(caps.lockReason).toBe(status);
+    }
   });
 
   it("allows admin override on terminal statuses", () => {

@@ -193,8 +193,7 @@ export default function DoctorAppointmentsPage() {
             isCompleted ||
             row.original.status === "cancelled" ||
             row.original.status === "no_show";
-          const canEditRow =
-            bookingContext?.roleScope === "admin" || !isTerminal;
+          const canEditRow = !isTerminal;
           const patientName = `${row.original.patients?.first_name ?? ""} ${
             row.original.patients?.last_name ?? ""
           }`.trim();
@@ -392,6 +391,7 @@ export default function DoctorAppointmentsPage() {
             }
           }}
           context={bookingContext}
+          scope="doctor"
         />
       )}
     </motion.div>

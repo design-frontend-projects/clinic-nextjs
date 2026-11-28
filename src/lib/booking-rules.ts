@@ -1,6 +1,7 @@
 import type {
   BookingCapabilities,
   BookingRoleScope,
+  BookingScopeRestriction,
   DoctorAvailabilityConfig,
   DoctorSlotDuration,
   SlotAvailabilityCheckResult,
@@ -170,6 +171,21 @@ export function resolveBookingRoleScope(role: string): BookingRoleScope {
     return "patient";
   }
   return "staff";
+}
+
+/**
+ * Strictly monotonic scope restriction: narrows `"admin"` down to `"doctor"`
+ * when a practitioner-only surface opts into doctor mode, while never
+ * escalating `"doctor"`, `"staff"`, or `"patient"` scopes.
+ */
+export function applyBookingScopeRestriction(
+  roleScope: BookingRoleScope,
+  restriction?: BookingScopeRestriction,
+): BookingRoleScope {
+  if (restriction === "doctor" && roleScope === "admin") {
+    return "doctor";
+  }
+  return roleScope;
 }
 
 export interface ComputeCapabilitiesParams {

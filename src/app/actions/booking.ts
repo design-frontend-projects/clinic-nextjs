@@ -13,6 +13,7 @@ import {
 import {
   SLOT_INTERVAL_MINUTES,
   TERMINAL_BOOKING_STATUSES,
+  applyBookingScopeRestriction,
   computeBookingCapabilities,
   normalizeDoctorAvailability,
   resolveBookingRoleScope,
@@ -33,6 +34,7 @@ import {
   type BookingItem,
   type BookingListStats,
   type BookingRoleScope,
+  type BookingScopeRestriction,
   type BookingUpdateInput,
   type ProfileStatusValue,
 } from "@/types/booking.types";
@@ -132,6 +134,20 @@ async function resolveBookingPermissions(
     canCancel,
     patientId: null,
   };
+}
+
+function narrowBookingPermissions(
+  perms: ResolvedBookingPermissions,
+  restriction?: BookingScopeRestriction,
+): ResolvedBookingPermissions {
+  const narrowedScope = applyBookingScopeRestriction(
+    perms.roleScope,
+    restriction,
+  );
+  if (narrowedScope === perms.roleScope) {
+    return perms;
+  }
+  return { ...perms, roleScope: narrowedScope };
 }
 
 function buildRoleScopeWhere(
@@ -596,11 +612,17 @@ export async function getBookings(
 /**
  * Fetch detailed view of a single booking, scoped strictly to tenant and role.
  */
-export async function getBookingById(id: string): Promise<BookingDetail | null> {
+export async function getBookingById(
+  id: string,
+  options?: { scope?: BookingScopeRestriction },
+): Promise<BookingDetail | null> {
   if (!isValidUuid(id)) return null;
 
   const tenant = await requireTenantInfo();
-  const perms = await resolveBookingPermissions(tenant);
+  const perms = narrowBookingPermissions(
+    await resolveBookingPermissions(tenant),
+    options?.scope,
+  );
 
   if (!perms.canRead) {
     throw new Error("Forbidden: Missing required permission (appointment.read)");
@@ -941,12 +963,14 @@ export async function updateBooking(
 ): Promise<BookingActionResult<BookingDetail>> {
   try {
     const tenant = await requireTenantInfo();
-    const perms = await resolveBookingPermissions(tenant);
+    const rawPerms = await resolveBookingPermissions(tenant);
 
     const parsed = bookingUpdateSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message || "Invalid booking update" };
     }
+
+    const perms = narrowBookingPermissions(rawPerms, parsed.data.scope);
 
     const existing = await prisma.appointments.findFirst({
       where: {
@@ -1156,6 +1180,7 @@ export async function updateBooking(
  */
 export async function cancelBooking(
   id: string,
+  options?: { scope?: BookingScopeRestriction },
 ): Promise<BookingActionResult<BookingDetail>> {
-  return updateBooking({ id, status: "cancelled" });
+  return updateBooking({ id, status: "cancelled", scope: options?.scope });
 }

@@ -721,4 +721,105 @@ describe("booking server actions", () => {
       }),
     );
   });
+
+  it("locks completed appointments for a practicing owner in doctor scope (getBookingById, updateBooking, cancelBooking)", async () => {
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({
+        role: "owner",
+        profileId: DOCTOR_ID,
+        branchId: null,
+        branchLocked: false,
+      }),
+    );
+    prismaMock.appointments.findFirst.mockResolvedValue(
+      makeAppointmentRow({ status: "completed", doctor_id: DOCTOR_ID }),
+    );
+
+    const detail = await getBookingById(BOOKING_ID, { scope: "doctor" });
+    expect(detail?.capabilities.canEditDetails).toBe(false);
+    expect(detail?.capabilities.canOverrideTerminal).toBe(false);
+    expect(detail?.capabilities.lockReason).toBe("completed");
+    expect(prismaMock.appointments.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: BOOKING_ID,
+          clinic_id: CLINIC_ID,
+          doctor_id: DOCTOR_ID,
+        }),
+      }),
+    );
+
+    const editRes = await updateBooking({
+      id: BOOKING_ID,
+      notes: "Should be blocked",
+      scope: "doctor",
+    });
+    expect(editRes).toEqual({ error: "This booking can no longer be modified." });
+
+    const reopenRes = await updateBooking({
+      id: BOOKING_ID,
+      status: "scheduled",
+      scope: "doctor",
+    });
+    expect(reopenRes).toEqual({
+      error: "Only administrators can reopen a closed booking.",
+    });
+
+    const cancelRes = await cancelBooking(BOOKING_ID, { scope: "doctor" });
+    expect(cancelRes).toEqual({ error: "You cannot cancel this booking." });
+    expect(prismaMock.appointments.update).not.toHaveBeenCalled();
+  });
+
+  it("blocks standard doctor role from editing a completed appointment even without scope", async () => {
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({
+        role: "doctor",
+        profileId: DOCTOR_ID,
+        branchId: BRANCH_ID,
+        branchLocked: true,
+      }),
+    );
+    prismaMock.appointments.findFirst.mockResolvedValue(
+      makeAppointmentRow({ status: "completed", doctor_id: DOCTOR_ID }),
+    );
+
+    const res = await updateBooking({
+      id: BOOKING_ID,
+      notes: "Cannot edit completed",
+    });
+
+    expect(res).toEqual({ error: "This booking can no longer be modified." });
+    expect(prismaMock.appointments.update).not.toHaveBeenCalled();
+  });
+
+  it("prevents staff without permissions and patients from escalating privileges via scope='doctor'", async () => {
+    mockHasPermission.mockResolvedValue(false);
+    prismaMock.appointments.findFirst.mockResolvedValue(
+      makeAppointmentRow({ status: "scheduled" }),
+    );
+
+    const staffRes = await updateBooking({
+      id: BOOKING_ID,
+      notes: "Escalation attempt",
+      scope: "doctor",
+    });
+    expect(staffRes).toEqual({ error: "This booking can no longer be modified." });
+
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({ role: "patient", branchId: null, branchLocked: false }),
+    );
+    prismaMock.appointments.findFirst.mockResolvedValue(
+      makeAppointmentRow({ status: "checked_in" }),
+    );
+
+    const patientRes = await updateBooking({
+      id: BOOKING_ID,
+      notes: "Escalation attempt",
+      scope: "doctor",
+    });
+    expect(patientRes).toEqual({
+      error: "This booking can no longer be modified.",
+    });
+    expect(prismaMock.appointments.update).not.toHaveBeenCalled();
+  });
 });
