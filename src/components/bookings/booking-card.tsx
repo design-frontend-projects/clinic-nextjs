@@ -11,9 +11,10 @@ import {
   MoreHorizontal,
   Pencil,
   Stethoscope,
+  Tag,
   XCircle,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import type { BookingItem, BookingRoleScope } from "@/types/booking.types";
@@ -56,6 +57,8 @@ export function BookingCard({
   isUpdating = false,
 }: BookingCardProps) {
   const t = useTranslations("pages.booking");
+  const tCat = useTranslations("admin.billing.categories");
+  const locale = useLocale();
 
   const dateObj = new Date(booking.appointmentDate);
   const isPatientView = roleScope === "patient";
@@ -122,6 +125,22 @@ export function BookingCard({
                   <Building2 className="h-3.5 w-3.5" />
                   <span className="truncate">{booking.branch.name}</span>
                 </span>
+              )}
+              {!isPatientView && booking.catalogItem && (
+                <Badge
+                  variant="secondary"
+                  className="inline-flex h-5 items-center gap-1 px-1.5 text-[11px] font-medium"
+                >
+                  <Tag className="h-3 w-3 text-primary" />
+                  <span className="max-w-[160px] truncate">
+                    {locale === "ar"
+                      ? booking.catalogItem.nameAr
+                      : booking.catalogItem.nameEn}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    · {tCat(booking.catalogItem.category)}
+                  </span>
+                </Badge>
               )}
               {booking.checkedInAt && (
                 <span className="inline-flex items-center gap-1 text-accent-yellow">

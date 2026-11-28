@@ -22,6 +22,7 @@ export default async function PatientConsultationPage({
       currentDoctorName,
       clinicName,
       canConfirmAllPatientLabs,
+      currentAppointment,
     },
     bodyChartContext,
   ] = await Promise.all([
@@ -40,6 +41,7 @@ export default async function PatientConsultationPage({
       currentDoctorName={currentDoctorName}
       clinicName={clinicName}
       canConfirmAllPatientLabs={canConfirmAllPatientLabs}
+      currentAppointment={currentAppointment}
       initialBodyChartContext={bodyChartContext}
     />
   );

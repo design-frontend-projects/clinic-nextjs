@@ -22,6 +22,7 @@ export interface AppointmentScope {
 export interface CreateAppointmentInput {
   patient_id: string;
   doctor_id: string;
+  catalog_item_id?: string | null;
   appointment_date: string;
   notes?: string;
 }
@@ -45,6 +46,7 @@ export async function createAppointmentForScope(
       branch_id: scope.branchId,
       patient_id: data.patient_id,
       doctor_id: data.doctor_id,
+      catalog_item_id: data.catalog_item_id ?? null,
       appointment_date: appointmentDate,
       notes: data.notes || null,
       status: "scheduled",
@@ -160,6 +162,7 @@ export async function registerPatientWithAppointmentForScope(
           branch_id: scope.branchId,
           patient_id: patient.id,
           doctor_id: appointmentData.doctor_id,
+          catalog_item_id: appointmentData.catalog_item_id ?? null,
           appointment_date: new Date(appointmentData.appointment_date),
           notes: appointmentData.notes ?? null,
           status: appointmentData.status,

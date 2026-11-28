@@ -72,14 +72,27 @@ function useDebounced<T>(value: T, delay: number): T {
   return debounced;
 }
 
+export interface CreateInvoicePrefill {
+  patient?: PatientOption;
+  catalogItem?: {
+    id: string;
+    nameEn: string;
+    nameAr: string;
+    category: BillingItemCategory;
+    price: number;
+  } | null;
+}
+
 interface CreateInvoiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefill?: CreateInvoicePrefill | null;
 }
 
 export function CreateInvoiceDialog({
   open,
   onOpenChange,
+  prefill,
 }: CreateInvoiceDialogProps) {
   const t = useTranslations("admin.billing");
   const locale = useLocale();
@@ -87,9 +100,59 @@ export function CreateInvoiceDialog({
   const [isPending, startTransition] = useTransition();
 
   const [patientQuery, setPatientQuery] = useState("");
-  const [patient, setPatient] = useState<PatientOption | null>(null);
-  const [items, setItems] = useState<EditableLineItem[]>([emptyLineItem]);
+  const [patient, setPatient] = useState<PatientOption | null>(
+    () => prefill?.patient ?? null,
+  );
+  const [items, setItems] = useState<EditableLineItem[]>(() =>
+    prefill?.catalogItem
+      ? [
+          {
+            catalog_item_id: prefill.catalogItem.id,
+            category: prefill.catalogItem.category,
+            description:
+              locale === "ar"
+                ? prefill.catalogItem.nameAr
+                : prefill.catalogItem.nameEn,
+            quantity: "1",
+            unit_price: String(prefill.catalogItem.price),
+          },
+        ]
+      : [emptyLineItem],
+  );
   const [applyInsurance, setApplyInsurance] = useState(true);
+  const [appliedPrefillKey, setAppliedPrefillKey] = useState<string | null>(
+    null,
+  );
+
+  const prefillKey =
+    open && prefill
+      ? `${prefill.patient?.id ?? ""}:${prefill.catalogItem?.id ?? ""}:${locale}`
+      : null;
+
+  if (prefillKey !== appliedPrefillKey) {
+    setAppliedPrefillKey(prefillKey);
+    if (prefillKey && prefill) {
+      if (prefill.patient) {
+        setPatient(prefill.patient);
+        setPatientQuery("");
+      }
+      if (prefill.catalogItem) {
+        setItems([
+          {
+            catalog_item_id: prefill.catalogItem.id,
+            category: prefill.catalogItem.category,
+            description:
+              locale === "ar"
+                ? prefill.catalogItem.nameAr
+                : prefill.catalogItem.nameEn,
+            quantity: "1",
+            unit_price: String(prefill.catalogItem.price),
+          },
+        ]);
+      }
+      setApplyInsurance(true);
+    }
+  }
 
   const debouncedQuery = useDebounced(patientQuery, 300);
 

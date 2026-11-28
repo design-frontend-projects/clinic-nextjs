@@ -21,6 +21,10 @@ const prismaMock = vi.hoisted(() => ({
     findFirst: vi.fn(),
     findMany: vi.fn(),
   },
+  billing_catalog_items: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+  },
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
@@ -55,6 +59,8 @@ const BRANCH_ID = "22222222-2222-4222-8222-222222222222";
 const PATIENT_ID = "33333333-3333-4333-8333-333333333333";
 const DOCTOR_ID = "44444444-4444-4444-8444-444444444444";
 const BOOKING_ID = "55555555-5555-4555-8555-555555555555";
+const CATALOG_ITEM_ID = "88888888-8888-4888-8888-888888888888";
+const CATALOG_ITEM_ID_2 = "99999999-9999-4999-8999-999999999991";
 
 // Local-time future working weekday (Thursday, June 15, 2028 at 10:00)
 const FUTURE_DATE = new Date(2028, 5, 15, 10, 0, 0, 0);
@@ -128,6 +134,8 @@ function makeAppointmentRow(overrides: Record<string, unknown> = {}) {
       id: BRANCH_ID,
       name: "Main Branch",
     },
+    catalog_item_id: null,
+    billing_catalog_items: null,
     review: null,
     _count: {
       encounters: 0,
@@ -141,6 +149,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockHasPermission.mockResolvedValue(true);
   mockRequireTenant.mockResolvedValue(makeTenant({ role: "staff" }));
+  prismaMock.billing_catalog_items.findMany.mockResolvedValue([]);
   mockRequirePatient.mockResolvedValue({
     tenant: makeTenant({ role: "patient", branchId: null, branchLocked: false }),
     patient: { id: PATIENT_ID } as never,
@@ -521,6 +530,194 @@ describe("booking server actions", () => {
           status: "scheduled",
           checked_in_at: null,
         }),
+      }),
+    );
+  });
+
+  it("returns active catalogItems in getBookingContext for staff and omits them for patients", async () => {
+    prismaMock.profiles.findMany.mockResolvedValue([makeDoctorProfileRow()]);
+    prismaMock.clinic_branches.findMany.mockResolvedValue([]);
+    prismaMock.billing_catalog_items.findMany.mockResolvedValue([
+      {
+        id: CATALOG_ITEM_ID,
+        name_en: "General Consultation",
+        name_ar: "استشارة عامة",
+        category: "consultation",
+        price: 150,
+        description: "Standard clinic visit",
+        is_active: true,
+      },
+    ]);
+
+    const staffCtx = await getBookingContext();
+    expect(staffCtx.catalogItems).toEqual([
+      {
+        id: CATALOG_ITEM_ID,
+        nameEn: "General Consultation",
+        nameAr: "استشارة عامة",
+        category: "consultation",
+        price: 150,
+        description: "Standard clinic visit",
+        isActive: true,
+      },
+    ]);
+
+    vi.clearAllMocks();
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({ role: "patient", branchId: null, branchLocked: false }),
+    );
+    prismaMock.profiles.findMany.mockResolvedValue([makeDoctorProfileRow()]);
+    prismaMock.clinic_branches.findMany.mockResolvedValue([]);
+
+    const patientCtx = await getBookingContext();
+    expect(patientCtx.catalogItems).toEqual([]);
+    expect(prismaMock.billing_catalog_items.findMany).not.toHaveBeenCalled();
+  });
+
+  it("validates and persists active catalog_item_id on staff createBooking and strips it for patients", async () => {
+    prismaMock.patients.findFirst.mockResolvedValue({ id: PATIENT_ID });
+    prismaMock.profiles.findFirst.mockResolvedValue(makeDoctorProfileRow());
+    prismaMock.billing_catalog_items.findFirst.mockResolvedValueOnce({
+      id: CATALOG_ITEM_ID,
+    });
+    prismaMock.appointments.findFirst.mockResolvedValue(null);
+    prismaMock.appointments.create.mockResolvedValue(
+      makeAppointmentRow({
+        catalog_item_id: CATALOG_ITEM_ID,
+        billing_catalog_items: {
+          id: CATALOG_ITEM_ID,
+          name_en: "General Consultation",
+          name_ar: "استشارة عامة",
+          category: "consultation",
+          price: 150,
+          description: null,
+          is_active: true,
+        },
+      }),
+    );
+
+    const okRes = await createBooking({
+      patient_id: PATIENT_ID,
+      doctor_id: DOCTOR_ID,
+      catalog_item_id: CATALOG_ITEM_ID,
+      appointment_date: FUTURE_DATE.toISOString(),
+    });
+    expect("success" in okRes && okRes.success).toBe(true);
+    if ("success" in okRes && okRes.success) {
+      expect(okRes.data.catalogItem?.id).toBe(CATALOG_ITEM_ID);
+      expect(okRes.data.catalogItem?.price).toBe(150);
+    }
+    expect(prismaMock.appointments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          catalog_item_id: CATALOG_ITEM_ID,
+        }),
+      }),
+    );
+
+    // Reject inactive/missing catalog item
+    prismaMock.billing_catalog_items.findFirst.mockResolvedValueOnce(null);
+    const badRes = await createBooking({
+      patient_id: PATIENT_ID,
+      doctor_id: DOCTOR_ID,
+      catalog_item_id: CATALOG_ITEM_ID,
+      appointment_date: FUTURE_DATE.toISOString(),
+    });
+    expect(badRes).toEqual({
+      error: "Selected service item is unavailable or not found in this clinic.",
+    });
+
+    // Patient role strips catalog_item_id
+    mockRequireTenant.mockResolvedValue(
+      makeTenant({ role: "patient", branchId: null, branchLocked: false }),
+    );
+    prismaMock.appointments.create.mockResolvedValueOnce(makeAppointmentRow());
+    await createBooking({
+      doctor_id: DOCTOR_ID,
+      catalog_item_id: CATALOG_ITEM_ID,
+      appointment_date: FUTURE_DATE.toISOString(),
+    });
+    expect(prismaMock.appointments.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          catalog_item_id: null,
+        }),
+      }),
+    );
+  });
+
+  it("updates, clears, and protects catalog_item_id in updateBooking", async () => {
+    // 1. Update to a new active catalog item
+    prismaMock.appointments.findFirst.mockResolvedValueOnce(
+      makeAppointmentRow({ catalog_item_id: CATALOG_ITEM_ID }),
+    );
+    prismaMock.billing_catalog_items.findFirst.mockResolvedValueOnce({
+      id: CATALOG_ITEM_ID_2,
+    });
+    prismaMock.appointments.update.mockResolvedValueOnce(
+      makeAppointmentRow({ catalog_item_id: CATALOG_ITEM_ID_2 }),
+    );
+
+    const updateRes = await updateBooking({
+      id: BOOKING_ID,
+      catalog_item_id: CATALOG_ITEM_ID_2,
+    });
+    expect("success" in updateRes && updateRes.success).toBe(true);
+    expect(prismaMock.appointments.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { catalog_item_id: CATALOG_ITEM_ID_2 },
+      }),
+    );
+
+    // 2. Reject switching to an inactive/unknown catalog item
+    prismaMock.appointments.findFirst.mockResolvedValueOnce(
+      makeAppointmentRow({ catalog_item_id: CATALOG_ITEM_ID }),
+    );
+    prismaMock.billing_catalog_items.findFirst.mockResolvedValueOnce(null);
+
+    const invalidRes = await updateBooking({
+      id: BOOKING_ID,
+      catalog_item_id: CATALOG_ITEM_ID_2,
+    });
+    expect(invalidRes).toEqual({
+      error: "Selected service item is unavailable or not found in this clinic.",
+    });
+
+    // 3. Clear catalog_item_id to null without calling findFirst
+    prismaMock.appointments.findFirst.mockResolvedValueOnce(
+      makeAppointmentRow({ catalog_item_id: CATALOG_ITEM_ID }),
+    );
+    prismaMock.appointments.update.mockResolvedValueOnce(
+      makeAppointmentRow({ catalog_item_id: null }),
+    );
+
+    const clearRes = await updateBooking({
+      id: BOOKING_ID,
+      catalog_item_id: null,
+    });
+    expect("success" in clearRes && clearRes.success).toBe(true);
+    expect(prismaMock.appointments.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { catalog_item_id: null },
+      }),
+    );
+
+    // 4. Editing notes alone with unchanged catalog_item_id does not re-validate
+    prismaMock.appointments.findFirst.mockResolvedValueOnce(
+      makeAppointmentRow({ catalog_item_id: CATALOG_ITEM_ID }),
+    );
+    prismaMock.appointments.update.mockResolvedValueOnce(
+      makeAppointmentRow({ catalog_item_id: CATALOG_ITEM_ID, notes: "Updated" }),
+    );
+    const notesOnlyRes = await updateBooking({
+      id: BOOKING_ID,
+      catalog_item_id: CATALOG_ITEM_ID,
+      notes: "Updated",
+    });
+    expect("success" in notesOnlyRes && notesOnlyRes.success).toBe(true);
+    expect(prismaMock.appointments.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { notes: "Updated" },
       }),
     );
   });

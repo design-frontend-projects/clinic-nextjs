@@ -13,13 +13,17 @@ import {
   History,
   Pencil,
   Pill,
+  Receipt,
   ShieldCheck,
+  Tag,
 } from "lucide-react";
+import { CreateInvoiceDialog } from "@/components/billing/create-invoice-dialog";
 import { PatientInsurancePanel } from "@/components/insurance/patient-insurance-panel";
 import {
   BodyChartStudio,
   type BodyChartStudioHandle,
 } from "@/components/body-chart/body-chart-studio";
+import type { BookingCatalogItemOption } from "@/types/booking.types";
 import type { PatientBodyChartContext } from "@/types/body-chart.types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,7 +39,7 @@ import {
   type ConfirmableLabOrder,
   type ConfirmableLabResult,
 } from "@/components/doctor/confirm-lab-order-dialog";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 interface Patient {
   id: string;
@@ -77,6 +81,14 @@ interface LabOrder {
   lab_results?: ConfirmableLabResult[];
 }
 
+interface CurrentAppointmentSummary {
+  id: string;
+  appointmentDate: string;
+  status: string;
+  notes: string | null;
+  catalogItem: BookingCatalogItemOption | null;
+}
+
 interface ConsultationClientProps {
   patient: Patient;
   history: Encounter[];
@@ -87,6 +99,7 @@ interface ConsultationClientProps {
   currentDoctorName?: string | null;
   clinicName?: string | null;
   canConfirmAllPatientLabs?: boolean;
+  currentAppointment?: CurrentAppointmentSummary | null;
   initialBodyChartContext: PatientBodyChartContext;
 }
 
@@ -127,14 +140,18 @@ export function ConsultationClient({
   currentDoctorName,
   clinicName,
   canConfirmAllPatientLabs = false,
+  currentAppointment = null,
   initialBodyChartContext,
 }: ConsultationClientProps) {
   const t = useTranslations("pages.doctor.consultation");
   const tGender = useTranslations("enums.gender");
+  const tCat = useTranslations("admin.billing.categories");
+  const locale = useLocale();
   const router = useRouter();
   const [selectedLab, setSelectedLab] = useState<ConfirmableLabOrder | null>(
     null,
   );
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const bodyChartRef = useRef<BodyChartStudioHandle | null>(null);
   const [attachChartOnEncounter, setAttachChartOnEncounter] = useState(true);
   const [selectedChartVersionId, setSelectedChartVersionId] = useState<
@@ -226,6 +243,69 @@ export function ConsultationClient({
           </div>
         </div>
       </motion.div>
+
+      {/* Booked Service Banner (when appointment carries a catalog service) */}
+      {currentAppointment?.catalogItem && (
+        <motion.div variants={itemVariants}>
+          <Card className="border border-primary/25 bg-primary/[0.04] backdrop-blur-md shadow-sm">
+            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3.5">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Tag className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+                      {t("bookedServiceTitle")}
+                    </span>
+                    <Badge variant="secondary" className="h-5 px-2 text-[11px]">
+                      {tCat(currentAppointment.catalogItem.category)}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      dir="ltr"
+                      className="h-5 px-2 font-mono text-xs font-semibold tabular-nums"
+                    >
+                      ${currentAppointment.catalogItem.price.toFixed(2)}
+                    </Badge>
+                  </div>
+                  <p className="text-base font-bold text-foreground">
+                    {locale === "ar"
+                      ? currentAppointment.catalogItem.nameAr
+                      : currentAppointment.catalogItem.nameEn}
+                  </p>
+                  {(locale === "ar"
+                    ? currentAppointment.catalogItem.nameEn
+                    : currentAppointment.catalogItem.nameAr) !==
+                    (locale === "ar"
+                      ? currentAppointment.catalogItem.nameAr
+                      : currentAppointment.catalogItem.nameEn) && (
+                    <p className="text-xs text-muted-foreground">
+                      {locale === "ar"
+                        ? currentAppointment.catalogItem.nameEn
+                        : currentAppointment.catalogItem.nameAr}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {currentAppointment.catalogItem.description ||
+                      t("bookedServiceDesc")}
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setInvoiceDialogOpen(true)}
+              >
+                <Receipt className="me-1.5 h-4 w-4" />
+                {t("createInvoiceFromService")}
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Specialty Anatomical Body Chart Studio */}
       <motion.div variants={itemVariants}>
@@ -527,6 +607,22 @@ export function ConsultationClient({
         currentAppointmentId={appointmentId}
         onConfirmed={() => router.refresh()}
       />
+      {currentAppointment?.catalogItem && (
+        <CreateInvoiceDialog
+          open={invoiceDialogOpen}
+          onOpenChange={setInvoiceDialogOpen}
+          prefill={{
+            patient: {
+              id: patient.id,
+              first_name: patient.first_name,
+              last_name: patient.last_name,
+              phone: patient.phone,
+              email: patient.email,
+            },
+            catalogItem: currentAppointment.catalogItem,
+          }}
+        />
+      )}
     </motion.div>
   );
 }

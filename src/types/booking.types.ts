@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { appointmentStatusEnum } from "@/types/appointment.types";
+import type { BillingItemCategory } from "@/types/billing.types";
 import type { AppointmentStatus } from "@/types/staff.types";
 
 export type BookingRoleScope = "patient" | "staff" | "doctor" | "admin";
@@ -45,6 +46,16 @@ export interface BookingPartyBranch {
   name: string;
 }
 
+export interface BookingCatalogItemOption {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  category: BillingItemCategory;
+  price: number;
+  description: string | null;
+  isActive: boolean;
+}
+
 export interface BookingItem {
   id: string;
   appointmentDate: string;
@@ -54,6 +65,7 @@ export interface BookingItem {
   patient: BookingPartyPatient;
   doctor: BookingPartyDoctor | null;
   branch: BookingPartyBranch | null;
+  catalogItem: BookingCatalogItemOption | null;
   capabilities: BookingCapabilities;
 }
 
@@ -113,6 +125,7 @@ export interface BookingContextData {
   canCreateNewPatient: boolean;
   doctors: BookingDoctorOption[];
   branches: BookingBranchOption[];
+  catalogItems: BookingCatalogItemOption[];
 }
 
 export interface BookingListStats {
@@ -140,6 +153,11 @@ export const bookingCreateSchema = z.object({
   patient_id: z.string().uuid("Please select a valid patient").optional(),
   doctor_id: z.string().uuid("Please select a doctor"),
   branch_id: z.string().uuid("Please select a valid branch").nullable().optional(),
+  catalog_item_id: z
+    .string()
+    .uuid("Please select a valid service item")
+    .nullable()
+    .optional(),
   appointment_date: z.string().min(1, "Please select a date and time"),
   notes: z
     .string()
@@ -151,6 +169,11 @@ export const bookingUpdateSchema = z.object({
   id: z.string().uuid("Invalid booking identifier"),
   doctor_id: z.string().uuid("Please select a doctor").optional(),
   branch_id: z.string().uuid("Please select a valid branch").nullable().optional(),
+  catalog_item_id: z
+    .string()
+    .uuid("Please select a valid service item")
+    .nullable()
+    .optional(),
   appointment_date: z.string().min(1, "Please select a date and time").optional(),
   notes: z
     .string()

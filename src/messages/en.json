@@ -872,7 +872,18 @@
       "toastCreated": "Booking created successfully.",
       "toastUpdated": "Booking updated successfully.",
       "toastCancelled": "Booking cancelled.",
-      "toastStatusUpdated": "Booking status updated."
+      "toastStatusUpdated": "Booking status updated.",
+      "serviceLabel": "Service / Billable Item",
+      "selectService": "Select a service (optional)...",
+      "searchServicesPlaceholder": "Filter by service name...",
+      "allCategories": "All",
+      "noServicesFound": "No matching services found.",
+      "emptyCatalogHint": "No active billing catalog items configured yet.",
+      "clearService": "Clear selection",
+      "colService": "Service",
+      "bookedService": "Booked Service",
+      "inactiveServiceTag": "Inactive",
+      "noServiceSelected": "No service selected"
     },
     "admin": {
       "title": "Dashboard",
@@ -969,7 +980,8 @@
         "actionEdit": "Edit",
         "tipEdit": "Edit appointment details",
         "actionView": "Details",
-        "tipView": "View appointment details"
+        "tipView": "View appointment details",
+        "colService": "Service"
       },
       "labs": {
         "title": "Lab Orders",
@@ -1045,7 +1057,11 @@
         "confirmedByAt": "Confirmed by {name} on {date}",
         "metricCharts": "Body Charts",
         "attachBodyChart": "Attach & save current Body Chart edits with this encounter",
-        "linkedChartBadge": "Body Chart v{version}"
+        "linkedChartBadge": "Body Chart v{version}",
+        "bookedServiceTitle": "Booked Service",
+        "bookedServiceDesc": "Selected by reception for this appointment",
+        "createInvoiceFromService": "Create Invoice",
+        "servicePrice": "Price"
       },
       "encounter": {
         "errDiagnosisRequired": "Diagnosis is required",
@@ -1627,7 +1643,11 @@
   "plans": {
     "basic": "Basic",
     "basicPrice": "$29/mo",
-    "basicFeatures": ["1 Branch", "Up to 3 Staff Users", "Basic Reporting"],
+    "basicFeatures": [
+      "1 Branch",
+      "Up to 3 Staff Users",
+      "Basic Reporting"
+    ],
     "pro": "Pro",
     "proPrice": "$99/mo",
     "proFeatures": [

@@ -24,6 +24,7 @@ import {
   bookingUpdateSchema,
   type BookingActionResult,
   type BookingBranchOption,
+  type BookingCatalogItemOption,
   type BookingContextData,
   type BookingCreateInput,
   type BookingDetail,
@@ -35,6 +36,7 @@ import {
   type BookingUpdateInput,
   type ProfileStatusValue,
 } from "@/types/booking.types";
+import type { BillingItemCategory } from "@/types/billing.types";
 import type { CreateAppointmentWithPatientData } from "@/types/appointment.types";
 import type { AppointmentStatus } from "@/types/staff.types";
 
@@ -77,6 +79,7 @@ function revalidateBookingPaths(): void {
   revalidatePath("/staff");
   revalidatePath("/staff/checkin");
   revalidatePath("/admin/appointments");
+  revalidatePath("/doctor");
   revalidatePath("/doctor/appointments");
   revalidatePath("/patient");
   revalidatePath("/patient/appointments");
@@ -184,11 +187,62 @@ const BOOKING_ITEM_INCLUDE = {
       name: true,
     },
   },
+  billing_catalog_items: {
+    select: {
+      id: true,
+      name_en: true,
+      name_ar: true,
+      category: true,
+      price: true,
+      description: true,
+      is_active: true,
+    },
+  },
 } satisfies Prisma.appointmentsInclude;
 
 type BookingItemRow = Prisma.appointmentsGetPayload<{
   include: typeof BOOKING_ITEM_INCLUDE;
 }>;
+
+interface CatalogItemSelectableRow {
+  id: string;
+  name_en: string;
+  name_ar: string;
+  category: string;
+  price: unknown;
+  description: string | null;
+  is_active: boolean;
+}
+
+function mapCatalogItem(
+  row: CatalogItemSelectableRow,
+): BookingCatalogItemOption {
+  return {
+    id: row.id,
+    nameEn: row.name_en,
+    nameAr: row.name_ar,
+    category: row.category as BillingItemCategory,
+    price: Number(row.price),
+    description: row.description,
+    isActive: row.is_active,
+  };
+}
+
+async function validateActiveCatalogItem(
+  clinicId: string,
+  catalogItemId: string,
+): Promise<boolean> {
+  const item = await prisma.billing_catalog_items.findFirst({
+    where: {
+      id: catalogItemId,
+      clinic_id: clinicId,
+      is_active: true,
+      deleted_at: null,
+    },
+    select: { id: true },
+  });
+  return Boolean(item);
+}
 
 function mapBookingItem(
   row: BookingItemRow,
@@ -221,6 +275,9 @@ function mapBookingItem(
           id: row.branches.id,
           name: row.branches.name,
         }
+      : null,
+    catalogItem: row.billing_catalog_items
+      ? mapCatalogItem(row.billing_catalog_items)
       : null,
     capabilities: computeBookingCapabilities({
       roleScope: perms.roleScope,
@@ -296,7 +353,7 @@ export async function getBookingContext(): Promise<BookingContextData> {
   const tenant = await requireTenantInfo();
   const perms = await resolveBookingPermissions(tenant);
 
-  const [doctorRows, clinicBranches] = await Promise.all([
+  const [doctorRows, clinicBranches, catalogRows] = await Promise.all([
     prisma.profiles.findMany({
       where: {
         tenant_id: tenant.clinicId,
@@ -327,6 +384,25 @@ export async function getBookingContext(): Promise<BookingContextData> {
       },
       orderBy: [{ is_primary: "desc" }, { created_at: "asc" }],
     }),
+    perms.roleScope !== "patient"
+      ? prisma.billing_catalog_items.findMany({
+          where: {
+            clinic_id: tenant.clinicId,
+            is_active: true,
+            deleted_at: null,
+          },
+          select: {
+            id: true,
+            name_en: true,
+            name_ar: true,
+            category: true,
+            price: true,
+            description: true,
+            is_active: true,
+          },
+          orderBy: [{ category: "asc" }, { name_en: "asc" }],
+        })
+      : Promise.resolve([]),
   ]);
 
   const doctors: BookingDoctorOption[] = doctorRows
@@ -377,6 +453,7 @@ export async function getBookingContext(): Promise<BookingContextData> {
     canCreateNewPatient: perms.roleScope !== "patient" && perms.canCreate,
     doctors,
     branches,
+    catalogItems: catalogRows.map(mapCatalogItem),
   };
 }
 
@@ -444,6 +521,14 @@ export async function getBookings(
             {
               profiles: {
                 full_name: { contains: searchTerm, mode: "insensitive" },
+              },
+            },
+            {
+              billing_catalog_items: {
+                OR: [
+                  { name_en: { contains: searchTerm, mode: "insensitive" } },
+                  { name_ar: { contains: searchTerm, mode: "insensitive" } },
+                ],
               },
             },
           ],
@@ -695,6 +780,21 @@ export async function createBooking(
       }
     }
 
+    let resolvedCatalogItemId: string | null = null;
+    if (perms.roleScope !== "patient" && parsed.data.catalog_item_id) {
+      const isCatalogValid = await validateActiveCatalogItem(
+        tenant.clinicId,
+        parsed.data.catalog_item_id,
+      );
+      if (!isCatalogValid) {
+        return {
+          error:
+            "Selected service item is unavailable or not found in this clinic.",
+        };
+      }
+      resolvedCatalogItemId = parsed.data.catalog_item_id;
+    }
+
     const conflict = await hasActiveDoctorConflict({
       clinicId: tenant.clinicId,
       doctorId: targetDoctorId,
@@ -713,6 +813,7 @@ export async function createBooking(
         branch_id: resolvedBranchId,
         patient_id: targetPatientId,
         doctor_id: targetDoctorId,
+        catalog_item_id: resolvedCatalogItemId,
         appointment_date: appointmentDate,
         notes: parsed.data.notes?.trim() || null,
         status: "scheduled",
@@ -778,6 +879,19 @@ export async function registerPatientAndCreateBooking(
     const slotCheck = validateDoctorSlotAvailability(availability, appointmentDate);
     if (!slotCheck.valid) {
       return { error: slotCheck.message };
+    }
+
+    if (data.appointment.catalog_item_id) {
+      const isCatalogValid = await validateActiveCatalogItem(
+        tenant.clinicId,
+        data.appointment.catalog_item_id,
+      );
+      if (!isCatalogValid) {
+        return {
+          error:
+            "Selected service item is unavailable or not found in this clinic.",
+        };
+      }
     }
 
     const conflict = await hasActiveDoctorConflict({
@@ -860,6 +974,10 @@ export async function updateBooking(
       data.doctor_id !== undefined && data.doctor_id !== existing.doctor_id;
     const isBranchChanging =
       data.branch_id !== undefined && data.branch_id !== existing.branch_id;
+    const isCatalogItemChanging =
+      perms.roleScope !== "patient" &&
+      data.catalog_item_id !== undefined &&
+      (data.catalog_item_id ?? null) !== (existing.catalog_item_id ?? null);
     const nextDate = data.appointment_date
       ? new Date(data.appointment_date)
       : existing.appointment_date;
@@ -875,7 +993,11 @@ export async function updateBooking(
       data.notes !== undefined &&
       (data.notes?.trim() || null) !== (existing.notes || null);
     const isDetailEdit =
-      isDoctorChanging || isBranchChanging || isDateChanging || isNotesChanging;
+      isDoctorChanging ||
+      isBranchChanging ||
+      isCatalogItemChanging ||
+      isDateChanging ||
+      isNotesChanging;
 
     if (isDetailEdit && !capabilities.canEditDetails) {
       return { error: "This booking can no longer be modified." };
@@ -965,6 +1087,19 @@ export async function updateBooking(
       }
     }
 
+    if (isCatalogItemChanging && data.catalog_item_id) {
+      const isCatalogValid = await validateActiveCatalogItem(
+        tenant.clinicId,
+        data.catalog_item_id,
+      );
+      if (!isCatalogValid) {
+        return {
+          error:
+            "Selected service item is unavailable or not found in this clinic.",
+        };
+      }
+    }
+
     if (shouldCheckSchedule && targetDoctorId) {
       const conflict = await hasActiveDoctorConflict({
         clinicId: tenant.clinicId,
@@ -983,6 +1118,9 @@ export async function updateBooking(
     const updateData: Prisma.appointmentsUncheckedUpdateInput = {};
     if (data.doctor_id !== undefined) updateData.doctor_id = data.doctor_id;
     if (data.branch_id !== undefined) updateData.branch_id = data.branch_id;
+    if (isCatalogItemChanging) {
+      updateData.catalog_item_id = data.catalog_item_id ?? null;
+    }
     if (data.appointment_date !== undefined) updateData.appointment_date = nextDate;
     if (data.notes !== undefined) updateData.notes = data.notes?.trim() || null;
     if (data.status !== undefined) {

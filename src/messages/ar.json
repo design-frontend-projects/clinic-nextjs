@@ -872,7 +872,18 @@
       "toastCreated": "تم إنشاء الحجز بنجاح.",
       "toastUpdated": "تم تحديث الحجز بنجاح.",
       "toastCancelled": "تم إلغاء الحجز.",
-      "toastStatusUpdated": "تم تحديث حالة الحجز."
+      "toastStatusUpdated": "تم تحديث حالة الحجز.",
+      "serviceLabel": "الخدمة / بند الفاتورة",
+      "selectService": "اختر خدمة (اختياري)...",
+      "searchServicesPlaceholder": "تصفية باسم الخدمة...",
+      "allCategories": "الكل",
+      "noServicesFound": "لم يتم العثور على خدمات مطابقة.",
+      "emptyCatalogHint": "لا توجد عناصر نشطة في دليل الفواتير بعد.",
+      "clearService": "مسح الاختيار",
+      "colService": "الخدمة",
+      "bookedService": "الخدمة المحجوزة",
+      "inactiveServiceTag": "غير نشط",
+      "noServiceSelected": "لم يتم تحديد خدمة"
     },
     "admin": {
       "title": "لوحة القيادة",
@@ -969,7 +980,8 @@
         "actionEdit": "تعديل",
         "tipEdit": "تعديل تفاصيل الموعد",
         "actionView": "التفاصيل",
-        "tipView": "عرض تفاصيل الموعد"
+        "tipView": "عرض تفاصيل الموعد",
+        "colService": "الخدمة"
       },
       "labs": {
         "title": "طلبات المختبر",
@@ -1045,7 +1057,11 @@
         "confirmedByAt": "تم التأكيد بواسطة {name} في {date}",
         "metricCharts": "المخططات التشريحية",
         "attachBodyChart": "حفظ وربط تعديلات المخطط التشريحي الحالية بهذه الزيارة",
-        "linkedChartBadge": "مخطط تشريحي v{version}"
+        "linkedChartBadge": "مخطط تشريحي v{version}",
+        "bookedServiceTitle": "الخدمة المحجوزة",
+        "bookedServiceDesc": "تم اختيارها من الاستقبال لهذا الموعد",
+        "createInvoiceFromService": "إنشاء فاتورة",
+        "servicePrice": "السعر"
       },
       "encounter": {
         "errDiagnosisRequired": "التشخيص مطلوب",
@@ -1627,7 +1643,11 @@
   "plans": {
     "basic": "أساسي",
     "basicPrice": "$29/شهر",
-    "basicFeatures": ["1 فرع", "حتى 3 موظفين", "تقارير أساسية"],
+    "basicFeatures": [
+      "1 فرع",
+      "حتى 3 موظفين",
+      "تقارير أساسية"
+    ],
     "pro": "برو",
     "proPrice": "$99/شهر",
     "proFeatures": [

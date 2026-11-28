@@ -104,6 +104,7 @@ model appointments {
   branch_id        String?              @db.Uuid
   patient_id       String               @db.Uuid
   doctor_id        String?              @db.Uuid
+  catalog_item_id  String?              @db.Uuid
   appointment_date DateTime
   status           AppointmentStatus    @default(scheduled)
   notes            String?
@@ -111,17 +112,19 @@ model appointments {
   deleted_at       DateTime?
   updated_at       DateTime             @default(now()) @updatedAt
   checked_in_at    DateTime?
-  review           appointment_reviews?
-  branches         branches?            @relation(fields: [branch_id], references: [id])
-  clinics          clinics              @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  profiles         profiles?            @relation(fields: [doctor_id], references: [id])
-  patients         patients             @relation(fields: [patient_id], references: [id], onDelete: Cascade)
-  encounters       encounters[]
-  lab_orders       lab_orders[]
-  patient_body_charts patient_body_charts[]
+  review                appointment_reviews?
+  billing_catalog_items billing_catalog_items? @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+  branches              branches?              @relation(fields: [branch_id], references: [id])
+  clinics               clinics                @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  profiles              profiles?              @relation(fields: [doctor_id], references: [id])
+  patients              patients               @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  encounters            encounters[]
+  lab_orders            lab_orders[]
+  patient_body_charts   patient_body_charts[]
 
   @@index([appointment_date])
   @@index([clinic_id])
+  @@index([catalog_item_id])
   @@index([clinic_id, updated_at, id])
 }
 
@@ -1428,6 +1431,7 @@ model billing_catalog_items {
   created_at    DateTime            @default(now())
   updated_at    DateTime            @default(now()) @updatedAt
   deleted_at    DateTime?
+  appointments  appointments[]
   clinics       clinics             @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   invoice_items invoice_items[]
 

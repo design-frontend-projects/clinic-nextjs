@@ -35,6 +35,7 @@ import type {
 } from "@/types/booking.types";
 
 import { TimeSlotPicker } from "@/components/bookings/time-slot-picker";
+import { CatalogItemCombobox } from "@/components/bookings/catalog-item-combobox";
 import {
   TempPasswordDialog,
   type TempPasswordInfo,
@@ -90,6 +91,7 @@ const createFormSchema = z.object({
   patient_id: z.string().optional(),
   doctor_id: z.string().uuid("Please select a doctor"),
   branch_id: z.string(),
+  catalog_item_id: z.string().uuid().nullable().optional(),
   appointment_date: z.date({ message: "Please select a date and time" }),
   notes: z.string().max(1000).optional(),
 });
@@ -170,6 +172,7 @@ export function BookingCreateDialog({
       patient_id: "",
       doctor_id: defaultDoctorId,
       branch_id: defaultBranchId,
+      catalog_item_id: null,
       appointment_date: undefined,
       notes: "",
     },
@@ -192,6 +195,7 @@ export function BookingCreateDialog({
       },
       appointment: {
         doctor_id: defaultDoctorId,
+        catalog_item_id: null,
         status: "scheduled",
         notes: "",
       },
@@ -211,6 +215,7 @@ export function BookingCreateDialog({
         patient_id: "",
         doctor_id: initialDoctorId,
         branch_id: defaultBranchId,
+        catalog_item_id: null,
         appointment_date: initialDate,
         notes: "",
       });
@@ -225,6 +230,7 @@ export function BookingCreateDialog({
         },
         appointment: {
           doctor_id: initialDoctorId,
+          catalog_item_id: null,
           appointment_date: initialDate,
           status: "scheduled",
           notes: "",
@@ -280,6 +286,7 @@ export function BookingCreateDialog({
               ? null
               : values.branch_id
             : undefined,
+        catalog_item_id: isPatient ? undefined : (values.catalog_item_id ?? null),
         appointment_date: values.appointment_date.toISOString(),
         notes: values.notes,
       }),
@@ -574,6 +581,26 @@ export function BookingCreateDialog({
         </div>
 
         <DoctorScheduleSummary doctor={selectedExistingDoctor} />
+
+        {!isPatient && (
+          <FormField
+            control={existingForm.control}
+            name="catalog_item_id"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>{t("serviceLabel")}</FormLabel>
+                <FormControl>
+                  <CatalogItemCombobox
+                    items={context.catalogItems}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={existingForm.control}
@@ -937,6 +964,24 @@ export function BookingCreateDialog({
                         />
 
                         <DoctorScheduleSummary doctor={selectedNewDoctor} />
+
+                        <FormField
+                          control={newPatientForm.control}
+                          name="appointment.catalog_item_id"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>{t("serviceLabel")}</FormLabel>
+                              <FormControl>
+                                <CatalogItemCombobox
+                                  items={context.catalogItems}
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
                         <FormField
                           control={newPatientForm.control}

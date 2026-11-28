@@ -20,6 +20,7 @@ import {
   Pencil,
   Phone,
   Stethoscope,
+  Tag,
   User,
   UserX,
   XCircle,
@@ -43,6 +44,7 @@ import type {
 } from "@/types/booking.types";
 import type { AppointmentStatus } from "@/types/staff.types";
 
+import { CatalogItemCombobox } from "@/components/bookings/catalog-item-combobox";
 import { TimeSlotPicker } from "@/components/bookings/time-slot-picker";
 import {
   AlertDialog,
@@ -95,6 +97,7 @@ const NO_BRANCH_SENTINEL = "__none__";
 const editBookingFormSchema = z.object({
   doctor_id: z.string().uuid("Please select a doctor"),
   branch_id: z.string(),
+  catalog_item_id: z.string().uuid().nullable().optional(),
   appointment_date: z.date({ message: "Please select a date and time" }),
   status: appointmentStatusEnum,
   notes: z.string().max(1000).optional(),
@@ -150,6 +153,7 @@ export function BookingDetailSheet({
 }: BookingDetailSheetProps) {
   const t = useTranslations("pages.booking");
   const tStatus = useTranslations("enums.status");
+  const tCat = useTranslations("admin.billing.categories");
   const locale = useLocale();
   const dateLocale = locale === "ar" ? arLocale : undefined;
   const queryClient = useQueryClient();
@@ -180,6 +184,7 @@ export function BookingDetailSheet({
     defaultValues: {
       doctor_id: "",
       branch_id: NO_BRANCH_SENTINEL,
+      catalog_item_id: null,
       appointment_date: new Date(),
       status: "scheduled",
       notes: "",
@@ -191,6 +196,7 @@ export function BookingDetailSheet({
     form.reset({
       doctor_id: booking.doctor?.id ?? "",
       branch_id: booking.branch?.id ?? NO_BRANCH_SENTINEL,
+      catalog_item_id: booking.catalogItem?.id ?? null,
       appointment_date: new Date(booking.appointmentDate),
       status: booking.status,
       notes: booking.notes ?? "",
@@ -248,6 +254,10 @@ export function BookingDetailSheet({
             ? null
             : values.branch_id
           : undefined,
+        catalog_item_id:
+          context.roleScope !== "patient"
+            ? (values.catalog_item_id ?? null)
+            : undefined,
         appointment_date: values.appointment_date.toISOString(),
         notes: values.notes ?? "",
         status: booking.capabilities.canOverrideTerminal
@@ -516,6 +526,62 @@ export function BookingDetailSheet({
                       </Card>
                     )}
 
+                    {/* Booked Service card (clinic roles only) */}
+                    {context.roleScope !== "patient" && booking.catalogItem && (
+                      <Card className="py-0">
+                        <CardContent className="space-y-2 p-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              <Tag className="h-3.5 w-3.5 text-primary" />
+                              {t("bookedService")}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant="secondary" className="text-[11px]">
+                                {tCat(booking.catalogItem.category)}
+                              </Badge>
+                              {!booking.catalogItem.isActive && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[11px] text-amber-600 dark:text-amber-400"
+                                >
+                                  {t("inactiveServiceTag")}
+                                </Badge>
+                              )}
+                              <Badge
+                                variant="outline"
+                                dir="ltr"
+                                className="font-mono text-xs tabular-nums"
+                              >
+                                ${booking.catalogItem.price.toFixed(2)}
+                              </Badge>
+                            </div>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">
+                            {locale === "ar"
+                              ? booking.catalogItem.nameAr
+                              : booking.catalogItem.nameEn}
+                          </p>
+                          {(locale === "ar"
+                            ? booking.catalogItem.nameEn
+                            : booking.catalogItem.nameAr) !==
+                            (locale === "ar"
+                              ? booking.catalogItem.nameAr
+                              : booking.catalogItem.nameEn) && (
+                            <p className="text-xs text-muted-foreground">
+                              {locale === "ar"
+                                ? booking.catalogItem.nameEn
+                                : booking.catalogItem.nameAr}
+                            </p>
+                          )}
+                          {booking.catalogItem.description && (
+                            <p className="text-xs text-muted-foreground">
+                              {booking.catalogItem.description}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* Notes & clinical activity */}
                     <Card className="py-0">
                       <CardContent className="space-y-3 p-4">
@@ -729,6 +795,27 @@ export function BookingDetailSheet({
                         )}
 
                         <DoctorScheduleSummary doctor={selectedDoctor} />
+
+                        {context.roleScope !== "patient" && (
+                          <FormField
+                            control={form.control}
+                            name="catalog_item_id"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col">
+                                <FormLabel>{t("serviceLabel")}</FormLabel>
+                                <FormControl>
+                                  <CatalogItemCombobox
+                                    items={context.catalogItems}
+                                    selectedFallback={booking.catalogItem}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                         {booking.capabilities.canOverrideTerminal && (
                           <FormField

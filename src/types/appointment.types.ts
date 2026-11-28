@@ -11,6 +11,11 @@ export const appointmentStatusEnum = z.enum([
 export const appointmentFormSchema = z.object({
   patient_id: z.string().uuid("Please select a patient"),
   doctor_id: z.string().uuid("Please select a doctor"),
+  catalog_item_id: z
+    .string()
+    .uuid("Please select a valid service item")
+    .nullable()
+    .optional(),
   appointment_date: z.date({
     message: "Please select a date and time",
   }),

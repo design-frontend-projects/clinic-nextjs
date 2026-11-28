@@ -13,14 +13,17 @@ import {
   Activity,
   ArrowUpRight,
   Star,
+  Tag,
 } from "lucide-react";
 import { Link } from "@/i18n/routing";
+import type { DoctorAppointmentCatalogItem } from "@/app/actions/doctor";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { DoctorReview, DoctorReviewStats } from "@/types/review.types";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 interface Appointment {
   id: string;
@@ -29,6 +32,7 @@ interface Appointment {
   date: string;
   status: string;
   notes: string | null;
+  catalogItem?: DoctorAppointmentCatalogItem | null;
 }
 
 interface Patient {
@@ -74,6 +78,8 @@ export function DoctorDashboardClient({
   recentReviews,
 }: DoctorDashboardClientProps) {
   const t = useTranslations("pages.doctor");
+  const tCat = useTranslations("admin.billing.categories");
+  const locale = useLocale();
   const todayDateStr = format(new Date(), "EEEE, MMM d, yyyy");
 
   // Calculate schedule completion stats
@@ -279,9 +285,27 @@ export function DoctorDashboardClient({
                           </span>
                         </div>
                         <div>
-                          <p className="font-semibold text-sm group-hover:text-accent-blue transition-colors">
-                            {apt.patientName || t("unknownPatient")}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-sm group-hover:text-accent-blue transition-colors">
+                              {apt.patientName || t("unknownPatient")}
+                            </p>
+                            {apt.catalogItem && (
+                              <Badge
+                                variant="secondary"
+                                className="inline-flex h-5 items-center gap-1 px-1.5 text-[10px] font-medium"
+                              >
+                                <Tag className="h-2.5 w-2.5 text-primary" />
+                                <span className="max-w-[140px] truncate">
+                                  {locale === "ar"
+                                    ? apt.catalogItem.nameAr
+                                    : apt.catalogItem.nameEn}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  · {tCat(apt.catalogItem.category)}
+                                </span>
+                              </Badge>
+                            )}
+                          </div>
                           {apt.notes && (
                             <p className="text-xs text-muted-foreground truncate w-40 md:w-56 mt-0.5">
                               {apt.notes}

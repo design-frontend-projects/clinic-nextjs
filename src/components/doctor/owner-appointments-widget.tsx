@@ -2,9 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { ChevronRight, Clock } from "lucide-react";
+import { ChevronRight, Clock, Tag } from "lucide-react";
 
 import { getDoctorDashboardStats } from "@/app/actions/doctor";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Link } from "@/i18n/routing";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 /**
  * "My Appointments Today" card for a clinic owner who also practises. Rendered
@@ -25,6 +26,8 @@ import { useTranslations } from "next-intl";
  */
 export function OwnerAppointmentsWidget() {
   const t = useTranslations("doctor.ownerWidget");
+  const tCat = useTranslations("admin.billing.categories");
+  const locale = useLocale();
   const { data: stats } = useQuery({
     queryKey: ["owner-appointments-widget"],
     queryFn: () => getDoctorDashboardStats(),
@@ -72,9 +75,27 @@ export function OwnerAppointmentsWidget() {
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium">
-                    {apt.patientName || t("unknownPatient")}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">
+                      {apt.patientName || t("unknownPatient")}
+                    </p>
+                    {apt.catalogItem && (
+                      <Badge
+                        variant="secondary"
+                        className="inline-flex h-5 items-center gap-1 px-1.5 text-[10px] font-medium"
+                      >
+                        <Tag className="h-2.5 w-2.5 text-primary" />
+                        <span className="max-w-[140px] truncate">
+                          {locale === "ar"
+                            ? apt.catalogItem.nameAr
+                            : apt.catalogItem.nameEn}
+                        </span>
+                        <span className="text-muted-foreground">
+                          · {tCat(apt.catalogItem.category)}
+                        </span>
+                      </Badge>
+                    )}
+                  </div>
                   {apt.notes && (
                     <p className="w-40 truncate text-xs text-muted-foreground">
                       {apt.notes}

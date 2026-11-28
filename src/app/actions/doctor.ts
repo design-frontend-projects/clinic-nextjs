@@ -2,10 +2,44 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireTenantInfo } from "@/lib/auth";
+import type { BillingItemCategory } from "@/types/billing.types";
+import type { BookingCatalogItemOption } from "@/types/booking.types";
 import { DOCTOR_PAGE_ROLES } from "@/types/clinic.types";
 import type { DoctorReview, DoctorReviewStats } from "@/types/review.types";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+
+export type DoctorAppointmentCatalogItem = BookingCatalogItemOption;
+
+const CATALOG_ITEM_SELECT = {
+  id: true,
+  name_en: true,
+  name_ar: true,
+  category: true,
+  price: true,
+  description: true,
+  is_active: true,
+} as const;
+
+function mapDoctorCatalogItem(row: {
+  id: string;
+  name_en: string;
+  name_ar: string;
+  category: string;
+  price: unknown;
+  description: string | null;
+  is_active: boolean;
+}): DoctorAppointmentCatalogItem {
+  return {
+    id: row.id,
+    nameEn: row.name_en,
+    nameAr: row.name_ar,
+    category: row.category as BillingItemCategory,
+    price: Number(row.price),
+    description: row.description,
+    isActive: row.is_active,
+  };
+}
 
 /**
  * A practitioner is a role that sees appointments assigned to them personally
@@ -41,6 +75,7 @@ export async function getDoctorDashboardStats() {
         },
         include: {
           patients: { select: { id: true, first_name: true, last_name: true } },
+          billing_catalog_items: { select: CATALOG_ITEM_SELECT },
         },
         orderBy: { appointment_date: "asc" },
       }),
@@ -86,6 +121,9 @@ export async function getDoctorDashboardStats() {
       date: a.appointment_date.toISOString(),
       status: a.status,
       notes: a.notes,
+      catalogItem: a.billing_catalog_items
+        ? mapDoctorCatalogItem(a.billing_catalog_items)
+        : null,
     })),
     recentPatients: Array.from(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,7 +189,7 @@ export async function getDoctorAppointments(filter?: DoctorAppointmentsFilter) {
     where.status = status;
   }
 
-  return prisma.appointments.findMany({
+  const rows = await prisma.appointments.findMany({
     where,
     include: {
       patients: {
@@ -169,10 +207,20 @@ export async function getDoctorAppointments(filter?: DoctorAppointmentsFilter) {
           status: true,
         },
       },
+      billing_catalog_items: {
+        select: CATALOG_ITEM_SELECT,
+      },
     },
     orderBy: { appointment_date: "asc" },
     take: 50,
   });
+
+  return rows.map(({ billing_catalog_items, ...rest }) => ({
+    ...rest,
+    catalogItem: billing_catalog_items
+      ? mapDoctorCatalogItem(billing_catalog_items)
+      : null,
+  }));
 }
 
 export async function getPatientDetails(
@@ -236,7 +284,15 @@ export async function getPatientDetails(
             doctor_id: tenant.profileId,
             status: { notIn: ["cancelled", "no_show"] },
           },
-          select: { id: true },
+          select: {
+            id: true,
+            appointment_date: true,
+            status: true,
+            notes: true,
+            billing_catalog_items: {
+              select: CATALOG_ITEM_SELECT,
+            },
+          },
         })
       : Promise.resolve(null),
   ]);
@@ -250,6 +306,17 @@ export async function getPatientDetails(
     currentDoctorName: tenant.fullName,
     clinicName: tenant.clinicName,
     canConfirmAllPatientLabs: Boolean(currentAppt),
+    currentAppointment: currentAppt
+      ? {
+          id: currentAppt.id,
+          appointmentDate: currentAppt.appointment_date.toISOString(),
+          status: currentAppt.status,
+          notes: currentAppt.notes,
+          catalogItem: currentAppt.billing_catalog_items
+            ? mapDoctorCatalogItem(currentAppt.billing_catalog_items)
+            : null,
+        }
+      : null,
   };
 }
 

@@ -26,7 +26,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { usePathname, useRouter } from "@/i18n/routing";
@@ -83,6 +83,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Badge } from "@/components/ui/badge";
 
 interface BookingHubClientProps {
   variant?: "shared" | "staff";
@@ -100,6 +101,8 @@ const STATUS_OPTIONS = [
 export function BookingHubClient({ variant = "shared" }: BookingHubClientProps) {
   const t = useTranslations("pages.booking");
   const tStatus = useTranslations("enums.status");
+  const tCat = useTranslations("admin.billing.categories");
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -372,6 +375,36 @@ export function BookingHubClient({ variant = "shared" }: BookingHubClientProps) 
           </span>
         ),
       },
+      ...(!isPatient
+        ? [
+            {
+              id: "catalogItem",
+              accessorFn: (row: BookingItem) =>
+                row.catalogItem
+                  ? locale === "ar"
+                    ? row.catalogItem.nameAr
+                    : row.catalogItem.nameEn
+                  : "",
+              header: t("colService"),
+              cell: ({ row }: { row: { original: BookingItem } }) => {
+                const svc = row.original.catalogItem;
+                if (!svc) {
+                  return <span className="text-sm text-muted-foreground">—</span>;
+                }
+                return (
+                  <div className="flex max-w-[200px] flex-wrap items-center gap-1">
+                    <span className="truncate text-sm font-medium text-foreground">
+                      {locale === "ar" ? svc.nameAr : svc.nameEn}
+                    </span>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                      {tCat(svc.category)}
+                    </Badge>
+                  </div>
+                );
+              },
+            } satisfies ColumnDef<BookingItem>,
+          ]
+        : []),
       {
         accessorKey: "notes",
         header: t("colNotes"),
@@ -487,7 +520,7 @@ export function BookingHubClient({ variant = "shared" }: BookingHubClientProps) 
     );
 
     return cols;
-  }, [isPatient, t, transitionMutation]);
+  }, [isPatient, locale, t, tCat, transitionMutation]);
 
   if (isContextLoading || !context) {
     return (

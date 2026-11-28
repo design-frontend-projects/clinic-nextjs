@@ -3,9 +3,13 @@
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getBookingContext } from "@/app/actions/booking";
-import { getDoctorAppointments } from "@/app/actions/doctor";
+import {
+  getDoctorAppointments,
+  type DoctorAppointmentCatalogItem,
+} from "@/app/actions/doctor";
 import { fetchTenantInfoAction } from "@/app/actions/tenant";
 import { useAppointmentsRealtime } from "@/lib/appointments/use-appointments-realtime";
+import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ColumnDef } from "@tanstack/react-table";
@@ -35,7 +39,7 @@ import {
   DEFAULT_APPT_FILTER,
   type ApptDateFilter,
 } from "@/components/appointments/appointment-date-filter";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 
 type Patient = {
@@ -53,11 +57,14 @@ type Appointment = {
   notes: string | null;
   patients: Patient | null;
   lab_orders?: { id: string; status: string }[];
+  catalogItem?: DoctorAppointmentCatalogItem | null;
 };
 
 export default function DoctorAppointmentsPage() {
   const t = useTranslations("pages.doctor.appointments");
   const tGender = useTranslations("enums.gender");
+  const tCat = useTranslations("admin.billing.categories");
+  const locale = useLocale();
 
   const [dateFilter, setDateFilter] =
     useState<ApptDateFilter>(DEFAULT_APPT_FILTER);
@@ -143,6 +150,26 @@ export default function DoctorAppointmentsPage() {
             </div>
           </div>
         ),
+      },
+      {
+        id: "service",
+        header: t("colService"),
+        cell: ({ row }) => {
+          const svc = row.original.catalogItem;
+          if (!svc) {
+            return <span className="text-sm text-muted-foreground">—</span>;
+          }
+          return (
+            <div className="flex max-w-[200px] flex-wrap items-center gap-1.5">
+              <span className="truncate text-sm font-medium text-foreground">
+                {locale === "ar" ? svc.nameAr : svc.nameEn}
+              </span>
+              <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                {tCat(svc.category)}
+              </Badge>
+            </div>
+          );
+        },
       },
       {
         accessorKey: "status",
@@ -304,7 +331,7 @@ export default function DoctorAppointmentsPage() {
         },
       },
     ],
-    [bookingContext, t, tGender],
+    [bookingContext, locale, t, tCat, tGender],
   );
 
   return (
